@@ -10,10 +10,9 @@ import { useState } from "react";
 
 
 export default function RootLayout() {
-  // ONLY FOR DEV
-  const hasOnboarded = false;
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false)
-  
+  {/* TODO: Update to correct states */}
+  const hasOnboarded = true;
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(true)
   
   const { colorScheme } = useColorScheme();
 
@@ -22,6 +21,7 @@ export default function RootLayout() {
     <ThemeProvider value={NAV_THEME[colorScheme ?? "light"]}>
       
       {/* ONLY FOR DEV -- LOG IN TOGGLE */}
+      {/* TODO: Remove before production */}
       <View>
         <Pressable onPress={() => setIsLoggedIn(!isLoggedIn)}>
           {!isLoggedIn ? (
@@ -33,6 +33,8 @@ export default function RootLayout() {
       </View>
       {/* --- */}
 
+      {/* Redirects user to correct view */}
+      {/* TODO: Update to correct states */}
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Protected guard={!isLoggedIn}>
           <Stack.Screen name="(auth)" />

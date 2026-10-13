@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Bell, Bookmark, Search, Settings } from "lucide-react-native";
+import { HouseHeart, ListFilter, Search, Settings } from "lucide-react-native";
 
 export default function TabsLayout() {
   return (
@@ -7,31 +7,32 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="search"
         options={{
-          title: "Sök",
+          title: "Sök bostad",
           tabBarIcon: ({ color }) => <Search color={color} />,
         }}
       />
       <Tabs.Screen
         name="saved"
         options={{
-          title: "Sparade",
-          tabBarIcon: ({ color }) => <Bookmark color={color} />,
+          title: "Sparat",
+          tabBarIcon: ({ color }) => <HouseHeart color={color} />,
         }}
       />
       <Tabs.Screen
-        name="notifications"
+        name="update-filter"
         options={{
-          title: "Notiser",
-          tabBarIcon: ({ color }) => <Bell color={color} />,
+          title: "Ändra bevakning",
+          tabBarIcon: ({ color }) => <ListFilter color={color} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-            title: 'Inställningar',
-            tabBarIcon: ({ color }) => <Settings color={color} />,
+          title: "Inställningar",
+          tabBarIcon: ({ color }) => <Settings color={color} />,
         }}
-        />
+      />
+      <Tabs.Screen name="notifications" options={{ href: null }} />
     </Tabs>
   );
 }
