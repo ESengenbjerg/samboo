@@ -46,6 +46,12 @@ module.exports = {
           foreground: 'hsl(var(--card-foreground))',
         },
       },
+      fontFamily: {
+        display: ['MomoTrustDisplay_400Regular'],
+        sans: ['MomoTrustSans_400Regular'],
+        'sans-medium': ['MomoTrustSans_500Medium'],
+        'sans-bold': ['MomoTrustSans_700Bold'],
+      },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
