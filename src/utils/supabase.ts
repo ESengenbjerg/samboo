@@ -13,3 +13,6 @@ if (!url || !key) {
 
 // Create connection to Supabase
 export const supabase = createClient(url, key);
+
+// NOTES!
+// @react-native-async-storage/async-storage is needed if publishing in app format, needed for Expo Go to work.
