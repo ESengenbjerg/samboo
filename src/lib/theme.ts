@@ -1,21 +1,23 @@
 import { DarkTheme, DefaultTheme } from 'expo-router';
 
+// Values mirror the color variables in global.css.
+// Comma syntax is used because React Native's color parser does not support "hsl(h s% l%)".
 export const THEME = {
   light: {
-    background: 'hsl(0 0% 100%)',
-    foreground: 'hsl(0 0% 3.9%)',
-    card: 'hsl(0 0% 100%)',
-    primary: 'hsl(0 0% 9%)',
-    border: 'hsl(0 0% 89.8%)',
-    destructive: 'hsl(0 84.2% 60.2%)',
+    background: 'hsl(27, 39%, 95%)', // --off-white
+    foreground: 'hsl(79, 78%, 13%)', // --dark-green
+    card: 'hsl(0, 0%, 100%)', // white
+    primary: 'hsl(40, 82%, 61%)', // --yellow
+    border: 'hsl(25, 15%, 84%)', // --light-greige
+    destructive: 'hsl(358, 65%, 50%)', // --red
   },
   dark: {
-    background: 'hsl(0 0% 3.9%)',
-    foreground: 'hsl(0 0% 98%)',
-    card: 'hsl(0 0% 3.9%)',
-    primary: 'hsl(0 0% 98%)',
-    border: 'hsl(0 0% 14.9%)',
-    destructive: 'hsl(0 70.9% 59.4%)',
+    background: 'hsl(79, 78%, 13%)', // --dark-green
+    foreground: 'hsl(27, 39%, 95%)', // --off-white
+    card: 'hsl(80, 55%, 18%)', // --deep-green
+    primary: 'hsl(40, 82%, 61%)', // --yellow
+    border: 'hsl(88, 39%, 26%)', // --medium-green
+    destructive: 'hsl(358, 65%, 50%)', // --red
   },
 };
 

@@ -2,49 +2,64 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --light-green: 81 18% 58%;
+  --medium-green: 88 39% 26%;
+  --deep-green: 80 55% 18%;
+  --dark-green: 79 78% 13%;
+  --sand: 38 52% 81%;
+  --yellow: 40 82% 61%;
+  --orange: 38 100% 32%;
+  --red: 358 65% 50%;
+  --off-white: 27 39% 95%;
+  --light-greige: 25 15% 84%;
+  --dark-greige: 26 15% 58%;
+  --off-black: 0 0% 13%;
+}
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
+    --background: var(--off-white);
+    --foreground: var(--dark-green);
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
+    --card-foreground: var(--dark-green);
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 63%;
-    --radius: 0.625rem;
+    --popover-foreground: var(--dark-green);
+    --primary: var(--yellow);
+    --primary-foreground: var(--off-black);
+    --secondary: var(--dark-green);
+    --secondary-foreground: var(--off-white);
+    --muted: var(--sand);
+    --muted-foreground: var(--medium-green);
+    --accent: var(--dark-greige);
+    --accent-foreground: var(--off-white);
+    --destructive: var(--red);
+    --destructive-foreground: var(--off-white);
+    --border: var(--light-greige);
+    --input: var(--off-white);
+    --ring: var(--medium-green);
+    --radius: 0.35rem;
   }
 
   .dark:root {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 70.9% 59.4%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
+    --background: var(--dark-green);
+    --foreground: var(--off-white);
+    --card: var(--deep-green);
+    --card-foreground: var(--off-white);
+    --popover: var(--deep-green);
+    --popover-foreground: var(--off-white);
+    --primary: var(--yellow);
+    --primary-foreground: var(--dark-green);
+    --secondary: var(--sand);
+    --secondary-foreground: var(--dark-green);
+    --muted: var(--medium-green);
+    --muted-foreground: var(--light-green);
+    --accent: var(--medium-green);
+    --accent-foreground: var(--off-white);
+    --destructive: var(--red);
+    --destructive-foreground: var(--off-white);
+    --border: var(--medium-green);
+    --input: var(--deep-green);
+    --ring: var(--yellow);
   }
 }
