@@ -1,5 +1,5 @@
 import { chromium } from "playwright";
-import { mapListing } from "./mappers/mockdata.mjs";
+import { mapListing } from "../mappers/mockdata.mjs";
 
 // Fetch dotenv variables
 process.loadEnvFile(".env");
@@ -9,7 +9,7 @@ const AGENCY = "mockdata";
 
 // Admin Supabase connection (service role, bypasses RLS). Dynamic import so it runs AFTER the env is loaded.
 // THIS REQUIRES NODE v.25, otherwise an error will occur
-const { supabaseAdmin } = await import("../lib/supabaseAdmin.mjs");
+const { supabaseAdmin } = await import("../../../lib/supabaseAdmin.mjs");
 
 // Use Google Chrome
 const browser = await chromium.launch({ headless: true, slowMo: 300 });
