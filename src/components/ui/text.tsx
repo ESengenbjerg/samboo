@@ -16,11 +16,11 @@ const textVariants = cva(
       variant: {
         default: "",
         h1: cn(
-          "text-center text-4xl font-display tracking-tight",
+          "text-4xl font-display tracking-tight",
           Platform.select({ web: "scroll-m-20 text-balance" }),
         ),
         h2: cn(
-          "border-border border-b pb-2 text-3xl font-display tracking-tight",
+          "pb-2 text-3xl font-display tracking-tight",
           Platform.select({ web: "scroll-m-20 first:mt-0" }),
         ),
         h3: cn(
@@ -37,8 +37,11 @@ const textVariants = cva(
           "bg-muted relative rounded px-[0.3rem] py-[0.2rem] font-mono text-sm",
         ),
         lead: "text-muted-foreground text-xl",
+        bold: "font-sans-bold",
+        mediumBold: "font-sans-medium",
         large: "text-lg font-sans-bold",
-        small: "text-sm font-sans-medium leading-none",
+        small: "text-sm font-sans",
+        xsmall: "text-xs font-sans leading-none",
         muted: "text-muted-foreground text-sm",
       },
     },
