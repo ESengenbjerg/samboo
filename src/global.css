@@ -26,19 +26,19 @@
     --popover: 0 0% 100%;
     --popover-foreground: var(--dark-green);
     --primary: var(--yellow);
-    --primary-foreground: var(--dark-green);
+    --primary-foreground: var(--off-black);
     --secondary: var(--dark-green);
     --secondary-foreground: var(--off-white);
     --muted: var(--sand);
     --muted-foreground: var(--medium-green);
-    --accent: var(--medium-green);
+    --accent: var(--dark-greige);
     --accent-foreground: var(--off-white);
     --destructive: var(--red);
     --destructive-foreground: var(--off-white);
     --border: var(--light-greige);
     --input: var(--off-white);
     --ring: var(--medium-green);
-    --radius: 0.350rem;
+    --radius: 0.35rem;
   }
 
   .dark:root {
