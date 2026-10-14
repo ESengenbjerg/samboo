@@ -12,14 +12,15 @@ const AGENCY = "mockdata";
 const { supabaseAdmin } = await import("../lib/supabaseAdmin.mjs");
 
 // Use Google Chrome
-const browser = await chromium.launch({ headless: false, slowMo: 300 });
+const browser = await chromium.launch({ headless: true, slowMo: 300 });
 
 // Open a new Google Chrome window
 const page = await browser.newPage();
 
 // Go to result page
 await page.goto(
-  `${process.env.BASE_PATH_MOCK_DATA}?area=Partille&category=villa`,
+  `${process.env.BASE_PATH_MOCK_DATA}?area=Partille`, // For wider result
+  // ?area=Partille&category=villa`,
 );
 
 // Fetch result links in an array

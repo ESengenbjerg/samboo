@@ -8,6 +8,8 @@ const PROPERTY_TYPES = {
   parhus: "radhus",
   kedjehus: "radhus",
   tomt: "tomt",
+  lagenhet: "lagenhet",
+  lägenhet: "lagenhet",
 };
 
 // Number(null) is 0, so check for null/empty first
