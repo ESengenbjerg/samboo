@@ -1,19 +1,43 @@
 import { useState } from "react";
 import { View } from "react-native";
+import { Text } from "@/components/ui/text"
 
-import { InfoDialog } from "@/components/modals/info-dialog";
-import { ConfirmDialog } from "@/components/modals/confirm-dialog";
+import { SaveObjectDialog } from "@/components/modals/save-object-dialog";
 import { Button } from "@/components/ui/button";
-import { Text } from "@/components/ui/text";
-import { router } from "expo-router";
+import { SaveShowingDialog } from "@/components/modals/save-showing-dialog";
 
 export default function CardAndDialogComponents() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialog2Open, setDialog2Open] = useState(false);
-  const [alertOpen, setAlertOpen] = useState(false);
+  // const [alertOpen, setAlertOpen] = useState(false);
   return (
     <>
       <View>
+        <Button onPress={() => setDialogOpen(true)}>
+          <Text>Visning</Text>
+        </Button>
+
+        <SaveShowingDialog
+        key={1}
+          open={dialogOpen}
+          onOpenChange={() => setDialogOpen(false)}
+          dates={["3/10", "4/10"]}
+          onSave={() => setDialogOpen(false)}
+        ></SaveShowingDialog>
+      </View>
+   
+      <View>
+        <Button onPress={() => setDialog2Open(true)}>
+          <Text>Öppna</Text>
+        </Button>
+        <SaveObjectDialog
+          open={dialog2Open}
+          onOpenChange={() => setDialog2Open(false)}
+          onAction={() => setDialog2Open(false)}
+        ></SaveObjectDialog>
+      </View>
+
+      {/* <View>
         <Button onPress={() => setAlertOpen(true)}>
           <Text>Alert</Text>
         </Button>
@@ -60,7 +84,7 @@ export default function CardAndDialogComponents() {
             setDialog2Open(false);
           }}
         />
-      </View>
+      </View> */}
 
       {/* <View className="flex-1 gap-4 m-8 justify-center">
         <ObjectCard
