@@ -37,5 +37,6 @@ export function mapListing(data) {
     rooms: toNumber(data.rooms),
     latitude: toNumber(data.geo?.latitude),
     longitude: toNumber(data.geo?.longitude),
+    // NOTE! toNumber always returns an actuall number or null. So if value is missing it will be null
   };
 }
