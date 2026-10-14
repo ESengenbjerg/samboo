@@ -12,11 +12,22 @@ const PROPERTY_TYPES = {
   lägenhet: "lagenhet",
 };
 
-// Number(null) is 0, so check for null/empty first
+// // Number(null) is 0, so check for null/empty first
+// function toNumber(value) {
+//   if (value === null || value === undefined || value === "") return null;
+//   const n = Number(value);
+//   return Number.isFinite(n) ? n : null;
+// }
+
+// Only real numbers pass. Strings, null, undefined, NaN and Infinity become null
 function toNumber(value) {
-  if (value === null || value === undefined || value === "") return null;
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+// A price has to be a real number above 0. Anything else means "no price (yet)" -> null
+function toPrice(value) {
+  const n = toNumber(value);
+  return n !== null && n > 0 ? n : null;
 }
 
 function mapPropertyType(category) {
@@ -35,7 +46,7 @@ export function mapListing(data) {
     property_type: mapPropertyType(data.category),
     municipality: data.municipality ?? null,
     area: data.district ?? data.addressLocality ?? null,
-    price: toNumber(data.price),
+    price: toPrice(data.price),
     rooms: toNumber(data.rooms),
     latitude: toNumber(data.geo?.latitude),
     longitude: toNumber(data.geo?.longitude),
