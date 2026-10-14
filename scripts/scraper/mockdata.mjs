@@ -1,17 +1,26 @@
 import { chromium } from "playwright";
+import { mapListing } from "./mappers/mockdata.mjs";
 
 // Fetch dotenv variables
 process.loadEnvFile(".env");
 
+// The mock data has no agency info, so use a hardcoded placeholder
+const AGENCY = "mockdata";
+
+// Admin Supabase connection (service role, bypasses RLS). Dynamic import so it runs AFTER the env is loaded.
+// THIS REQUIRES NODE v.25, otherwise an error will occur
+const { supabaseAdmin } = await import("../lib/supabaseAdmin.mjs");
+
 // Use Google Chrome
-const browser = await chromium.launch({ headless: false, slowMo: 300 });
+const browser = await chromium.launch({ headless: true, slowMo: 300 });
 
 // Open a new Google Chrome window
 const page = await browser.newPage();
 
 // Go to result page
 await page.goto(
-  `${process.env.BASE_PATH_MOCK_DATA}?area=Partille&category=villa`,
+  `${process.env.BASE_PATH_MOCK_DATA}?area=Partille`, // For wider result
+  // ?area=Partille&category=villa`,
 );
 
 // Fetch result links in an array
@@ -27,7 +36,7 @@ for (const link of links) {
   }
 }
 
-// Make sure URLs are unique, no duplicates, and built absolute URLs for Playwright to use
+// Make sure URLs are unique (no duplicates) and build absolute URLs for Playwright to use
 const urls = [...new Set(objects)].map(
   (p) => new URL(p, process.env.BASE_PATH_MOCK_DATA).href,
 );
@@ -49,20 +58,37 @@ for (const url of urls) {
     // Parse
     const data = JSON.parse(text);
 
-    // Save result
-    results.push(data);
+    // Build a row matching the listings table
+    results.push({
+      agency: AGENCY,
+      external_id: Number(data.path.split("/").pop()), // "/objekt/1063" -> 1063
+      url,
+      ld_json: data,
+      last_seen_at: new Date().toISOString(),
+      removed_at: null, // A listing that is seen again is not "removed"
+      ...mapListing(data), // Normalized columns used for matching
+    });
 
     console.log(`${url}: ${data.streetAddress}`);
     // .../objekt/1063: Bäckvägen 29
     // .../objekt/1027: Bergsgläntan 4
     // .../objekt/1013: Tallvägen 29
   } catch (error) {
-    console.error(`Failed on ${data.path}:`);
+    console.error(`Failed on ${url}:`, error);
   }
 }
 
-// Render out raw data
-console.log(JSON.stringify(results, null, 2));
+// Insert new listings, update existing ones (matched on agency + external_id)
+const { error } = await supabaseAdmin
+  .from("listings")
+  .upsert(results, { onConflict: "agency,external_id" });
+
+if (error) {
+  console.error("Failed to save listings:", error);
+} else {
+  console.log(`Saved ${results.length} listings`);
+}
+// Tested and seems to work fine!
 
 // Example result from mockdata
 // {
@@ -92,3 +118,15 @@ console.log(JSON.stringify(results, null, 2));
 
 // Close browser window
 await browser.close();
+
+// ---------------------- MATCH --------------------------
+// New listings may match existing users' search params
+const { data: newMatches, error: matchError } = await supabaseAdmin.rpc(
+  "match_user_listings",
+);
+
+if (matchError) {
+  console.error("Failed to match listings:", matchError);
+} else {
+  console.log(`${newMatches} new user matches`);
+}
