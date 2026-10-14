@@ -1,4 +1,5 @@
 import { chromium } from "playwright";
+import { mapListing } from "./mappers/mockdata.mjs";
 
 // Fetch dotenv variables
 process.loadEnvFile(".env");
@@ -64,6 +65,15 @@ for (const url of urls) {
       ld_json: data,
       last_seen_at: new Date().toISOString(),
       removed_at: null, // A listing that is seen again is not "removed"
+      ...mapListing(data), // Normalized columns used for matching
+
+      // property_type: String(data.category), // Villa
+      // municipality: String(data.municipality), // Partille
+      // area: String(data.district), //Partille
+      // price: Number(data.price), // 5 800 000
+      // rooms: Number(data.rooms), //4
+      // latitude: Float16Array(data.geo.latitude),
+      // longitude: Float16Array(data.geo.longitude),
     });
 
     console.log(`${url}: ${data.streetAddress}`);
