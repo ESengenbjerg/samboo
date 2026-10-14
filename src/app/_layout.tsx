@@ -31,8 +31,8 @@ export default function RootLayout() {
   });
 
   // TODO: Update to correct states
-  const hasOnboarded = true;
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(true);
+  const hasOnboarded = false;
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
 
   const { colorScheme } = useColorScheme();
 
