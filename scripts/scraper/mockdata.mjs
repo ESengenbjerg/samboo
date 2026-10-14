@@ -118,3 +118,15 @@ if (error) {
 
 // Close browser window
 await browser.close();
+
+// ---------------------- MATCH --------------------------
+// New listings may match existing users' search params
+const { data: newMatches, error: matchError } = await supabaseAdmin.rpc(
+  "match_user_listings",
+);
+
+if (matchError) {
+  console.error("Failed to match listings:", matchError);
+} else {
+  console.log(`${newMatches} new user matches`);
+}
