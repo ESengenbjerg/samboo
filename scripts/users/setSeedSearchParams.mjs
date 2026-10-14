@@ -64,15 +64,17 @@ if (error) {
 console.log(`Saved search params for ${email}`);
 
 // ----------------------------- MATCH -----------------------------
-// Match the user's search params against the listings
-const { data: newMatches, error: matchError } = await supabaseAdmin.rpc(
-  "match_user_listings",
-  { p_user_id: user.id },
-);
 
-if (matchError) {
-  console.error("Failed to match listings:", matchError);
-  process.exit(1);
-}
+// THIS PART IS RUN BY DB NOW
+// // Match the user's search params against the listings
+// const { data: newMatches, error: matchError } = await supabaseAdmin.rpc(
+//   "match_user_listings",
+//   { p_user_id: user.id },
+// );
+
+// if (matchError) {
+//   console.error("Failed to match listings:", matchError);
+//   process.exit(1);
+// }
 
 console.log(`${newMatches} new matching listings for ${email}`);
