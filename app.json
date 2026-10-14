@@ -15,7 +15,8 @@
     "plugins": [
       "expo-router",
       "expo-splash-screen",
-      "expo-font"
+      "expo-font",
+      "expo-image"
     ],
     "experiments": {
       "typedRoutes": true,
