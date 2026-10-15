@@ -20,15 +20,32 @@ if (!email) {
 }
 
 // The full desired state. null = no limit, [] = no choice made
-const searchParams = {
-  property_types: ["villa", "radhus", "tomt"],
-  municipalities: ["Partille"],
-  areas: [],
-  min_price: null,
-  max_price: null,
-  min_rooms: null,
-  max_rooms: null,
-};
+const seedSearches = [
+  {
+    email: process.env.SEED_USER_EMAIL,
+    searchParams: {
+      property_types: ["villa", "radhus", "tomt"],
+      municipalities: ["Partille"],
+      areas: [],
+      min_price: null,
+      max_price: null,
+      min_rooms: null,
+      max_rooms: null,
+    },
+  },
+  {
+    email: process.env.SEED_USER2_EMAIL,
+    searchParams: {
+      property_types: ["radhus", "lagenhet"],
+      municipalities: ["Mölndal"],
+      areas: [],
+      min_price: null,
+      max_price: 4000000,
+      min_rooms: null,
+      max_rooms: null,
+    },
+  },
+];
 
 // Find user's id
 const { data: usersData, error: usersError } =
@@ -39,29 +56,34 @@ if (usersError) {
   process.exit(1);
 }
 
-const user = usersData.users.find((u) => u.email?.toLowerCase() === email);
+for (const { email, searchParams } of seedSearches) {
+  const user = usersData.users.find(
+    (u) => u.email?.toLowerCase() === email?.toLowerCase(),
+  );
 
-if (!user) {
-  console.error(`No user with email ${email}.`);
-  process.exit(1);
+  if (!user) {
+    console.error(`No user with email ${email}`);
+    process.exitCode = 1;
+    continue;
+  }
+
+  // Insert (or update if user already has search params)
+  const { error } = await supabaseAdmin.from("search_params").upsert(
+    {
+      user_id: user.id,
+      ...searchParams,
+    },
+    { onConflict: "user_id" },
+  );
+
+  // Error
+  if (error) {
+    console.error("Failed to save search params:", error);
+    process.exit(1);
+  }
+  // Success
+  console.log(`Saved search params for ${email}`);
 }
-
-// Insert (or update if user already has search params)
-const { error } = await supabaseAdmin.from("search_params").upsert(
-  {
-    user_id: user.id,
-    ...searchParams,
-  },
-  { onConflict: "user_id" },
-);
-
-// Error
-if (error) {
-  console.error("Failed to save search params:", error);
-  process.exit(1);
-}
-// Success
-console.log(`Saved search params for ${email}`);
 
 // ----------------------------- MATCH -----------------------------
 
@@ -77,4 +99,4 @@ console.log(`Saved search params for ${email}`);
 //   process.exit(1);
 // }
 
-console.log(`${newMatches} new matching listings for ${email}`);
+// console.log(`${newMatches} new matching listings for ${email}`);
