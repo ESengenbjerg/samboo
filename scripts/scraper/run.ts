@@ -8,24 +8,26 @@
 // -------------------------------------------------
 
 import { chromium } from "playwright";
-import * as mockdata from "./agencies/mockdata.mjs";
-import { buildScope } from "./scope.mjs";
+import * as mockdata from "./agencies/mockdata.ts";
+import type { Agency, SearchParamsRow } from "../lib/types.ts";
+import { buildScope } from "./scope.ts";
 
 process.loadEnvFile(".env");
 
 // THIS REQUIRES NODE v.25
-const { supabaseAdmin } = await import("../lib/supabaseAdmin.mjs");
+const { supabaseAdmin } = await import("../lib/supabaseAdmin.ts");
 
 // Agencies are scraped one after another. ADD NEW AGENCIES HERE!!!
-const agencies = [mockdata];
+const agencies: Agency[] = [mockdata];
 
-// // node scripts/scraper/run.mjs --dry-run  -> print scope and URLs, scrape nothing
+// // node scripts/scraper/run.ts --dry-run  -> print scope and URLs, scrape nothing
 // const dryRun = process.argv.includes("--dry-run"); // For test
 
 // ---------------------- READ SEARCH PARAMS --------------------------
 const { data: searchParams, error: searchError } = await supabaseAdmin
   .from("search_params")
-  .select("user_id, property_types, municipalities, areas");
+  .select("user_id, property_types, municipalities, areas")
+  .overrideTypes<SearchParamsRow[]>();
 
 if (searchError) {
   console.error("Failed to read search_params:", searchError);
@@ -33,7 +35,7 @@ if (searchError) {
 }
 
 // ---------------------- BUILD SCOPE --------------------------
-const { items: scope, skipped } = buildScope(searchParams);
+const { items: scope, skipped } = buildScope(searchParams ?? []);
 
 for (const userId of skipped) {
   console.warn(`Skipping search without a place (user ${userId})`);

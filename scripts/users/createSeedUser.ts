@@ -7,7 +7,7 @@
 process.loadEnvFile(".env");
 
 // Fetch DB connection
-const { supabaseAdmin } = await import("../lib/supabaseAdmin.mjs");
+const { supabaseAdmin } = await import("../lib/supabaseAdmin.ts");
 
 const seedUsers = [
   {

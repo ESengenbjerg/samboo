@@ -1,8 +1,10 @@
+import type { MappedListing, PropertyType } from "../../lib/types.ts";
+
 // Maps mockdata's ld+json to the normalized columns on the listings table.
 // Missing values become null, never undefined.
 
 // Agency term -> our own property_type
-const PROPERTY_TYPES = {
+const PROPERTY_TYPES: Record<string, PropertyType> = {
   villa: "villa",
   radhus: "radhus",
   parhus: "radhus",
@@ -20,17 +22,17 @@ const PROPERTY_TYPES = {
 // }
 
 // Only real numbers pass. Strings, null, undefined, NaN and Infinity become null
-function toNumber(value) {
+function toNumber(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
 // A price has to be a real number above 0. Anything else means "no price (yet)" -> null
-function toPrice(value) {
+function toPrice(value: unknown): number | null {
   const n = toNumber(value);
   return n !== null && n > 0 ? n : null;
 }
 
-function mapPropertyType(category) {
+function mapPropertyType(category: unknown): PropertyType | null {
   if (!category) return null;
 
   const mapped = PROPERTY_TYPES[String(category).trim().toLowerCase()];
@@ -41,7 +43,19 @@ function mapPropertyType(category) {
   return mapped;
 }
 
-export function mapListing(data) {
+// The parts of mockdata's ld+json we read
+export type MockdataLdJson = {
+  path: string;
+  category?: string | null;
+  municipality?: string | null;
+  district?: string | null;
+  addressLocality?: string | null;
+  price?: unknown;
+  rooms?: unknown;
+  geo?: { latitude?: unknown; longitude?: unknown };
+};
+
+export function mapListing(data: MockdataLdJson): MappedListing {
   return {
     property_type: mapPropertyType(data.category),
     municipality: data.municipality ?? null,

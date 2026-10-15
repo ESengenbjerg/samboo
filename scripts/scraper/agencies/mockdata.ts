@@ -1,11 +1,19 @@
-import { mapListing } from "../mappers/mockdata.mjs";
+import type { Browser } from "playwright";
+import type { ListingRow, ScopeItem } from "../../lib/types.ts";
+import { mapListing, type MockdataLdJson } from "../mappers/mockdata.ts";
 
-// Env is read inside the functions, so it works even though run.mjs
+// Env is read inside the functions, so it works even though run.ts
 // loads the .env file after the static imports have run.
 export const AGENCY = "mockdata";
 
+function baseUrl(): string {
+  const base = process.env.BASE_PATH_MOCK_DATA;
+  if (!base) throw new Error("Missing BASE_PATH_MOCK_DATA");
+  return base;
+}
+
 // Our property_type -> the categories the specific site uses in its search
-const CATEGORIES = {
+const CATEGORIES: Record<string, string[]> = {
   villa: ["villa"],
   radhus: ["radhus", "parhus"],
   tomt: ["tomt"],
@@ -13,7 +21,7 @@ const CATEGORIES = {
 };
 
 // One search URL per scope item. The site mixes municipalities and areas in one "area" filter
-export function buildUrls(scope) {
+export function buildUrls(scope: ScopeItem[]): string[] {
   const urls = scope
     .map((item) => {
       const categories = item.propertyTypes.flatMap((t) => CATEGORIES[t] ?? []);
@@ -21,7 +29,7 @@ export function buildUrls(scope) {
       // The user chose types, but none of them exist on this site
       if (item.propertyTypes.length > 0 && categories.length === 0) return null;
 
-      const url = new URL(process.env.BASE_PATH_MOCK_DATA);
+      const url = new URL(baseUrl());
       for (const place of [...item.municipalities, ...item.areas]) {
         url.searchParams.append("area", place);
       }
@@ -30,19 +38,22 @@ export function buildUrls(scope) {
       }
       return url.href;
     })
-    .filter(Boolean);
+    .filter((url): url is string => url !== null);
 
   return [...new Set(urls)];
 }
 
-export async function scrape(scope, browser) {
+export async function scrape(
+  scope: ScopeItem[],
+  browser: Browser,
+): Promise<{ rows: ListingRow<MockdataLdJson>[]; failedUrls: string[] }> {
   const page = await browser.newPage();
-  const failedUrls = [];
+  const failedUrls: string[] = [];
 
   try {
     // 1. Collect listing URLs from every search page.
     // A failing search page throws: the result would be incomplete
-    const listingUrls = new Set();
+    const listingUrls = new Set<string>();
 
     for (const searchUrl of buildUrls(scope)) {
       await page.goto(searchUrl);
@@ -53,13 +64,13 @@ export async function scrape(scope, browser) {
 
       for (const href of hrefs) {
         if (href?.includes("/objekt/")) {
-          listingUrls.add(new URL(href, process.env.BASE_PATH_MOCK_DATA).href);
+          listingUrls.add(new URL(href, baseUrl()).href);
         }
       }
     }
 
     // 2. Fetch ld+json on every listing page. One failing page does not stop the rest
-    const rows = [];
+    const rows: ListingRow<MockdataLdJson>[] = [];
     const seenAt = new Date().toISOString();
 
     for (const url of listingUrls) {
@@ -69,7 +80,7 @@ export async function scrape(scope, browser) {
         const text = await page
           .locator('script[type="application/ld+json"]')
           .textContent();
-        const data = JSON.parse(text);
+        const data: MockdataLdJson = JSON.parse(text ?? "");
 
         rows.push({
           agency: AGENCY,
@@ -93,7 +104,7 @@ export async function scrape(scope, browser) {
 }
 
 // import { chromium } from "playwright";
-// import { mapListing } from "../mappers/mockdata.mjs";
+// import { mapListing } from "../mappers/mockdata.ts";
 
 // // Fetch dotenv variables
 // process.loadEnvFile(".env");
@@ -103,7 +114,7 @@ export async function scrape(scope, browser) {
 
 // // Admin Supabase connection (service role, bypasses RLS). Dynamic import so it runs AFTER the env is loaded.
 // // THIS REQUIRES NODE v.25, otherwise an error will occur
-// const { supabaseAdmin } = await import("../../../lib/supabaseAdmin.mjs");
+// const { supabaseAdmin } = await import("../../../lib/supabaseAdmin.ts");
 
 // // Use Google Chrome
 // const browser = await chromium.launch({ headless: true, slowMo: 300 });
