@@ -18,6 +18,7 @@ import {
 } from "@expo-google-fonts/momo-trust-sans";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
+import Header from "@/components/header";
 
 // Stays on start screen until fonts are loaded
 SplashScreen.preventAutoHideAsync();
@@ -47,7 +48,7 @@ export default function RootLayout() {
     <ThemeProvider value={NAV_THEME[colorScheme ?? "light"]}>
       {/* ONLY FOR DEV -- LOG IN TOGGLE */}
       {/* TODO: Remove before production */}
-      <View>
+      <View className="mt-10">
         <Pressable onPress={() => setIsLoggedIn(!isLoggedIn)}>
           {!isLoggedIn ? <Text>Log in</Text> : <Text>Log out</Text>}
         </Pressable>
@@ -61,10 +62,16 @@ export default function RootLayout() {
           <Stack.Screen name="(auth)" />
         </Stack.Protected>
         <Stack.Protected guard={isLoggedIn && !hasOnboarded}>
-          <Stack.Screen name="(onboarding)" />
+          <Stack.Screen
+            name="(onboarding)"
+            options={{ headerShown: true, header: () => <Header /> }}
+          />
         </Stack.Protected>
         <Stack.Protected guard={isLoggedIn && hasOnboarded}>
-          <Stack.Screen name="(tabs)" />
+          <Stack.Screen
+            name="(tabs)"
+            options={{ headerShown: true, header: () => <Header /> }}
+          />
         </Stack.Protected>
       </Stack>
       <PortalHost />
