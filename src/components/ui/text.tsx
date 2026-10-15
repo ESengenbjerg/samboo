@@ -16,19 +16,19 @@ const textVariants = cva(
       variant: {
         default: "",
         h1: cn(
-          "text-4xl font-display tracking-tight",
+          "text-2xl font-display tracking-tight",
           Platform.select({ web: "scroll-m-20 text-balance" }),
         ),
         h2: cn(
-          "pb-2 text-3xl font-display tracking-tight",
+          "pb-2 text-xl font-display tracking-tight",
           Platform.select({ web: "scroll-m-20 first:mt-0" }),
         ),
         h3: cn(
-          "text-2xl font-display tracking-tight",
+          "text-lg font-display tracking-tight",
           Platform.select({ web: "scroll-m-20" }),
         ),
         h4: cn(
-          "text-xl font-display tracking-tight",
+          "font-display tracking-tight",
           Platform.select({ web: "scroll-m-20" }),
         ),
         p: "mt-3 leading-7 sm:mt-6",
