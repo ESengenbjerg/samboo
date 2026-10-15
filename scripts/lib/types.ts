@@ -1,0 +1,50 @@
+import type { Browser } from "playwright";
+
+// Row shape of search_params, as far as the scraper reads it
+export type SearchParamsRow = {
+  user_id: string;
+  property_types: string[] | null;
+  municipalities: string[] | null;
+  areas: string[] | null;
+};
+
+// Our own property_type values (listings.property_type)
+export type PropertyType = "villa" | "radhus" | "tomt" | "lagenhet" | "other";
+
+// One distinct search to be done on each agency's site
+export type ScopeItem = {
+  municipalities: string[];
+  areas: string[];
+  propertyTypes: string[];
+};
+
+// Normalized columns on the listings table that come from the agency's data
+export type MappedListing = {
+  property_type: PropertyType | null;
+  municipality: string | null;
+  area: string | null;
+  price: number | null;
+  rooms: number | null;
+  latitude: number | null;
+  longitude: number | null;
+};
+
+// A row ready to be upserted into listings
+export type ListingRow<LdJson = unknown> = MappedListing & {
+  agency: string;
+  external_id: number;
+  url: string;
+  ld_json: LdJson;
+  last_seen_at: string;
+  removed_at: string | null;
+};
+
+// What every agency module has to export (see agencies/)
+export type Agency = {
+  AGENCY: string;
+  buildUrls: (scope: ScopeItem[]) => string[];
+  scrape: (
+    scope: ScopeItem[],
+    browser: Browser,
+  ) => Promise<{ rows: ListingRow[]; failedUrls: string[] }>;
+};

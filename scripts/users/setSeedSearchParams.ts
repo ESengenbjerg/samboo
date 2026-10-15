@@ -4,14 +4,14 @@
 // The users DB row is then used to match with real estate listings on the listing table, (to give the user its matching objects)
 
 // Set search param for the seed user (Admin)
-// The user is looked up by SEED_USER_EMAIL, so createUser.mjs must have run first (CHECK!)
+// The user is looked up by SEED_USER_EMAIL, so createSeedUser.ts must have run first (CHECK!)
 // user_id is unique in search_params, so this can be re-run safely
 
 // Fetch credentials in dotenv
 process.loadEnvFile(".env");
 
 // Fetch DB connection
-const { supabaseAdmin } = await import("../lib/supabaseAdmin.mjs");
+const { supabaseAdmin } = await import("../lib/supabaseAdmin.ts");
 
 const email = process.env.SEED_USER_EMAIL?.toLowerCase();
 
