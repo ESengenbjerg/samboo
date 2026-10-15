@@ -18,6 +18,7 @@ import {
 } from "@expo-google-fonts/momo-trust-sans";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
+import Header from "@/components/header";
 
 // Stays on start screen until fonts are loaded
 SplashScreen.preventAutoHideAsync();
@@ -31,8 +32,8 @@ export default function RootLayout() {
   });
 
   // TODO: Update to correct states
-  const hasOnboarded = false;
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [isOnboarded, setIsOnboarded] = useState<boolean>(false);
 
   const { colorScheme } = useColorScheme();
 
@@ -41,15 +42,24 @@ export default function RootLayout() {
     if (fontsLoaded) SplashScreen.hideAsync();
   }, [fontsLoaded]);
 
+  // TODO: Remove before production
+  useEffect(() => {
+    if (!isLoggedIn) setIsOnboarded(false)
+  }, [isLoggedIn])
+
   if (!fontsLoaded) return null;
 
   return (
     <ThemeProvider value={NAV_THEME[colorScheme ?? "light"]}>
       {/* ONLY FOR DEV -- LOG IN TOGGLE */}
       {/* TODO: Remove before production */}
-      <View>
+      <View className="flex-row justify-between mt-10 mx-5">
         <Pressable onPress={() => setIsLoggedIn(!isLoggedIn)}>
           {!isLoggedIn ? <Text>Log in</Text> : <Text>Log out</Text>}
+        </Pressable>
+
+        <Pressable onPress={() => setIsOnboarded(!isOnboarded)}>
+          {!isOnboarded ? <Text>Onboard</Text> : <Text>Reverse onboarding</Text>}
         </Pressable>
       </View>
       {/* --- */}
@@ -60,11 +70,17 @@ export default function RootLayout() {
         <Stack.Protected guard={!isLoggedIn}>
           <Stack.Screen name="(auth)" />
         </Stack.Protected>
-        <Stack.Protected guard={isLoggedIn && !hasOnboarded}>
-          <Stack.Screen name="(onboarding)" />
+        <Stack.Protected guard={isLoggedIn && !isOnboarded}>
+          <Stack.Screen
+            name="(onboarding)"
+            options={{ headerShown: true, header: () => <Header /> }}
+          />
         </Stack.Protected>
-        <Stack.Protected guard={isLoggedIn && hasOnboarded}>
-          <Stack.Screen name="(tabs)" />
+        <Stack.Protected guard={isLoggedIn && isOnboarded}>
+          <Stack.Screen
+            name="(tabs)"
+            options={{ headerShown: true, header: () => <Header /> }}
+          />
         </Stack.Protected>
       </Stack>
       <PortalHost />

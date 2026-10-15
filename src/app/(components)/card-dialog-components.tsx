@@ -1,32 +1,92 @@
-import { Button, buttonVariants } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Text } from "@/components/ui/text";
+import { useState } from "react";
 import { View } from "react-native";
+import { Text } from "@/components/ui/text"
 
-import { ObjectCard } from "@/components/object-card";
+import { SaveObjectDialog } from "@/components/modals/save-object-dialog";
+import { Button } from "@/components/ui/button";
+import { SaveShowingDialog } from "@/components/modals/save-showing-dialog";
 
 export default function CardAndDialogComponents() {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialog2Open, setDialog2Open] = useState(false);
+  // const [alertOpen, setAlertOpen] = useState(false);
   return (
     <>
-      <View className="flex-1 gap-4 m-8 justify-center">
+      <View>
+        <Button onPress={() => setDialogOpen(true)}>
+          <Text>Visning</Text>
+        </Button>
+
+        <SaveShowingDialog
+        key={1}
+          open={dialogOpen}
+          onOpenChange={() => setDialogOpen(false)}
+          dates={["3/10", "4/10"]}
+          onSave={() => setDialogOpen(false)}
+        ></SaveShowingDialog>
+      </View>
+   
+      <View>
+        <Button onPress={() => setDialog2Open(true)}>
+          <Text>Öppna</Text>
+        </Button>
+        <SaveObjectDialog
+          open={dialog2Open}
+          onOpenChange={() => setDialog2Open(false)}
+          onAction={() => setDialog2Open(false)}
+        ></SaveObjectDialog>
+      </View>
+
+      {/* <View>
+        <Button onPress={() => setAlertOpen(true)}>
+          <Text>Alert</Text>
+        </Button>
+        <ConfirmDialog
+          open={alertOpen}
+          onOpenChange={() => setAlertOpen(false)}
+          title="Inbjudan skickad"
+          description="Din inbjudan har skickats. När kontona har kopplats kan ni se varandras gillade objekt och tillsammans hitta ert nästa hem."
+          actionLabel="Radera konto"
+          onAction={() => setAlertOpen(false)}
+          cancelLabel="Avbryt"
+          onCancel={() => setAlertOpen(false)}
+        />
+      </View>
+
+      <View>
+        <Button onPress={() => setDialogOpen(true)}>
+          <Text>Bevakning</Text>
+        </Button>
+        <InfoDialog
+          open={dialogOpen}
+          onOpenChange={() => setDialogOpen(false)}
+          title="Inbjudan skickad"
+          description="Din inbjudan har skickats. När kontona har kopplats kan ni se varandras gillade objekt och tillsammans hitta ert nästa hem."
+          actionLabel="Skapa bevakning"
+          onAction={() => {
+            setDialogOpen(false);
+            router.push("/create-filter");
+          }}
+        />
+      </View>
+
+      <View>
+        <Button variant="destructive" onPress={() => setDialog2Open(true)}>
+          <Text>Fel</Text>
+        </Button>
+        <InfoDialog
+          open={dialog2Open}
+          onOpenChange={() => setDialog2Open(false)}
+          title="Något gick fel"
+          description="Kunde inte hitta bevakning."
+          actionLabel="Försök igen"
+          onAction={() => {
+            setDialog2Open(false);
+          }}
+        />
+      </View> */}
+
+      {/* <View className="flex-1 gap-4 m-8 justify-center">
         <ObjectCard
           address="Stora Åvägen 53"
           price={5350000}
@@ -115,7 +175,7 @@ export default function CardAndDialogComponents() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </View>
+      </View> */}
     </>
   );
 }
