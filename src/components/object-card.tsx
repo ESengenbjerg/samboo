@@ -13,8 +13,9 @@ import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Heart } from "lucide-react-native";
+import { useState } from "react";
 
-const objectCardVariants = cva("gap-3 overflow-hidden py-0", {
+const objectCardVariants = cva("gap-3 py-0", {
   variants: {
     size: {
       default: "w-full",
@@ -63,6 +64,8 @@ export function ObjectCard({
   imageCount = 17,
 }: ObjectCardProps) {
   const isSmall = size === "small";
+  const [imageFailed, setImageFailed] = useState(false);
+  const fallbackImage = "https://images.unsplash.com/photo-1631679706909-1844bbd07221?q=80&w=1092&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D"
 
   const saveButton = (
     <Pressable
@@ -89,11 +92,13 @@ export function ObjectCard({
         aria-label={`${address}, ${area}`}
         className={cn(objectCardVariants({ size }), className)}
       >
-        <Card className="flex-1 py-0">
+        <Card className="flex-1 py-0 overflow-hidden">
           <View className={imageWrapperVariants({ size })}>
             <Image
-              source={{ uri: imageUrl }}
-              style={{ width: "100%", height: "100%" }}
+              source={{ uri: imageFailed || !imageUrl ? fallbackImage : imageUrl }}
+              onError={() => setImageFailed(true)}
+              style={{ width: "100%", height: "100%", borderTopLeftRadius: "5px"
+               }}
               contentFit="cover"
             />
             {imageCount && (
@@ -105,7 +110,7 @@ export function ObjectCard({
 
           {!isSmall ? (
             <>
-              <CardHeader className="flex-1 flex-row justify-between">
+              <CardHeader className="flex-1 flex-row overflow-hidden justify-between">
                 <View>
                   <CardTitle>{address}</CardTitle>
                   <CardDescription>{area}</CardDescription>
