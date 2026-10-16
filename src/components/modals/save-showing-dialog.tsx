@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { useState } from "react";
-import { View } from "react-native";
+import { Keyboard, Pressable, View } from "react-native";
 import {
   Dialog,
   DialogContent,
@@ -33,6 +33,7 @@ export function SaveShowingDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[80vw] flex-col">
+        <Pressable onPress={Keyboard.dismiss} accessible={false} className="gap-4">
         <DialogHeader>
           <DialogTitle>Spara visning</DialogTitle>
         </DialogHeader>
@@ -59,6 +60,8 @@ export function SaveShowingDialog({
             onChangeText={setTime}
             keyboardType="numbers-and-punctuation"
             inputMode="numeric"
+            returnKeyType="done"
+            onSubmitEditing={Keyboard.dismiss}
           />
         </View>
 
@@ -85,6 +88,7 @@ export function SaveShowingDialog({
             <Text>Spara visning</Text>
           </Button>
         </DialogFooter>
+        </Pressable>
       </DialogContent>
     </Dialog>
   );
