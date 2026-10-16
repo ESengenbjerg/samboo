@@ -4,7 +4,6 @@ import { View } from "react-native";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,

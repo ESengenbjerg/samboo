@@ -32,7 +32,6 @@ export default function SearchScreen() {
       .order("last_seen_at", { ascending: false })
       .overrideTypes<Listing[]>()
       .then(({ data, error }) => {
-        console.log("Data: " + data);
         if (error) console.error("Failed to load listings: ", error);
         else setListings(data);
         setLoading(false);
