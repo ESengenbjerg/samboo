@@ -65,7 +65,8 @@ export function ObjectCard({
 }: ObjectCardProps) {
   const isSmall = size === "small";
   const [imageFailed, setImageFailed] = useState(false);
-  const fallbackImage = "https://images.unsplash.com/photo-1631679706909-1844bbd07221?q=80&w=1092&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D"
+  const fallbackImage =
+    "https://images.unsplash.com/photo-1631679706909-1844bbd07221?q=80&w=1092&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D";
 
   const saveButton = (
     <Pressable
@@ -73,6 +74,7 @@ export function ObjectCard({
       hitSlop={12}
       role="button"
       aria-label={isSaved ? "Ta bort från sparade" : "Spara objekt"}
+      className="z-10"
     >
       <Icon
         as={Heart}
@@ -86,19 +88,15 @@ export function ObjectCard({
 
   return (
     <>
-      <Pressable
-        onPress={onPress}
-        role="button"
-        aria-label={`${address}, ${area}`}
-        className={cn(objectCardVariants({ size }), className)}
-      >
+      <View className={cn(objectCardVariants({ size }), className)}>
         <Card className="flex-1 py-0 overflow-hidden">
           <View className={imageWrapperVariants({ size })}>
             <Image
-              source={{ uri: imageFailed || !imageUrl ? fallbackImage : imageUrl }}
+              source={{
+                uri: imageFailed || !imageUrl ? fallbackImage : imageUrl,
+              }}
               onError={() => setImageFailed(true)}
-              style={{ width: "100%", height: "100%", borderTopLeftRadius: "5px"
-               }}
+              style={{ width: "100%", height: "100%" }}
               contentFit="cover"
             />
             {imageCount && (
@@ -146,8 +144,14 @@ export function ObjectCard({
               </CardContent>
             </>
           )}
+          <Pressable
+            onPress={onPress}
+            role="link"
+            aria-label={`${address}, ${area}`}
+            className="absolute inset-0"
+          />
         </Card>
-      </Pressable>
+      </View>
     </>
   );
 }
