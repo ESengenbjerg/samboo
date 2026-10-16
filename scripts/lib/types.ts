@@ -48,3 +48,29 @@ export type Agency = {
     browser: Browser,
   ) => Promise<{ rows: ListingRow[]; failedUrls: string[] }>;
 };
+
+// ---------------------- Types for removed listings and backlog problems --------------------------
+
+// The columns of an active listing that the removal check needs
+export type ActiveListing = {
+  id: number | string;
+  external_id: number;
+  url: string;
+  municipality: string | null;
+  area: string | null;
+  property_type: PropertyType | null;
+};
+
+// Why a run was flagged. F1-F4 are failures, "mass_removal" is the suspicious case
+export type IssueKind = "failed" | "suspicious";
+export type IssueReason = "F1" | "F2" | "F3" | "F4" | "mass_removal";
+
+// A row in scrape_issues (the backlog)
+export type ScrapeIssue = {
+  id: number | string;
+  agency: string;
+  kind: IssueKind;
+  reason: IssueReason;
+  occurrences: number;
+  notified_at: string | null;
+};
