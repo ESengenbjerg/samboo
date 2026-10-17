@@ -3,13 +3,9 @@
 // Then scrape by scope on each agency & save result into listings
 // Then finally match the result to users in user_listings table
 
-// -------------------------------------------------
-// THIS FILE DOES NOT HANDLE REMOVED OBJECTS YET!
-// -------------------------------------------------
-
 import { chromium } from "playwright";
-import * as mockdata from "./agencies/mockdata.ts";
 import type { Agency, SearchParamsRow } from "../lib/types.ts";
+import * as mockdata from "./agencies/mockdata.ts";
 import { buildScope } from "./scope.ts";
 
 process.loadEnvFile(".env");
