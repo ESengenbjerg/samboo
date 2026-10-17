@@ -416,6 +416,44 @@ begin
 end;
 $function$;
 
+-- Account deletion, part 1: dissolves the group if at most 1 member remains after a profile has been deleted (same rule as leave_group()).
+CREATE OR REPLACE FUNCTION public.handle_deleted_profile()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  kvar int;
+begin
+  if old.group_id is null then
+    return old;
+  end if;
+
+  select count(*) into kvar from public.profiles where group_id = old.group_id;
+  if kvar <= 1 then
+    update public.profiles set group_id = null where group_id = old.group_id;
+    delete from public.groups where id = old.group_id;
+  end if;
+  return old;
+end;
+$function$;
+
+-- Account deletion, part 2: called by the app. Deletes the signed-in user from auth.users; everything else follows via ON DELETE CASCADE and the trigger above.
+CREATE OR REPLACE FUNCTION public.delete_my_account()
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+begin
+  if auth.uid() is null then
+    raise exception 'Not signed in';
+  end if;
+  delete from auth.users where id = auth.uid();
+end;
+$function$;
+
 -- Deletes listings that have been removed for more than 14 days.
 CREATE OR REPLACE FUNCTION public.purge_removed_listings()
  RETURNS integer
@@ -478,6 +516,10 @@ CREATE TRIGGER search_params_match
   AFTER INSERT OR UPDATE OF property_types, municipalities, areas, min_price, max_price, min_rooms, max_rooms
   ON public.search_params
   FOR EACH ROW EXECUTE FUNCTION public.search_params_match_trigger();
+
+CREATE TRIGGER on_profile_deleted
+  AFTER DELETE ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION public.handle_deleted_profile();
 
 CREATE EVENT TRIGGER ensure_rls ON ddl_command_end
   WHEN TAG IN ('CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO')
@@ -614,9 +656,7 @@ create policy user_tags_delete on public.user_tags
 -- ---------------------------------------------------------------------
 
 -- Table level
--- A fresh Supabase project grants ALL privileges on new public tables to anon and
--- authenticated by default (ALTER DEFAULT PRIVILEGES). This database has narrowed
--- that down, so revoke first and then grant only what is listed below.
+-- A fresh Supabase project grants ALL privileges on new public tables to anon and authenticated by default (ALTER DEFAULT PRIVILEGES). This database has narrowed that down, so revoke first and then grant only what is listed below.
 revoke all on all tables in schema public from anon, authenticated;
 
 grant select                         on public.groups        to authenticated;
@@ -628,8 +668,7 @@ grant select, insert, update, delete on public.search_params to authenticated;
 grant select                         on public.user_listings to authenticated;
 grant select, insert, update, delete on public.user_tags     to authenticated;
 
--- Column level. Direct writes are limited to these columns; everything else
--- (e.g. profiles.is_active, profiles.group_id) can only change via functions or service_role.
+-- Column level. Direct writes are limited to these columns; everything else (e.g. profiles.is_active, profiles.group_id) can only change via functions or service_role.
 grant insert (from_user_id, to_email) on public.invites       to authenticated;
 grant update (name, onboarding_completed_at) on public.profiles      to authenticated;
 grant update (is_new, liked)          on public.user_listings to authenticated;
@@ -651,11 +690,13 @@ grant execute on function
   public.like_listing(bigint),
   public.my_group_id(),
   public.shared_likes(),
-  public.shares_group_with(uuid)
+  public.shares_group_with(uuid),
+  public.delete_my_account()
 to authenticated, service_role;
 
 -- service_role only (scraper, triggers, maintenance)
 grant execute on function
+  public.handle_deleted_profile(),
   public.handle_new_user(),
   public.match_user_listings(uuid),
   public.purge_removed_listings(),

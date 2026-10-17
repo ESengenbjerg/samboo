@@ -71,8 +71,8 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 
 `anon` can call none of them.
 
-- **`authenticated` and service_role:** `accept_invite`, `in_my_group`, `is_active_user`, `leave_group`, `like_listing`, `my_group_id`, `shared_likes`, `shares_group_with`.
-- **service_role only:** `handle_new_user`, `match_user_listings`, `purge_removed_listings`, `rls_auto_enable`, `search_params_match_trigger`.
+- **`authenticated` and service_role:** `accept_invite`, `in_my_group`, `is_active_user`, `leave_group`, `like_listing`, `my_group_id`, `shared_likes`, `shares_group_with`, `delete_my_account`.
+- **service_role only:** `handle_deleted_profile`, `handle_new_user`, `match_user_listings`, `purge_removed_listings`, `rls_auto_enable`, `search_params_match_trigger`.
 
 ## Functions
 
@@ -83,6 +83,8 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 | `my_group_id()` | security definer | The signed-in user's `group_id` |
 | `in_my_group(uuid)`, `shares_group_with(uuid)` | security definer | Whether the target is me or in my group |
 | `accept_invite(invite_id)` | RPC, security definer | Joins the inviter's group (creating it if missing) and marks the invite accepted. Requires that I am not already in a group |
+| `delete_my_account()` | RPC, security definer | Deletes the signed-in user from `auth.users`. Everything else follows via cascade and the `on_profile_deleted` trigger. Fails with `Not signed in` without a session |
+| `handle_deleted_profile()` | trigger, security definer | After a profile is deleted: if at most 1 member remains in its group, the group is dissolved (same rule as `leave_group()`) |
 | `leave_group()` | RPC, security definer | Leaves the group. If at most 1 member remains, the group is dissolved |
 | `like_listing(listing_id)` | RPC, security definer | Upserts into `user_listings` with `liked = true` |
 | `shared_likes()` | RPC | **The shared list** ("Gemensam-listan"): listings that *every* member of the group has liked |
@@ -96,6 +98,7 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 | Trigger | Table | When | Function |
 |---|---|---|---|
 | `on_auth_user_created` | `auth.users` | after insert | `handle_new_user()` |
+| `on_profile_deleted` | `profiles` | after delete | `handle_deleted_profile()` |
 | `search_params_match` | `search_params` | after insert, or update of a search column | `search_params_match_trigger()` |
 
 ## Other Supabase features
@@ -110,17 +113,20 @@ Supabase sets default privileges so that new objects in `public` get broad grant
 
 `pg_stat_statements`, `pgcrypto`, `plpgsql`, `supabase_vault`, `uuid-ossp`.
 
-## What happens when a user is deleted
+## What happens when a user deletes their account
 
-Current behavior, before account deletion is implemented. Deleting the row in `auth.users` cascades as follows:
+The app calls `delete_my_account()`, which deletes the row in `auth.users`. This is permanent, with no grace period. Then:
 
-- `profiles` → `search_params`, `user_listings` (→ `listing_tags`), `user_tags`, and `invites` the user sent.
-- **Left behind:** `invites` sent *to* the user's email (`to_email`).
-- **Groups:** `profiles.group_id` is only set to null on the other members if the *group* is deleted. Deleting a *member* cleans nothing up, so a group with a single remaining member stays behind as a dead group. The "Delete account" issue addresses this.
+- **Cascade:** `profiles` → `search_params`, `user_listings` (→ `listing_tags`), `user_tags`, and `invites` the user sent. Sessions and identities in `auth` go with the user.
+- **Groups:** the `on_profile_deleted` trigger counts the remaining members of the user's group. With at most 1 left, the group is dissolved. With 2 or more left, the group stays and the user just disappears from it.
+- **The shared list** (`shared_likes()`) is computed from the members' likes, so it recalculates on its own. The deleted user's likes disappear with their `user_listings`.
+- **Left behind:** `invites` sent *to* the user's email (`to_email`). Known gap, to be handled in a later GDPR issue.
 - `listings` is unaffected (shared data).
+- An already-issued JWT stays valid until it expires, but `is_active_user()` returns `false` once the profile is gone, so RLS blocks everything.
 
 ## Observations to follow up
 
+- `invites.to_email` for deleted users is not cleaned up (GDPR, later issue).
 - The constraint names on `search_params` are `SearchParams_*` (from an earlier table name).
 - `is_active` is used by RLS through `is_active_user()` and cannot be removed without rewriting all policies.
 - The scraper's `PropertyType` in `scripts/lib/types.ts` lacks `fritidshus`, which the database allows.
