@@ -100,7 +100,7 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 
 ## Other Supabase features
 
-No storage buckets, custom schemas, Vault secrets or Realtime-published tables exist. Edge Functions live outside the database and are not covered here.
+No storage buckets, custom schemas, Vault secrets, Realtime-published tables or Edge Functions exist. (Edge Functions live outside the database; none were found under Edge Functions in Studio.)
 
 ### Default privileges
 
