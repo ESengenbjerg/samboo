@@ -58,13 +58,14 @@ function ToggleGroupItem({
   }) {
   const context = useToggleGroupContext();
   const { value } = ToggleGroupPrimitive.useRootContext();
+  const isSelected = ToggleGroupPrimitive.utils.getIsSelected(value, props.value);
 
   return (
     <TextClassContext.Provider
       value={cn(
         'text-sm text-foreground font-medium',
-        ToggleGroupPrimitive.utils.getIsSelected(value, props.value)
-          ? 'text-accent-foreground'
+        isSelected
+          ? 'text-primary-foreground'
           : Platform.select({ web: 'group-hover:text-muted-foreground' })
       )}>
       <ToggleGroupPrimitive.Item
@@ -73,16 +74,12 @@ function ToggleGroupItem({
             variant: context.variant || variant,
             size: context.size || size,
           }),
+          'min-w-0 shrink-0 rounded-sm shadow-none border-2',
+          isSelected
+            ? 'bg-primary border-primary' 
+            : 'border-border',
           props.disabled && 'opacity-50',
-          ToggleGroupPrimitive.utils.getIsSelected(value, props.value) && 'bg-accent',
-          'min-w-0 shrink-0 rounded-none shadow-none',
-          isFirst && 'rounded-l-md',
-          isLast && 'rounded-r-md',
-          (context.variant === 'outline' || variant === 'outline') && 'border-l-0',
-          (context.variant === 'outline' || variant === 'outline') && isFirst && 'border-l',
-          Platform.select({
-            web: 'flex-1 focus:z-10 focus-visible:z-10',
-          }),
+          Platform.select({ web: 'flex-1 focus:z-10 focus-visible:z-10' }),
           className
         )}
         {...props}>
