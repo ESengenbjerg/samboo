@@ -53,7 +53,7 @@ export function SaveShowingDialog({
           </ToggleGroup>
         </View>
 
-        <View className="space-y-2">
+        <View className="gap-2">
           <Label>Starttid</Label>
           <Input
             value={time}
@@ -65,7 +65,7 @@ export function SaveShowingDialog({
           />
         </View>
 
-        <View className="flex-col space-y-2">
+        <View className="flex-col gap-2">
           <Label>Anteckning</Label>
           <Textarea
             value={note}
@@ -75,7 +75,7 @@ export function SaveShowingDialog({
           />
         </View>
 
-        <DialogFooter className="flex-col pt-6 space-y-6">
+        <DialogFooter className="flex-col pt-6 gap-6">
           <Button
             onPress={() => {
               date && onSave({ date, time, note });
