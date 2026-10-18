@@ -1,4 +1,5 @@
 import type { Browser } from "playwright";
+import { ScrapeLayoutError } from "../../lib/errors.ts";
 import type { ListingRow, ScopeItem } from "../../lib/types.ts";
 import { mapListing, type MockdataLdJson } from "../mappers/mockdata.ts";
 
@@ -56,17 +57,51 @@ export async function scrape(
     const listingUrls = new Set<string>();
 
     for (const searchUrl of buildUrls(scope)) {
-      await page.goto(searchUrl);
+      const response = await page.goto(searchUrl);
+
+      // Failure F1: a bad status means we got an error page, not a search result
+      if (!response?.ok()) {
+        throw new Error(
+          `Search page ${searchUrl} returned ${response?.status()}`,
+        );
+      }
+
+      // Failure F2: the site always shows a result counter, also for 0 hits
+      // (data-count="0" plus a "no-results" text). No counter = not the page we expect.
+      // This is what tells a true 0 apart from a broken scraper
+      const counter = page.locator('[data-testid="result-count"]');
+      try {
+        await counter.waitFor({ timeout: 5000 });
+      } catch {
+        throw new ScrapeLayoutError(`No result counter on ${searchUrl}`);
+      }
+      const expected = Number(await counter.getAttribute("data-count"));
+      if (!Number.isInteger(expected)) {
+        throw new ScrapeLayoutError(
+          `Unreadable result counter on ${searchUrl}`,
+        );
+      }
 
       const hrefs = await page
         .locator('a[href^="/objekt/"]')
         .evaluateAll((links) => links.map((a) => a.getAttribute("href")));
 
+      // CHANGED: collected per page so it can be checked
+      const pageUrls = new Set<string>();
       for (const href of hrefs) {
         if (href?.includes("/objekt/")) {
-          listingUrls.add(new URL(href, baseUrl()).href);
+          pageUrls.add(new URL(href, baseUrl()).href);
         }
       }
+
+      // Failure (F2): fewer links than the site claims (e.g. pagination) = incomplete result
+      if (pageUrls.size < expected) {
+        throw new ScrapeLayoutError(
+          `Found ${pageUrls.size} links but the site reports ${expected} on ${searchUrl}`,
+        );
+      }
+
+      for (const url of pageUrls) listingUrls.add(url);
     }
 
     // 2. Fetch ld+json on every listing page. One failing page does not stop the rest
