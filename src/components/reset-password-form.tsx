@@ -86,9 +86,7 @@ export function ResetPasswordForm() {
           </View>
 
           <Button onPress={onVerifyCode} className="px-10" disabled={isLoading}>
-            <Text>
-              {!isLoading ? "Verifiera" : "Laddar..." }
-            </Text>
+            <Text>{!isLoading ? "Verifiera" : "Laddar..."}</Text>
           </Button>
         </>
       )}
@@ -140,9 +138,7 @@ export function ResetPasswordForm() {
       <View className="gap-6 items-center justify-center mt-6">
         {isVerified && (
           <Button className="px-10" onPress={onSubmit} disabled={isLoading}>
-            <Text>
-              {!isLoading ? "Återställ lösenord" : "Laddar..." }
-            </Text>
+            <Text>{!isLoading ? "Återställ lösenord" : "Laddar..."}</Text>
           </Button>
         )}
         <Button variant="link" onPress={() => router.dismissTo("/login")}>
