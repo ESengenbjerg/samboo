@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 
 // Fonts
+import Header from "@/components/header";
 import { MomoTrustDisplay_400Regular } from "@expo-google-fonts/momo-trust-display";
 import {
   MomoTrustSans_400Regular,
@@ -18,7 +19,6 @@ import {
 } from "@expo-google-fonts/momo-trust-sans";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
-import Header from "@/components/header";
 
 // Stays on start screen until fonts are loaded
 SplashScreen.preventAutoHideAsync();
@@ -42,11 +42,6 @@ export default function RootLayout() {
     if (fontsLoaded) SplashScreen.hideAsync();
   }, [fontsLoaded]);
 
-  // TODO: Remove before production
-  useEffect(() => {
-    if (!isLoggedIn) setIsOnboarded(false)
-  }, [isLoggedIn])
-
   if (!fontsLoaded) return null;
 
   return (
@@ -54,12 +49,21 @@ export default function RootLayout() {
       {/* ONLY FOR DEV -- LOG IN TOGGLE */}
       {/* TODO: Remove before production */}
       <View className="flex-row justify-between mt-10 mx-5">
-        <Pressable onPress={() => setIsLoggedIn(!isLoggedIn)}>
+        <Pressable
+          onPress={() => {
+            if (isLoggedIn) setIsOnboarded(false);
+            setIsLoggedIn(!isLoggedIn);
+          }}
+        >
           {!isLoggedIn ? <Text>Log in</Text> : <Text>Log out</Text>}
         </Pressable>
 
         <Pressable onPress={() => setIsOnboarded(!isOnboarded)}>
-          {!isOnboarded ? <Text>Onboard</Text> : <Text>Reverse onboarding</Text>}
+          {!isOnboarded ? (
+            <Text>Onboard</Text>
+          ) : (
+            <Text>Reverse onboarding</Text>
+          )}
         </Pressable>
       </View>
       {/* --- */}
