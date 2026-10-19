@@ -1,14 +1,18 @@
 import { Icon } from "@/components/ui/icon";
+import { supabase } from "@/utils/supabase";
 import { Image } from "expo-image";
 import { Link, router } from "expo-router";
 import { Bell, UserCircle2 } from "lucide-react-native";
+import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "./ui/dropdown-menu";
-import { Text } from "./ui/text"
-import { Button } from "./ui/button";
-import { supabase } from "@/utils/supabase";
-import { useState } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import { Text } from "./ui/text";
 
 export default function Header() {
   const [isLoading, setIsLoading] = useState(false);
@@ -34,32 +38,27 @@ export default function Header() {
           />
         </Pressable>
       </Link>
-     
-     <View className="flex-row gap-2">
-        
+
+      <View className="flex-row gap-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Pressable
-              hitSlop={12}
-              role="button"
-              aria-label="Din profil"
-            >
+            <Pressable hitSlop={12} role="button" aria-label="Din profil">
               <Icon as={UserCircle2} size={24} />
             </Pressable>
           </DropdownMenuTrigger>
           <DropdownMenuContent insets={contentInsets} align="end">
-            <DropdownMenuItem onPress={async () => {
+            <DropdownMenuItem
+              onPress={async () => {
                 setIsLoading(true);
                 const { error } = await supabase.auth.signOut();
                 if (error) setIsLoading(false);
-              }}>
-              <Text>
-                {!isLoading ? "Logga ut" : "Loggar ut..."}
-              </Text>
+              }}
+            >
+              <Text>{!isLoading ? "Logga ut" : "Loggar ut..."}</Text>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        
+
         <Pressable
           onPress={() => router.push("/(tabs)/notifications")}
           hitSlop={12}
