@@ -64,7 +64,9 @@ export function ForgotPasswordForm() {
 
       <View className="gap-6 items-center justify-center mt-6">
         <Button className="px-10" onPress={onSubmit} disabled={isLoading}>
-          <Text>Återställ lösenord</Text>
+          <Text>
+            {!isLoading ? "Återställ lösenord" : "Laddar..." }
+          </Text>
         </Button>
         <Button variant="link" onPress={() => router.dismissTo("/login")}>
           <Text className="text-background">Tillbaka</Text>

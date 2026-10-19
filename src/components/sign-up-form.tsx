@@ -105,7 +105,9 @@ export function SignUpForm() {
 
       <View className="gap-6 mt-6 items-center">
         <Button className="px-10" onPress={onSubmit} disabled={isLoading}>
-          <Text>Skapa konto</Text>
+          <Text>
+            {!isLoading ? "Skapa konto" : "Laddar..." }
+          </Text>
         </Button>
 
         <Button
