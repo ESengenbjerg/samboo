@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { useState } from "react";
-import { View } from "react-native";
+import { Keyboard, Pressable, View } from "react-native";
 import {
   Dialog,
   DialogContent,
@@ -33,6 +33,7 @@ export function SaveShowingDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[80vw] flex-col">
+        <Pressable onPress={Keyboard.dismiss} accessible={false} className="gap-4">
         <DialogHeader>
           <DialogTitle>Spara visning</DialogTitle>
         </DialogHeader>
@@ -52,17 +53,19 @@ export function SaveShowingDialog({
           </ToggleGroup>
         </View>
 
-        <View className="space-y-2">
+        <View className="gap-2">
           <Label>Starttid</Label>
           <Input
             value={time}
             onChangeText={setTime}
             keyboardType="numbers-and-punctuation"
             inputMode="numeric"
+            returnKeyType="done"
+            onSubmitEditing={Keyboard.dismiss}
           />
         </View>
 
-        <View className="flex-col space-y-2">
+        <View className="flex-col gap-2">
           <Label>Anteckning</Label>
           <Textarea
             value={note}
@@ -72,7 +75,7 @@ export function SaveShowingDialog({
           />
         </View>
 
-        <DialogFooter className="flex-col pt-6 space-y-6">
+        <DialogFooter className="flex-col pt-6 gap-6">
           <Button
             onPress={() => {
               date && onSave({ date, time, note });
@@ -85,6 +88,7 @@ export function SaveShowingDialog({
             <Text>Spara visning</Text>
           </Button>
         </DialogFooter>
+        </Pressable>
       </DialogContent>
     </Dialog>
   );

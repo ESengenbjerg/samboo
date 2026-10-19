@@ -96,7 +96,7 @@ export default function CardAndDialogComponents() {
           imageUrl="https://images.unsplash.com/photo-1632829882891-5047ccc421bc?q=80&w=1032&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D"
         />
 
-        <View className="w-full flex-row flex-wrap justify-between gap-y-3">
+        <View className="w-full flex-row flex-wrap justify-between gap-3">
           <ObjectCard
             size="small"
             address="Stora Åvägen 53"
@@ -140,7 +140,7 @@ export default function CardAndDialogComponents() {
             <CardTitle>Titel</CardTitle>
             <CardDescription>Description</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="gap-4">
             <Text>Massa text</Text>
             <View className="gap-1">
               <Label>En label</Label>

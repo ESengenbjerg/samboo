@@ -41,7 +41,7 @@ export default function SearchScreen() {
 
   return (
     
-      <View className="flex-1 px-8 bg-background space-y-8">
+      <View className="flex-1 px-8 bg-background gap-8">
         <View className="flex-row justify-between">
           <Text variant="h1">Filtrerad sökning</Text>
           {/* TODO: Replace with correct component */}
@@ -54,7 +54,7 @@ export default function SearchScreen() {
           </Button>
         </View>
         <View className="flex-row justify-between items-end">
-          <View className="space-y-4">
+          <View className="gap-4">
             <Label>Sortera</Label>
             <Select>
               <SelectTrigger className="bg-white min-w-32">
@@ -81,7 +81,7 @@ export default function SearchScreen() {
         {/* Present properties based in column or grid based on user choice */}
         <ScrollView showsVerticalScrollIndicator={false}>
         <View
-          className={`${view === "grid" ? "flex-row gap-2 flex-wrap" : "space-y-4"}`}
+          className={`${view === "grid" ? "flex-row gap-2 flex-wrap" : "gap-4"}`}
         >
           {/* Map through properties */}
           {listings.map((listing) => (
