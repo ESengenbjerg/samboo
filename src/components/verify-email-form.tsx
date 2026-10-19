@@ -95,7 +95,7 @@ export function VerifyEmailForm() {
 
       <View className="gap-6 items-center justify-center mt-6">
         <Button className="px-10" onPress={onSubmit} disabled={isLoading}>
-          <Text>{!isLoading ? "Verifiera" : "Laddar..."}</Text>
+          <Text>{!isLoading ? "Verifiera" : "Verifierar..."}</Text>
         </Button>
         <Button
           variant="link"
