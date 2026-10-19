@@ -1,21 +1,15 @@
-import { SocialConnections } from '@/components/social-connections';
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Text } from '@/components/ui/text';
-import * as React from 'react';
-import { Pressable, TextInput, View } from 'react-native';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Text } from "@/components/ui/text";
+import { Image } from "expo-image";
+import { router } from "expo-router";
+import * as React from "react";
+import { TextInput, View } from "react-native";
 
 export function SignUpForm() {
   const passwordInputRef = React.useRef<TextInput>(null);
+  const repeatPasswordInputRef = React.useRef<TextInput>(null);
 
   function onEmailSubmitEditing() {
     passwordInputRef.current?.focus();
@@ -26,62 +20,90 @@ export function SignUpForm() {
   }
 
   return (
-    <View className="gap-6">
-      <Card className="border-border/0 sm:border-border shadow-none sm:shadow-sm sm:shadow-black/5">
-        <CardHeader>
-          <CardTitle className="text-center text-xl sm:text-left">Create your account</CardTitle>
-          <CardDescription className="text-center sm:text-left">
-            Welcome! Please fill in the details to get started.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="gap-6">
-          <View className="gap-6">
-            <View className="gap-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                placeholder="m@example.com"
-                keyboardType="email-address"
-                autoComplete="email"
-                autoCapitalize="none"
-                onSubmitEditing={onEmailSubmitEditing}
-                returnKeyType="next"
-                submitBehavior="submit"
-              />
-            </View>
-            <View className="gap-1.5">
-              <View className="flex-row items-center">
-                <Label htmlFor="password">Password</Label>
-              </View>
-              <Input
-                ref={passwordInputRef}
-                id="password"
-                secureTextEntry
-                returnKeyType="send"
-                onSubmitEditing={onSubmit}
-              />
-            </View>
-            <Button className="w-full" onPress={onSubmit}>
-              <Text>Continue</Text>
-            </Button>
-          </View>
-          <Text className="text-center text-sm">
-            Already have an account?{' '}
-            <Pressable
-              onPress={() => {
-                // TODO: Navigate to sign in screen
-              }}>
-              <Text className="text-sm underline underline-offset-4">Sign in</Text>
-            </Pressable>
-          </Text>
-          <View className="flex-row items-center">
-            <Separator className="flex-1" />
-            <Text className="text-muted-foreground px-4 text-sm">or</Text>
-            <Separator className="flex-1" />
-          </View>
-          <SocialConnections />
-        </CardContent>
-      </Card>
+    <View className="gap-6 w-full max-w-sm px-14">
+      <View className="items-center">
+        <Image
+          source={require("@/assets/logos/logo-y-primary.svg")}
+          style={{ width: 150, height: 90 }}
+          contentFit="contain"
+        />
+      </View>
+      <Text variant="bold" className="text-center text-xl text-background">
+        Skapa konto
+      </Text>
+      <View className="gap-1.5">
+        <Label htmlFor="email" className="text-background">
+          E-post
+        </Label>
+        <Input
+          id="email"
+          placeholder="m@example.com"
+          keyboardType="email-address"
+          autoComplete="email"
+          autoCapitalize="none"
+          onSubmitEditing={onEmailSubmitEditing}
+          returnKeyType="next"
+          submitBehavior="submit"
+        />
+      </View>
+      <View className="gap-1.5">
+          <Label htmlFor="password" className="text-background">
+            Lösenord
+          </Label>
+        <Input
+          ref={passwordInputRef}
+          id="password"
+          placeholder="*****"
+          secureTextEntry
+          returnKeyType="next"
+          onSubmitEditing={() => repeatPasswordInputRef.current?.focus()}
+        />
+      </View>
+      <View className="gap-1.5">
+          <Label htmlFor="repeat-password" className="text-background">
+            Upprepa lösenord
+          </Label>
+        <Input
+          ref={repeatPasswordInputRef}
+          id="repeat-password"
+          placeholder="*****"
+          secureTextEntry
+          returnKeyType="send"
+          onSubmitEditing={onSubmit}
+        />
+      </View>
+
+      <View className="gap-6 mt-6 items-center">
+        <Button className="px-10" onPress={onSubmit}>
+          <Text>Skapa konto</Text>
+        </Button>
+
+        <View className="flex-row gap-1 items-center justify-center">
+          <Button
+            variant="link"
+            size="sm"
+            onPress={() => {
+              router.push("/login");
+            }}
+          >
+            <Text className="font-normal leading-4 text-background">
+              Glömt lösenord?
+            </Text>
+          </Button>
+          <Text className="text-background">|</Text>
+          <Button
+            variant="link"
+            size="sm"
+            onPress={() => {
+              router.push("/login");
+            }}
+          >
+            <Text className="font-normal leading-4 text-background">
+              Logga in
+            </Text>
+          </Button>
+        </View>
+      </View>
     </View>
   );
 }
