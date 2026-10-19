@@ -169,6 +169,11 @@ create unique index scrape_issues_one_open
   on public.scrape_issues using btree (agency, kind)
   where (status = 'open');
 
+-- At most one pending invite per sender and recipient (e-mail compared case-insensitively)
+create unique index invites_one_pending
+  on public.invites using btree (from_user_id, lower(to_email))
+  where (status = 'pending');
+
 
 -- ---------------------------------------------------------------------
 -- Functions
@@ -290,6 +295,25 @@ begin
 end;
 $function$;
 
+CREATE OR REPLACE FUNCTION public.decline_invite(invite_id bigint)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+begin
+  update public.invites
+  set status = 'declined'
+  where id = invite_id
+    and status = 'pending'
+    and lower(to_email) = lower(auth.jwt() ->> 'email');
+
+  if not found then
+    raise exception 'Inbjudan finns inte eller är inte din';
+  end if;
+end;
+$function$;
+
 CREATE OR REPLACE FUNCTION public.leave_group()
  RETURNS void
  LANGUAGE plpgsql
@@ -407,6 +431,25 @@ begin
 end;
 $function$;
 
+-- At most 20 invites in total (any status) from one sender to one recipient. Declined invites are kept so they count.
+CREATE OR REPLACE FUNCTION public.limit_invites_per_pair()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+begin
+  if (
+    select count(*) from public.invites
+    where from_user_id = new.from_user_id
+      and lower(to_email) = lower(new.to_email)
+  ) >= 20 then
+    raise exception 'Du har skickat för många inbjudningar till den här personen';
+  end if;
+  return new;
+end;
+$function$;
+
 CREATE OR REPLACE FUNCTION public.search_params_match_trigger()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -519,6 +562,10 @@ CREATE TRIGGER search_params_match
   AFTER INSERT OR UPDATE OF property_types, municipalities, areas, min_price, max_price, min_rooms, max_rooms
   ON public.search_params
   FOR EACH ROW EXECUTE FUNCTION public.search_params_match_trigger();
+
+CREATE TRIGGER invites_limit_per_pair
+  BEFORE INSERT ON public.invites
+  FOR EACH ROW EXECUTE FUNCTION public.limit_invites_per_pair();
 
 CREATE TRIGGER on_profile_deleted
   AFTER DELETE ON public.profiles
@@ -687,6 +734,7 @@ revoke execute on all functions in schema public from public, anon, authenticate
 -- Callable by signed-in users (RPC / used inside RLS policies)
 grant execute on function
   public.accept_invite(bigint),
+  public.decline_invite(bigint),
   public.in_my_group(uuid),
   public.is_active_user(),
   public.leave_group(),
@@ -701,6 +749,7 @@ to authenticated, service_role;
 grant execute on function
   public.handle_deleted_profile(),
   public.handle_new_user(),
+  public.limit_invites_per_pair(),
   public.match_user_listings(uuid),
   public.purge_removed_listings(),
   public.rls_auto_enable(),

@@ -25,7 +25,7 @@ Every relation from `profiles` is `ON DELETE CASCADE`, except `group_id`, which 
 |---|---|---|
 | `profiles` | One row per user, created by the `on_auth_user_created` trigger | `id` → `auth.users` (cascade). `group_id` → `groups` (set null). `is_active` is used by RLS. `name` is 1–100 characters |
 | `groups` | A group (only an id and a timestamp) | Removed by `leave_group()` when at most 1 member remains |
-| `invites` | Invitation to a group by email | `status` ∈ pending/accepted/declined. `from_user_id` → `profiles` (cascade). `to_email` is free text, max 254 characters |
+| `invites` | Invitation to a group by email | `status` ∈ pending/accepted/declined. `from_user_id` → `profiles` (cascade). `to_email` is free text, max 254 characters. At most one pending invite per sender and recipient (unique index) and at most 20 invites in total per pair (trigger). Both rules are per direction |
 | `search_params` | The user's search profile | `user_id` is unique (at most one per user). Price and room ranges must satisfy min ≤ max. `property_types` may only contain known types |
 | `listings` | Scraped listings, shared data | Unique on (`agency`, `external_id`). `property_type` ∈ villa/radhus/lagenhet/fritidshus/tomt/other. `removed_at` is set when a listing has disappeared |
 | `user_listings` | Matches between users and listings | Unique on (`user_id`, `listing_id`). `is_new` (default true), `liked` (default false) |
@@ -71,8 +71,8 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 
 `anon` can call none of them.
 
-- **`authenticated` and service_role:** `accept_invite`, `in_my_group`, `is_active_user`, `leave_group`, `like_listing`, `my_group_id`, `shared_likes`, `shares_group_with`, `delete_my_account`.
-- **service_role only:** `handle_deleted_profile`, `handle_new_user`, `match_user_listings`, `purge_removed_listings`, `rls_auto_enable`, `search_params_match_trigger`.
+- **`authenticated` and service_role:** `accept_invite`, `decline_invite`, `in_my_group`, `is_active_user`, `leave_group`, `like_listing`, `my_group_id`, `shared_likes`, `shares_group_with`, `delete_my_account`.
+- **service_role only:** `handle_deleted_profile`, `handle_new_user`, `limit_invites_per_pair`, `match_user_listings`, `purge_removed_listings`, `rls_auto_enable`, `search_params_match_trigger`.
 
 ## Functions
 
@@ -83,12 +83,14 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 | `my_group_id()` | security definer | The signed-in user's `group_id` |
 | `in_my_group(uuid)`, `shares_group_with(uuid)` | security definer | Whether the target is me or in my group |
 | `accept_invite(invite_id)` | RPC, security definer | Joins the inviter's group (creating it if missing) and marks the invite accepted. Requires that I am not already in a group |
+| `decline_invite(invite_id)` | RPC, security definer | Marks a pending invite addressed to my email as `declined`. Fails with `Inbjudan finns inte eller är inte din` if it is not mine or no longer pending |
 | `delete_my_account()` | RPC, security definer | Deletes the signed-in user from `auth.users`. Everything else follows via cascade and the `on_profile_deleted` trigger. Fails with `Not signed in` without a session |
 | `handle_deleted_profile()` | trigger, security definer | After a profile is deleted: if at most 1 member remains in its group, the group is dissolved (same rule as `leave_group()`) |
 | `leave_group()` | RPC, security definer | Leaves the group. If at most 1 member remains, the group is dissolved |
 | `like_listing(listing_id)` | RPC, security definer | Upserts into `user_listings` with `liked = true` |
 | `shared_likes()` | RPC | **The shared list** ("Gemensam-listan"): listings that *every* member of the group has liked |
 | `match_user_listings(user_id?)` | security invoker | Matches search profile(s) against `listings` (a search with no municipality and no area matches nothing), inserts new rows and deletes rows that no longer match (except liked, tagged and removed listings) |
+| `limit_invites_per_pair()` | trigger, security definer | Rejects a new invite if the sender has already sent 20 invites (any status) to the same e-mail. Error: `Du har skickat för många inbjudningar till den här personen` |
 | `search_params_match_trigger()` | trigger, security definer | Runs `match_user_listings` for the user when their search profile changes |
 | `purge_removed_listings()` | security definer | Deletes listings that have been removed for more than 14 days |
 | `rls_auto_enable()` | event trigger function (`ensure_rls`) | Enables RLS on new tables in `public` |
@@ -98,6 +100,7 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 | Trigger | Table | When | Function |
 |---|---|---|---|
 | `on_auth_user_created` | `auth.users` | after insert | `handle_new_user()` |
+| `invites_limit_per_pair` | `invites` | before insert | `limit_invites_per_pair()` |
 | `on_profile_deleted` | `profiles` | after delete | `handle_deleted_profile()` |
 | `search_params_match` | `search_params` | after insert, or update of a search column | `search_params_match_trigger()` |
 
