@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
-import { Image } from "expo-image";
 import { router } from "expo-router";
 import * as React from "react";
 import { TextInput, View } from "react-native";
@@ -21,13 +20,6 @@ export function SignUpForm() {
 
   return (
     <View className="gap-6 w-full max-w-sm px-14">
-      <View className="items-center">
-        <Image
-          source={require("@/assets/logos/logo-y-primary.svg")}
-          style={{ width: 150, height: 90 }}
-          contentFit="contain"
-        />
-      </View>
       <Text variant="bold" className="text-center text-xl text-background">
         Skapa konto
       </Text>
@@ -47,9 +39,9 @@ export function SignUpForm() {
         />
       </View>
       <View className="gap-1.5">
-          <Label htmlFor="password" className="text-background">
-            Lösenord
-          </Label>
+        <Label htmlFor="password" className="text-background">
+          Lösenord
+        </Label>
         <Input
           ref={passwordInputRef}
           id="password"
@@ -60,9 +52,9 @@ export function SignUpForm() {
         />
       </View>
       <View className="gap-1.5">
-          <Label htmlFor="repeat-password" className="text-background">
-            Upprepa lösenord
-          </Label>
+        <Label htmlFor="repeat-password" className="text-background">
+          Upprepa lösenord
+        </Label>
         <Input
           ref={repeatPasswordInputRef}
           id="repeat-password"
@@ -78,31 +70,17 @@ export function SignUpForm() {
           <Text>Skapa konto</Text>
         </Button>
 
-        <View className="flex-row gap-1 items-center justify-center">
-          <Button
-            variant="link"
-            size="sm"
-            onPress={() => {
-              router.push("/login");
-            }}
-          >
-            <Text className="font-normal leading-4 text-background">
-              Glömt lösenord?
-            </Text>
-          </Button>
-          <Text className="text-background">|</Text>
-          <Button
-            variant="link"
-            size="sm"
-            onPress={() => {
-              router.push("/login");
-            }}
-          >
-            <Text className="font-normal leading-4 text-background">
-              Logga in
-            </Text>
-          </Button>
-        </View>
+        <Button
+          variant="link"
+          size="sm"
+          onPress={() => {
+            router.dismissTo("/login");
+          }}
+        >
+          <Text className="font-normal leading-4 text-background">
+            Logga in
+          </Text>
+        </Button>
       </View>
     </View>
   );
