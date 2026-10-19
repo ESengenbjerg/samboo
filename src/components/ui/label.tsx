@@ -14,7 +14,7 @@ function Label({
   return (
     <LabelPrimitive.Root
       className={cn(
-        'flex select-none flex-row items-center gap-2',
+        'flex select-none flex-row items-center gap-2 mb-2',
         Platform.select({
           web: 'cursor-default leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-50 group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50',
         }),

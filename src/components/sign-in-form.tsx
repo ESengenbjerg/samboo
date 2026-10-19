@@ -19,13 +19,13 @@ export function SignInForm() {
   }
 
   return (
-    <View className="gap- max-w-[70vw]">
-      <View className="items-center mb-8">
+    <View className="gap-6 w-full max-w-sm px-14">
+
+      <View className="items-center">
         <Image
           source={require("@/assets/logos/logo-y-primary.svg")}
           style={{ width: 150, height: 90 }}
           contentFit="contain"
-          className="left-100 "
         />
       </View>
       <View>
@@ -33,7 +33,7 @@ export function SignInForm() {
           Logga in
         </Text>
       </View>
-      <View className="gap-6 align-center">
+      <View className="gap-6">
         <View className="gap-1.5">
           <Label htmlFor="email" className="text-background">
             E-post
@@ -50,14 +50,13 @@ export function SignInForm() {
           />
         </View>
         <View className="gap-1.5">
-          <View className="flex-row items-center">
             <Label htmlFor="password" className="text-background">
               Lösenord
             </Label>
-          </View>
           <Input
             ref={passwordInputRef}
             id="password"
+            placeholder="*****"
             secureTextEntry
             returnKeyType="send"
             onSubmitEditing={onSubmit}
@@ -65,7 +64,7 @@ export function SignInForm() {
         </View>
 
         <View className="gap-6 mt-6 items-center">
-          <Button className="w-fit px-10" onPress={onSubmit}>
+          <Button className="px-10" onPress={onSubmit}>
             <Text>Logga in</Text>
           </Button>
 
@@ -73,7 +72,6 @@ export function SignInForm() {
             <Button
               variant="link"
               size="sm"
-              className="web:h-fit h-4 sm:h-4"
               onPress={() => {
                 router.push("/register");
               }}
@@ -86,7 +84,6 @@ export function SignInForm() {
             <Button
               variant="link"
               size="sm"
-              className="web:h-fit h-4 sm:h-4"
               onPress={() => {
                 router.push("/register");
               }}
