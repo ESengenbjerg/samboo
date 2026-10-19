@@ -88,7 +88,7 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 | `leave_group()` | RPC, security definer | Leaves the group. If at most 1 member remains, the group is dissolved |
 | `like_listing(listing_id)` | RPC, security definer | Upserts into `user_listings` with `liked = true` |
 | `shared_likes()` | RPC | **The shared list** ("Gemensam-listan"): listings that *every* member of the group has liked |
-| `match_user_listings(user_id?)` | security invoker | Matches search profile(s) against `listings`, inserts new rows and deletes rows that no longer match (except liked, tagged and removed listings) |
+| `match_user_listings(user_id?)` | security invoker | Matches search profile(s) against `listings` (a search with no municipality and no area matches nothing), inserts new rows and deletes rows that no longer match (except liked, tagged and removed listings) |
 | `search_params_match_trigger()` | trigger, security definer | Runs `match_user_listings` for the user when their search profile changes |
 | `purge_removed_listings()` | security definer | Deletes listings that have been removed for more than 14 days |
 | `rls_auto_enable()` | event trigger function (`ensure_rls`) | Enables RLS on new tables in `public` |

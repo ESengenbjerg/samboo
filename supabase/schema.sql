@@ -362,10 +362,9 @@ begin
           -- Type: empty list = all types. A listing without a type never matches a chosen type
           (cardinality(sp.property_types) = 0 or l.property_type = any (sp.property_types))
 
-          -- Location: municipality OR area. Both lists empty = anywhere
+          -- Location: municipality OR area. Both lists empty = no match (a search without a place gets no listings)
       and (
-            (cardinality(sp.municipalities) = 0 and cardinality(sp.areas) = 0)
-            or l.municipality = any (sp.municipalities)
+            l.municipality = any (sp.municipalities)
             or l.area = any (sp.areas)
           )
 
