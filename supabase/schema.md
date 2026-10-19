@@ -23,13 +23,13 @@ Every relation from `profiles` is `ON DELETE CASCADE`, except `group_id`, which 
 
 | Table | Purpose | Key rules |
 |---|---|---|
-| `profiles` | One row per user, created by the `on_auth_user_created` trigger | `id` → `auth.users` (cascade). `group_id` → `groups` (set null). `is_active` is used by RLS |
+| `profiles` | One row per user, created by the `on_auth_user_created` trigger | `id` → `auth.users` (cascade). `group_id` → `groups` (set null). `is_active` is used by RLS. `name` is 1–100 characters |
 | `groups` | A group (only an id and a timestamp) | Removed by `leave_group()` when at most 1 member remains |
-| `invites` | Invitation to a group by email | `status` ∈ pending/accepted/declined. `from_user_id` → `profiles` (cascade). `to_email` is free text |
+| `invites` | Invitation to a group by email | `status` ∈ pending/accepted/declined. `from_user_id` → `profiles` (cascade). `to_email` is free text, max 254 characters |
 | `search_params` | The user's search profile | `user_id` is unique (at most one per user). Price and room ranges must satisfy min ≤ max. `property_types` may only contain known types |
 | `listings` | Scraped listings, shared data | Unique on (`agency`, `external_id`). `property_type` ∈ villa/radhus/lagenhet/fritidshus/tomt/other. `removed_at` is set when a listing has disappeared |
 | `user_listings` | Matches between users and listings | Unique on (`user_id`, `listing_id`). `is_new` (default true), `liked` (default false) |
-| `user_tags` | The user's own tags | Unique on (`user_id`, `tag_name`) |
+| `user_tags` | The user's own tags | Unique on (`user_id`, `tag_name`). `tag_name` is 1–100 characters |
 | `listing_tags` | A tag applied to a matched listing | Unique on (`user_tag_id`, `user_listing_id`) |
 | `scrape_issues` | Failures and suspicious results from the scraper | At most one open issue per (`agency`, `kind`). RLS on with no policies, so only service_role can reach it |
 

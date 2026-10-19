@@ -39,7 +39,8 @@ create table public.profiles (
   onboarding_completed_at  timestamptz,
   constraint profiles_pkey primary key (id),
   constraint profiles_id_fkey       foreign key (id)       references auth.users (id) on delete cascade,
-  constraint profiles_group_id_fkey foreign key (group_id) references public.groups (id) on delete set null
+  constraint profiles_group_id_fkey foreign key (group_id) references public.groups (id) on delete set null,
+  constraint profiles_name_length check (char_length(name) between 1 and 100)
 );
 
 create table public.invites (
@@ -50,7 +51,9 @@ create table public.invites (
   status        text not null default 'pending',
   constraint invites_pkey primary key (id),
   constraint invites_status_check check (status = any (array['pending', 'accepted', 'declined'])),
-  constraint invites_from_user_id_fkey foreign key (from_user_id) references public.profiles (id) on delete cascade
+  constraint invites_from_user_id_fkey foreign key (from_user_id) references public.profiles (id) on delete cascade,
+  -- 254 = longest possible e-mail address (RFC 5321)
+  constraint invites_email_length check (char_length(to_email) <= 254)
 );
 
 -- Scraped listings. Shared data, not tied to any user.
@@ -120,7 +123,8 @@ create table public.user_tags (
   tag_name    text not null,
   constraint user_tags_pkey primary key (id),
   constraint user_tags_unique unique (user_id, tag_name),
-  constraint user_tags_user_id_fkey foreign key (user_id) references public.profiles (id) on delete cascade
+  constraint user_tags_user_id_fkey foreign key (user_id) references public.profiles (id) on delete cascade,
+  constraint user_tags_name_length check (char_length(tag_name) between 1 and 100)
 );
 
 create table public.listing_tags (
