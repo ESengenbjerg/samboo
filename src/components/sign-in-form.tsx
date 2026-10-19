@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
+import { supabase } from "@/utils/supabase";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
 import { type TextInput, View } from "react-native";
@@ -22,7 +23,17 @@ export function SignInForm() {
     setIsLoading(true);
 
     try {
-      // TODO: Check with Supabase if credentials are correct and sen user to onboarding/search
+      // Match credentials to Supabase
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+      if (error) {
+        console.log("Auth error:", error);
+        setError("Fel e-post eller lösenord.");
+        return;
+      }
     } catch {
       setError("Något gick fel, försök igen.");
     } finally {
@@ -77,7 +88,7 @@ export function SignInForm() {
 
       <View className="gap-6 mt-6 items-center">
         <Button className="px-10" onPress={onSubmit} disabled={isLoading}>
-          <Text>Logga in</Text>
+          <Text>{!isLoading ? "Logga in" : "Loggar in..."}</Text>
         </Button>
 
         <View className="flex-row gap-1 items-center justify-center">
