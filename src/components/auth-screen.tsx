@@ -15,7 +15,7 @@ type AuthScreenProps = {
 
 export function AuthScreen({ children }: AuthScreenProps) {
   return (
-    <View className="flex-1 items-center justify-center bg-foreground">
+    <View className="flex-1 bg-foreground">
       {/* Background image */}
       <Image
         source={require("@/assets/images/img.jpg")}
@@ -24,10 +24,10 @@ export function AuthScreen({ children }: AuthScreenProps) {
       />
 
       {/* Avoid keyboard from hiding input fields */}
-      <KeyboardAvoidingView behavior="padding">
+      <KeyboardAvoidingView className="flex-1 w-full" behavior="padding">
         <ScrollView
-          contentContainerClassName="flex-grow items-center py-10"
-          keyboardShouldPersistTaps="handled" // Allows only on tap to close keyboard
+          contentContainerClassName="flex-grow items-center justify-center gap-6 py-10"
+          keyboardShouldPersistTaps="handled" // Buttons work on first tap while keyboard is open
         >
           <Link href="/login" dismissTo asChild>
             <Pressable
