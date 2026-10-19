@@ -43,7 +43,7 @@ RLS is enabled on every table. All policies apply to the `authenticated` role, a
 |---|---|---|
 | `profiles` | Own row, or anyone in my group | Update own row |
 | `groups` | My own group | No direct writes (via functions) |
-| `invites` | Ones I sent, or addressed to my email | Create own |
+| `invites` | Ones I sent, or addressed to my email | Create own (not to my own email) |
 | `search_params` | Own | Create, update, delete own |
 | `user_listings` | Mine and my group members' | Update own |
 | `listings` | Listings matched to me or to someone in my group | None (the scraper uses service_role) |
@@ -71,7 +71,7 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 
 `anon` can call none of them.
 
-- **`authenticated` and service_role:** `accept_invite`, `decline_invite`, `in_my_group`, `is_active_user`, `leave_group`, `like_listing`, `my_group_id`, `shared_likes`, `shares_group_with`, `delete_my_account`.
+- **`authenticated` and service_role:** `accept_invite`, `decline_invite`, `in_my_group`, `is_active_user`, `leave_group`, `like_listing`, `my_group_id`, `my_pending_invites`, `shared_likes`, `shares_group_with`, `delete_my_account`.
 - **service_role only:** `handle_deleted_profile`, `handle_new_user`, `limit_invites_per_pair`, `match_user_listings`, `purge_removed_listings`, `rls_auto_enable`, `search_params_match_trigger`.
 
 ## Functions
@@ -83,6 +83,7 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 | `my_group_id()` | security definer | The signed-in user's `group_id` |
 | `in_my_group(uuid)`, `shares_group_with(uuid)` | security definer | Whether the target is me or in my group |
 | `accept_invite(invite_id)` | RPC, security definer | Joins the inviter's group (creating it if missing) and marks the invite accepted. Requires that I am not already in a group |
+| `my_pending_invites()` | RPC, security definer | Pending invites addressed to my email, with `from_name` and `from_email` of the sender. The recipient cannot read the sender's profile directly, so the app uses this to show who invited |
 | `decline_invite(invite_id)` | RPC, security definer | Marks a pending invite addressed to my email as `declined`. Fails with `Inbjudan finns inte eller är inte din` if it is not mine or no longer pending |
 | `delete_my_account()` | RPC, security definer | Deletes the signed-in user from `auth.users`. Everything else follows via cascade and the `on_profile_deleted` trigger. Fails with `Not signed in` without a session |
 | `handle_deleted_profile()` | trigger, security definer | After a profile is deleted: if at most 1 member remains in its group, the group is dissolved (same rule as `leave_group()`) |

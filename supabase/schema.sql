@@ -314,6 +314,24 @@ begin
 end;
 $function$;
 
+-- Pending invites addressed to me, with the sender's name and e-mail. Needed because the recipient cannot read the sender's profile (not in the same group) or auth.users.
+CREATE OR REPLACE FUNCTION public.my_pending_invites()
+ RETURNS TABLE (id bigint, created_at timestamptz, from_user_id uuid, from_name text, from_email text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+  select i.id, i.created_at, i.from_user_id, p.name, u.email::text
+  from public.invites i
+  join public.profiles p on p.id = i.from_user_id
+  join auth.users u on u.id = i.from_user_id
+  where public.is_active_user()
+    and p.is_active
+    and i.status = 'pending'
+    and lower(i.to_email) = lower(auth.jwt() ->> 'email')
+  order by i.created_at desc;
+$function$;
+
 CREATE OR REPLACE FUNCTION public.leave_group()
  RETURNS void
  LANGUAGE plpgsql
@@ -598,7 +616,12 @@ create policy groups_select on public.groups
 -- invites
 create policy invites_insert on public.invites
   for insert to authenticated
-  with check (is_active_user() and from_user_id = (select auth.uid()));
+  with check (
+    is_active_user()
+    and from_user_id = (select auth.uid())
+    -- You cannot invite your own e-mail address
+    and lower(to_email) <> lower(coalesce((select auth.jwt()) ->> 'email', ''))
+  );
 
 create policy invites_select on public.invites
   for select to authenticated
@@ -740,6 +763,7 @@ grant execute on function
   public.leave_group(),
   public.like_listing(bigint),
   public.my_group_id(),
+  public.my_pending_invites(),
   public.shared_likes(),
   public.shares_group_with(uuid),
   public.delete_my_account()
