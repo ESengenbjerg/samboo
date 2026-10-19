@@ -3,18 +3,31 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
 import { router } from "expo-router";
-import * as React from "react";
+import { useRef, useState } from "react";
 import { type TextInput, View } from "react-native";
+import FormError from "./form-error";
 
 export function SignInForm() {
-  const passwordInputRef = React.useRef<TextInput>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function onEmailSubmitEditing() {
-    passwordInputRef.current?.focus();
-  }
+  const passwordInputRef = useRef<TextInput>(null);
 
-  function onSubmit() {
-    // TODO: Submit form and navigate to protected screen if successful
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  async function onSubmit() {
+    if (isLoading) return;
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      // TODO: Check with Supabase if credentials are correct and sen user to onboarding/search
+    } catch {
+      setError("Något gick fel, försök igen.");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -23,36 +36,47 @@ export function SignInForm() {
         Logga in
       </Text>
       <View className="gap-1.5">
-        <Label htmlFor="email" className="text-background">
+        <Label htmlFor="signin-email" className="text-background">
           E-post
         </Label>
         <Input
-          id="email"
+          id="signin-email"
           placeholder="m@example.com"
           keyboardType="email-address"
           autoComplete="email"
           autoCapitalize="none"
-          onSubmitEditing={onEmailSubmitEditing}
+          value={email}
+          onChangeText={setEmail}
+          onSubmitEditing={() => passwordInputRef.current?.focus()}
           returnKeyType="next"
           submitBehavior="submit"
+          editable={!isLoading}
+          textContentType="emailAddress"
         />
       </View>
       <View className="gap-1.5">
-        <Label htmlFor="password" className="text-background">
+        <Label htmlFor="signin-password" className="text-background">
           Lösenord
         </Label>
         <Input
           ref={passwordInputRef}
-          id="password"
+          id="signin-password"
           placeholder="*****"
           secureTextEntry
           returnKeyType="send"
+          value={password}
+          onChangeText={setPassword}
           onSubmitEditing={onSubmit}
+          editable={!isLoading}
+          autoComplete="current-password"
+          textContentType="password"
         />
       </View>
 
+      {error && <FormError>{error}</FormError>}
+
       <View className="gap-6 mt-6 items-center">
-        <Button className="px-10" onPress={onSubmit}>
+        <Button className="px-10" onPress={onSubmit} disabled={isLoading}>
           <Text>Logga in</Text>
         </Button>
 

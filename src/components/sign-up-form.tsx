@@ -3,19 +3,41 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
 import { router } from "expo-router";
-import * as React from "react";
+import { useRef, useState } from "react";
 import { TextInput, View } from "react-native";
+import FormError from "./form-error";
 
 export function SignUpForm() {
-  const passwordInputRef = React.useRef<TextInput>(null);
-  const repeatPasswordInputRef = React.useRef<TextInput>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const passwordInputRef = useRef<TextInput>(null);
+  const repeatPasswordInputRef = useRef<TextInput>(null);
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [repeatPassword, setRepeatPassword] = useState("");
 
   function onEmailSubmitEditing() {
     passwordInputRef.current?.focus();
   }
 
-  function onSubmit() {
-    // TODO: Submit form and navigate to protected screen if successful
+  async function onSubmit() {
+    if (isLoading) return;
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      if (password !== repeatPassword) {
+        setError("Lösenorden matchar inte");
+        return;
+      }
+      router.push("/verify-email");
+    } catch {
+      setError("Något gick fel, försök igen.");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -24,49 +46,65 @@ export function SignUpForm() {
         Skapa konto
       </Text>
       <View className="gap-1.5">
-        <Label htmlFor="email" className="text-background">
+        <Label htmlFor="signup-email" className="text-background">
           E-post
         </Label>
         <Input
-          id="email"
+          id="signup-email"
           placeholder="m@example.com"
           keyboardType="email-address"
           autoComplete="email"
           autoCapitalize="none"
+          value={email}
+          onChangeText={setEmail}
           onSubmitEditing={onEmailSubmitEditing}
           returnKeyType="next"
           submitBehavior="submit"
+          textContentType="emailAddress"
+          editable={!isLoading}
         />
       </View>
       <View className="gap-1.5">
-        <Label htmlFor="password" className="text-background">
+        <Label htmlFor="signup-password" className="text-background">
           Lösenord
         </Label>
         <Input
           ref={passwordInputRef}
-          id="password"
+          id="signup-password"
           placeholder="*****"
           secureTextEntry
           returnKeyType="next"
+          value={password}
+          onChangeText={setPassword}
           onSubmitEditing={() => repeatPasswordInputRef.current?.focus()}
+          autoComplete="new-password"
+          textContentType="newPassword"
+          editable={!isLoading}
         />
       </View>
       <View className="gap-1.5">
-        <Label htmlFor="repeat-password" className="text-background">
+        <Label htmlFor="signup-repeat-password" className="text-background">
           Upprepa lösenord
         </Label>
         <Input
           ref={repeatPasswordInputRef}
-          id="repeat-password"
+          id="signup-repeat-password"
           placeholder="*****"
           secureTextEntry
           returnKeyType="send"
+          value={repeatPassword}
+          onChangeText={setRepeatPassword}
           onSubmitEditing={onSubmit}
+          autoComplete="new-password"
+          textContentType="newPassword"
+          editable={!isLoading}
         />
       </View>
 
+      {error && <FormError>{error}</FormError>}
+
       <View className="gap-6 mt-6 items-center">
-        <Button className="px-10" onPress={onSubmit}>
+        <Button className="px-10" onPress={onSubmit} disabled={isLoading}>
           <Text>Skapa konto</Text>
         </Button>
 
@@ -76,6 +114,7 @@ export function SignUpForm() {
           onPress={() => {
             router.dismissTo("/login");
           }}
+          disabled={isLoading}
         >
           <Text className="font-normal leading-4 text-background">
             Logga in
