@@ -1,120 +1,149 @@
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Text } from '@/components/ui/text';
-import * as React from 'react';
-import { type TextStyle, View } from 'react-native';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Text } from "@/components/ui/text";
+import { router } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { type TextStyle, View } from "react-native";
+import FormError from "./form-error";
 
 const RESEND_CODE_INTERVAL_SECONDS = 30;
 
-const TABULAR_NUMBERS_STYLE: TextStyle = { fontVariant: ['tabular-nums'] };
+const TABULAR_NUMBERS_STYLE: TextStyle = { fontVariant: ["tabular-nums"] };
 
 export function VerifyEmailForm() {
-  const { countdown, restartCountdown } = useCountdown(RESEND_CODE_INTERVAL_SECONDS);
+  const { countdown, restartCountdown } = useCountdown(
+    RESEND_CODE_INTERVAL_SECONDS,
+  );
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [code, setCode] = useState("");
+
+  // TODO: Remove, verify the code with the auth provider instead
+  const DEV_CODE = "123456";
 
   function onSubmit() {
-    // TODO: Submit form and navigate to protected screen if successful
+    if (isLoading) return;
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      if (code === DEV_CODE) {
+        router.dismissTo("/login");
+      } else {
+        setError("Koden stämmer inte.");
+        return;
+      }
+    } catch {
+      setError("Något gick fel, försök igen");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
-    <View className="gap-6">
-      <Card className="border-border/0 sm:border-border pb-4 shadow-none sm:shadow-sm sm:shadow-black/5">
-        <CardHeader>
-          <CardTitle className="text-center text-xl sm:text-left">Verify your email</CardTitle>
-          <CardDescription className="text-center sm:text-left">
-            Enter the verification code sent to m@example.com
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="gap-6">
-          <View className="gap-6">
-            <View className="gap-1.5">
-              <Label htmlFor="code">Verification code</Label>
-              <Input
-                id="code"
-                autoCapitalize="none"
-                returnKeyType="send"
-                keyboardType="numeric"
-                autoComplete="sms-otp"
-                textContentType="oneTimeCode"
-                onSubmitEditing={onSubmit}
-              />
-              <Button
-                variant="link"
-                size="sm"
-                disabled={countdown > 0}
-                onPress={() => {
-                  // TODO: Resend code
-                  restartCountdown();
-                }}>
-                <Text className="text-center text-xs">
-                  Didn&apos;t receive the code? Resend{' '}
-                  {countdown > 0 ? (
-                    <Text className="text-xs" style={TABULAR_NUMBERS_STYLE}>
-                      ({countdown})
-                    </Text>
-                  ) : null}
-                </Text>
-              </Button>
-            </View>
-            <View className="gap-3">
-              <Button className="w-full" onPress={onSubmit}>
-                <Text>Continue</Text>
-              </Button>
-              <Button
-                variant="link"
-                className="mx-auto"
-                onPress={() => {
-                  // TODO: Navigate to sign up screen
-                }}>
-                <Text>Cancel</Text>
-              </Button>
-            </View>
-          </View>
-        </CardContent>
-      </Card>
+    <View className="gap-6 w-full max-w-sm px-14">
+      <Text variant="bold" className="text-center text-xl text-background">
+        Verifiera e-post
+      </Text>
+      <Text className="text-center text-background">
+        Fyll i koden som skickats till din mail.
+      </Text>
+      <View className="gap-1.5">
+        <Label htmlFor="verify-code" className="text-background">
+          Verifieringskod
+        </Label>
+        <Input
+          id="verify-code"
+          placeholder="*****"
+          autoCapitalize="none"
+          returnKeyType="send"
+          keyboardType="numeric"
+          autoComplete="sms-otp"
+          textContentType="oneTimeCode"
+          onSubmitEditing={onSubmit}
+          value={code}
+          onChangeText={setCode}
+          editable={!isLoading}
+        />
+        <Button
+          variant="link"
+          size="sm"
+          disabled={countdown > 0 || isLoading}
+          onPress={() => {
+            // TODO: Resend code
+            restartCountdown();
+          }}
+        >
+          <Text className="text-center text-sm text-background">
+            Skicka igen{" "}
+            {countdown > 0 ? (
+              <Text
+                className="text-sm text-background"
+                style={TABULAR_NUMBERS_STYLE}
+              >
+                ({countdown})
+              </Text>
+            ) : null}
+          </Text>
+        </Button>
+      </View>
+
+      {error && <FormError>{error}</FormError>}
+
+      <View className="gap-6 items-center justify-center mt-6">
+        <Button className="px-10" onPress={onSubmit} disabled={isLoading}>
+          <Text>Verifiera</Text>
+        </Button>
+        <Button
+          variant="link"
+          onPress={() => router.dismissTo("/register")}
+          disabled={isLoading}
+        >
+          <Text className="text-background">Tillbaka</Text>
+        </Button>
+      </View>
     </View>
   );
 }
 
+// Countdown for email
 function useCountdown(seconds = 30) {
-  const [countdown, setCountdown] = React.useState(seconds);
-  const intervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+  const [countdown, setCountdown] = useState(seconds);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const stopCountdown = React.useCallback(() => {
+  const stopCountdown = useCallback(() => {
     if (intervalRef.current !== null) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
   }, []);
 
-  const startCountdown = React.useCallback(() => {
+  const startInterval = useCallback(() => {
     stopCountdown();
-    setCountdown(seconds);
-
     intervalRef.current = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
+          // Stop countdown and set state to 0 when countdown is finished
           stopCountdown();
           return 0;
         }
-
         return prev - 1;
       });
     }, 1000);
-  }, [seconds, stopCountdown]);
+  }, [stopCountdown]);
 
-  React.useEffect(() => {
-    startCountdown();
+  const restartCountdown = useCallback(() => {
+    setCountdown(seconds);
+    startInterval();
+  }, [seconds, startInterval]);
 
+  useEffect(() => {
+    startInterval();
     return stopCountdown;
-  }, [startCountdown, stopCountdown]);
+  }, [startInterval, stopCountdown]);
 
-  return { countdown, restartCountdown: startCountdown };
+  return { countdown, restartCountdown };
 }
