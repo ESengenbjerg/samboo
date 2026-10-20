@@ -17,6 +17,7 @@ import { LayoutChangeEvent, View } from "react-native";
 import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
 import { Switch } from "../ui/switch";
+import { SelectOption } from "@/types/select-option"
 
 export default function CreateFilterForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -30,11 +31,11 @@ export default function CreateFilterForm() {
     [],
   );
   const [propertyType, setPropertyType] = useState<string | undefined>("");
-  const [rooms, setRooms] = useState<number | null>(null);
-  const [monthlyFee, setMonthlyFee] = useState<number | null>(null);
-  const [livingArea, setLivingArea] = useState<number | null>(null);
+  const [rooms, setRooms] = useState<SelectOption>();
+  const [monthlyFee, setMonthlyFee] = useState<SelectOption>();
+  const [livingArea, setLivingArea] = useState<SelectOption>();
 
-  // Dropdowns should be as wide as their trigger (web does this via CSS)
+  // Dropdowns should be as wide as their trigger
   const [triggerWidth, setTriggerWidth] = useState<number>();
   const onTriggerLayout = (e: LayoutChangeEvent) =>
     setTriggerWidth(e.nativeEvent.layout.width);
@@ -122,7 +123,7 @@ export default function CreateFilterForm() {
           <Label>Minst antal rum</Label>
           <View className="flex-row gap-2 justify-between">
             {/* --- Min --- */}
-            <Select>
+            <Select value={rooms} onValueChange={setRooms}>
               <SelectTrigger className="w-full" onLayout={onTriggerLayout}>
                 <SelectValue placeholder="Min" />
               </SelectTrigger>
@@ -130,8 +131,8 @@ export default function CreateFilterForm() {
                 <NativeSelectScrollView>
                   {roomSelectValues.map((r) => (
                     <SelectItem
-                      key={`min-rooms-${r}`}
-                      value={`min-rooms-${r}`}
+                      key={r}
+                      value={r}
                       label={
                         roomSelectValues.indexOf(r) ===
                         roomSelectValues.length - 1
@@ -150,7 +151,7 @@ export default function CreateFilterForm() {
           <Label>Högtsa månadsavgift</Label>
           <View className="flex-row gap-2 justify-between">
             {/* --- Min --- */}
-            <Select>
+            <Select value={monthlyFee} onValueChange={setMonthlyFee}>
               <SelectTrigger className="w-full" onLayout={onTriggerLayout}>
                 <SelectValue placeholder="Min" />
               </SelectTrigger>
@@ -158,8 +159,8 @@ export default function CreateFilterForm() {
                 <SelectGroup>
                   {monthlyFeeSelectValues.map((m) => (
                     <SelectItem
-                      key={`max-monthly-fee-${m.toString()}`}
-                      value={`max-monthly-fee-${m.toString()}`}
+                      key={m}
+                      value={m.toString()}
                       label={
                         monthlyFeeSelectValues.indexOf(m) ===
                         monthlyFeeSelectValues.length - 1
@@ -178,7 +179,7 @@ export default function CreateFilterForm() {
           <Label>Minsta boarea</Label>
           <View className="flex-row gap-2 justify-between">
             {/* --- Min --- */}
-            <Select>
+            <Select value={livingArea} onValueChange={setLivingArea}>
               <SelectTrigger className="w-full" onLayout={onTriggerLayout}>
                 <SelectValue placeholder="Min" />
               </SelectTrigger>
@@ -186,8 +187,8 @@ export default function CreateFilterForm() {
                 <NativeSelectScrollView>
                   {livingAreaSelectValues.map((l) => (
                     <SelectItem
-                      key={`min-living-area-${l}`}
-                      value={`min-living-area-${l}`}
+                      key={l}
+                      value={l}
                       label={
                         livingAreaSelectValues.indexOf(l) ===
                         livingAreaSelectValues.length - 1
