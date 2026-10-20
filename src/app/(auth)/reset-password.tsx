@@ -1,5 +1,5 @@
-import { AuthScreen } from "@/components/auth-screen";
-import { ResetPasswordForm } from "@/components/reset-password-form";
+import { AuthScreen } from "@/components/auth/auth-screen";
+import { ResetPasswordForm } from "@/components/auth/reset-password-form";
 
 export default function ResetPasswordScreen() {
   return (

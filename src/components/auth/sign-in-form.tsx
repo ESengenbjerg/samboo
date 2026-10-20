@@ -6,7 +6,7 @@ import { supabase } from "@/utils/supabase";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
 import { type TextInput, View } from "react-native";
-import FormError from "./form-error";
+import FormError from "@/components/form-error";
 
 export function SignInForm() {
   const [isLoading, setIsLoading] = useState(false);

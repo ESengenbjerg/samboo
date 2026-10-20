@@ -1,5 +1,5 @@
-import { AuthScreen } from "@/components/auth-screen";
-import { ForgotPasswordForm } from "@/components/forgot-password-form";
+import { AuthScreen } from "@/components/auth/auth-screen";
+import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
 
 export default function ForgottenPasswordScreen() {
   return (

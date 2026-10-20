@@ -5,7 +5,7 @@ import { Text } from "@/components/ui/text";
 import { router } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type TextStyle, View } from "react-native";
-import FormError from "./form-error";
+import FormError from "@/components/form-error";
 
 const RESEND_CODE_INTERVAL_SECONDS = 30;
 
