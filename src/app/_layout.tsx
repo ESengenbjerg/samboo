@@ -96,10 +96,7 @@ export default function RootLayout() {
           <Stack.Screen name="(auth)" />
         </Stack.Protected>
         <Stack.Protected guard={isLoggedIn && !isOnboarded}>
-          <Stack.Screen
-            name="(onboarding)"
-            options={{ headerShown: true, header: () => <Header /> }}
-          />
+          <Stack.Screen name="(onboarding)" />
         </Stack.Protected>
         <Stack.Protected guard={isLoggedIn && isOnboarded}>
           <Stack.Screen
