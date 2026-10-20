@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
+import { supabase } from "@/utils/supabase";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
 import { TextInput, View } from "react-native";
@@ -23,15 +24,30 @@ export function SignUpForm() {
   }
 
   async function onSubmit() {
+    if (password !== repeatPassword) {
+      setError("Lösenorden matchar inte");
+      return;
+    }
+
     if (isLoading) return;
     setError(null);
     setIsLoading(true);
 
     try {
-      if (password !== repeatPassword) {
-        setError("Lösenorden matchar inte");
+      // Try to sign up using Supabase
+      const { data, error } = await supabase.auth.signUp({
+        email: email,
+        password: repeatPassword,
+      });
+
+      console.log(JSON.stringify(data, null, 2));
+
+      if (error) {
+        console.log("Auth error:", error);
+        setError("Något gick fel, försök igen.");
         return;
       }
+
       router.push("/verify-email");
     } catch {
       setError("Något gick fel, försök igen.");
