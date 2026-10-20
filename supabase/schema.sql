@@ -271,6 +271,10 @@ declare
   inv public.invites;
   g bigint;
 begin
+  if not public.is_active_user() then
+    raise exception 'Ditt konto är inte aktivt';
+  end if;
+
   select * into inv from public.invites
   where id = invite_id
     and status = 'pending'
@@ -302,6 +306,10 @@ CREATE OR REPLACE FUNCTION public.decline_invite(invite_id bigint)
  SET search_path TO ''
 AS $function$
 begin
+  if not public.is_active_user() then
+    raise exception 'Ditt konto är inte aktivt';
+  end if;
+
   update public.invites
   set status = 'declined'
   where id = invite_id
@@ -363,6 +371,19 @@ CREATE OR REPLACE FUNCTION public.like_listing(p_listing_id bigint)
  SET search_path TO ''
 AS $function$
 begin
+  if not public.is_active_user() then
+    raise exception 'Ditt konto är inte aktivt';
+  end if;
+
+  -- Only listings that are already visible to me: matched to me or to someone in my group
+  if not exists (
+    select 1 from public.user_listings ul
+    where ul.listing_id = p_listing_id
+      and public.shares_group_with(ul.user_id)
+  ) then
+    raise exception 'Annonsen finns inte eller är inte tillgänglig för dig';
+  end if;
+
   insert into public.user_listings (user_id, listing_id, liked, is_new)
   values (auth.uid(), p_listing_id, true, false)
   on conflict (user_id, listing_id) do update set liked = true;

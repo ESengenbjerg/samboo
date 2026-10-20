@@ -82,13 +82,13 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 | `is_active_user()` | security definer | See above |
 | `my_group_id()` | security definer | The signed-in user's `group_id` |
 | `in_my_group(uuid)`, `shares_group_with(uuid)` | security definer | Whether the target is me or in my group |
-| `accept_invite(invite_id)` | RPC, security definer | Joins the inviter's group (creating it if missing) and marks the invite accepted. Requires that I am not already in a group |
+| `accept_invite(invite_id)` | RPC, security definer | Joins the inviter's group (creating it if missing) and marks the invite accepted. Requires that I am not already in a group and that my account is active |
 | `my_pending_invites()` | RPC, security definer | Pending invites addressed to my email, with `from_name` and `from_email` of the sender. The recipient cannot read the sender's profile directly, so the app uses this to show who invited |
-| `decline_invite(invite_id)` | RPC, security definer | Marks a pending invite addressed to my email as `declined`. Fails with `Inbjudan finns inte eller är inte din` if it is not mine or no longer pending |
+| `decline_invite(invite_id)` | RPC, security definer | Marks a pending invite addressed to my email as `declined`. Requires an active account. Fails with `Inbjudan finns inte eller är inte din` if it is not mine or no longer pending |
 | `delete_my_account()` | RPC, security definer | Deletes the signed-in user from `auth.users`. Everything else follows via cascade and the `on_profile_deleted` trigger. Fails with `Not signed in` without a session |
 | `handle_deleted_profile()` | trigger, security definer | After a profile is deleted: if at most 1 member remains in its group, the group is dissolved (same rule as `leave_group()`) |
 | `leave_group()` | RPC, security definer | Leaves the group. If at most 1 member remains, the group is dissolved |
-| `like_listing(listing_id)` | RPC, security definer | Upserts into `user_listings` with `liked = true` |
+| `like_listing(listing_id)` | RPC, security definer | Upserts into `user_listings` with `liked = true`. Only allowed for listings already visible to me (matched to me or to someone in my group) and for an active account |
 | `shared_likes()` | RPC | **The shared list** ("Gemensam-listan"): listings that *every* member of the group has liked |
 | `match_user_listings(user_id?)` | security invoker | Matches search profile(s) against `listings` (a search with no municipality and no area matches nothing), inserts new rows and deletes rows that no longer match (except liked, tagged and removed listings) |
 | `limit_invites_per_pair()` | trigger, security definer | Rejects a new invite if the sender has already sent 20 invites (any status) to the same e-mail. Error: `Du har skickat för många inbjudningar till den här personen` |
@@ -132,5 +132,5 @@ The app calls `delete_my_account()`, which deletes the row in `auth.users`. This
 
 - `invites.to_email` for deleted users is not cleaned up (GDPR, later issue).
 - The constraint names on `search_params` are `SearchParams_*` (from an earlier table name).
-- `is_active` is used by RLS through `is_active_user()` and cannot be removed without rewriting all policies.
+- `profiles.is_active` is read in only three places: `is_active_user()`, `handle_new_user()` (the insert) and `my_pending_invites()`. The policies call the function `is_active_user()`, not the column, so removing the column means rewriting those three functions and not the policies. It is never set to `false` by the app; it works as a manual kill switch that is checked live on every request.
 - The scraper's `PropertyType` in `scripts/lib/types.ts` lacks `fritidshus`, which the database allows.
