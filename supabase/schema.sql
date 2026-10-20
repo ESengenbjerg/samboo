@@ -99,7 +99,9 @@ create table public.search_params (
   constraint search_params_rooms_check check (min_rooms is null or max_rooms is null or min_rooms <= max_rooms),
   constraint search_params_property_types_check check (
     property_types <@ array['villa', 'radhus', 'lagenhet', 'fritidshus', 'tomt', 'other']
-  )
+  ),
+  -- Caps the size of one search so nobody can make the scraper cover the whole country
+  constraint search_params_place_limit check (cardinality(municipalities) <= 10 and cardinality(areas) <= 20)
 );
 
 -- Match between user and listing. Filled by match_user_listings() and like_listing().
