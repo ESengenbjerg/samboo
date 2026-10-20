@@ -4,21 +4,20 @@ import { PortalHost } from "@rn-primitives/portal";
 import { Stack, ThemeProvider } from "expo-router";
 import { useColorScheme } from "nativewind";
 
-import { Text } from "@/components/ui/text";
 import { NAV_THEME } from "@/lib/theme";
 import { useEffect, useState } from "react";
-import { Pressable, View } from "react-native";
 
-// Fonts
+import Header from "@/components/header";
+import { supabase } from "@/utils/supabase";
 import { MomoTrustDisplay_400Regular } from "@expo-google-fonts/momo-trust-display";
 import {
   MomoTrustSans_400Regular,
   MomoTrustSans_500Medium,
   MomoTrustSans_700Bold,
 } from "@expo-google-fonts/momo-trust-sans";
+import { Session } from "@supabase/supabase-js";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
-import Header from "@/components/header";
 
 // Stays on start screen until fonts are loaded
 SplashScreen.preventAutoHideAsync();
@@ -30,42 +29,68 @@ export default function RootLayout() {
     MomoTrustSans_500Medium,
     MomoTrustSans_700Bold,
   });
-
-  // TODO: Update to correct states
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  const [isOnboarded, setIsOnboarded] = useState<boolean>(false);
-
   const { colorScheme } = useColorScheme();
 
-  // Leave start screen when fonts are loaded
-  useEffect(() => {
-    if (fontsLoaded) SplashScreen.hideAsync();
-  }, [fontsLoaded]);
+  const [session, setSession] = useState<Session | null>(null);
+  // True once the stored session has been read (it can be null = logged out)
+  const [isSessionLoaded, setIsSessionLoaded] = useState(false);
+  // Onboarding status for a specific user, so a stale value is never used for a new session
+  const [profile, setProfile] = useState<{
+    userId: string;
+    isOnboarded: boolean;
+  } | null>(null);
 
-  // TODO: Remove before production
+  // Load session and listen to login/logout
   useEffect(() => {
-    if (!isLoggedIn) setIsOnboarded(false)
-  }, [isLoggedIn])
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setIsSessionLoaded(true);
+    });
 
-  if (!fontsLoaded) return null;
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (!session) setProfile(null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Get onboarding status when the logged in user changes
+  const userId = session?.user.id;
+  useEffect(() => {
+    if (!userId) return;
+
+    supabase
+      .from("profiles")
+      .select("onboarding_completed_at")
+      .eq("id", userId)
+      .single()
+      .then(({ data, error }) => {
+        if (error) console.log("Profile error:", error);
+        setProfile({
+          userId,
+          isOnboarded: !!data?.onboarding_completed_at,
+        });
+      });
+  }, [userId]);
+
+  const isLoggedIn = !!session;
+  const isOnboarded = profile?.isOnboarded ?? false;
+  const isProfileLoading = isLoggedIn && profile?.userId !== userId;
+  const isReady = fontsLoaded && isSessionLoaded && !isProfileLoading;
+
+  // Leave start screen when everything is loaded
+  useEffect(() => {
+    if (isReady) SplashScreen.hideAsync();
+  }, [isReady]);
+
+  if (!isReady) return null;
 
   return (
     <ThemeProvider value={NAV_THEME[colorScheme ?? "light"]}>
-      {/* ONLY FOR DEV -- LOG IN TOGGLE */}
-      {/* TODO: Remove before production */}
-      <View className="flex-row justify-between mt-10 mx-5">
-        <Pressable onPress={() => setIsLoggedIn(!isLoggedIn)}>
-          {!isLoggedIn ? <Text>Log in</Text> : <Text>Log out</Text>}
-        </Pressable>
-
-        <Pressable onPress={() => setIsOnboarded(!isOnboarded)}>
-          {!isOnboarded ? <Text>Onboard</Text> : <Text>Reverse onboarding</Text>}
-        </Pressable>
-      </View>
-      {/* --- */}
-
       {/* Redirects user to correct view */}
-      {/* TODO: Update to correct states */}
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Protected guard={!isLoggedIn}>
           <Stack.Screen name="(auth)" />
