@@ -4,13 +4,17 @@ import { Platform } from 'react-native';
 
 function Label({
   className,
+  containerClassName,
   onPress,
   onLongPress,
   onPressIn,
   onPressOut,
   disabled,
   ...props
-}: React.ComponentProps<typeof LabelPrimitive.Text>) {
+}: React.ComponentProps<typeof LabelPrimitive.Text> & {
+  /** Classes for the outer wrapper (className goes to the text) */
+  containerClassName?: string;
+}) {
   return (
     <LabelPrimitive.Root
       className={cn(
@@ -18,7 +22,8 @@ function Label({
         Platform.select({
           web: 'cursor-default leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-50 group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50',
         }),
-        disabled && 'opacity-50'
+        disabled && 'opacity-50',
+        containerClassName
       )}
       onPress={onPress}
       onLongPress={onLongPress}
@@ -27,7 +32,7 @@ function Label({
       disabled={disabled}>
       <LabelPrimitive.Text
         className={cn(
-          'text-foreground text-base font-bold',
+          'text-foreground text-base font-sans-bold',
           Platform.select({ web: 'leading-none' }),
           className
         )}
