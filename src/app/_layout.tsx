@@ -18,6 +18,7 @@ import {
 import { Session } from "@supabase/supabase-js";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 // Stays on start screen until fonts are loaded
 SplashScreen.preventAutoHideAsync();
@@ -89,6 +90,7 @@ export default function RootLayout() {
   if (!isReady) return null;
 
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <ThemeProvider value={NAV_THEME[colorScheme ?? "light"]}>
       {/* Redirects user to correct view */}
       <Stack screenOptions={{ headerShown: false }}>
@@ -107,5 +109,6 @@ export default function RootLayout() {
       </Stack>
       <PortalHost />
     </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
