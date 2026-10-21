@@ -18,6 +18,7 @@ import type {
   IssueReason,
   SearchParamsRow,
 } from "../lib/types.ts";
+import * as agency1 from "./agencies/agency1.ts";
 import * as mockdata from "./agencies/mockdata.ts";
 import {
   notifyAdmin,
@@ -41,7 +42,7 @@ process.loadEnvFile(".env");
 const { supabaseAdmin } = await import("../lib/supabaseAdmin.ts");
 
 // Agencies are scraped one after another. ADD NEW AGENCIES HERE!!!
-const agencies: Agency[] = [mockdata];
+const agencies: Agency[] = [mockdata, agency1];
 
 // // node scripts/scraper/run.ts --dry-run  -> print scope and URLs, scrape nothing
 // const dryRun = process.argv.includes("--dry-run"); // For test
