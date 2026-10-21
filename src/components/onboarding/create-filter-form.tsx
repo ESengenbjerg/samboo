@@ -16,6 +16,7 @@ import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
 import { Switch } from "../ui/switch";
 import FilterSelect from "./filter-select";
+import { capitalize } from "@/utils/capitalize-string";
 
 export default function CreateFilterForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -82,7 +83,7 @@ export default function CreateFilterForm() {
         >
           {existingPropertyTypes.map((p) => (
             <ToggleGroupItem key={p} value={p} aria-label={`Boendetyp ${p}`}>
-              <Text className="m-2">{p}</Text>
+              <Text className="m-2">{capitalize(p)}</Text>
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
