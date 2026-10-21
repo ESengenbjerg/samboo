@@ -12,7 +12,7 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
 
-type SaveObjectDialogProps = {
+type SendInviteDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAction: () => void;
@@ -22,12 +22,12 @@ export function SendInviteDialog({
   open,
   onOpenChange,
   onAction,
-}: SaveObjectDialogProps) {
+}: SendInviteDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Spara objekt</DialogTitle>
+          <DialogTitle>Skicka inbjudan</DialogTitle>
         </DialogHeader>
 
         <View className="gap-4">

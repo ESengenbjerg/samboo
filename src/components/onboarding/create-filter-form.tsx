@@ -7,7 +7,11 @@ import {
   MONTHLY_FEE_OPTIONS,
   ROOM_OPTIONS,
 } from "@/constants/filter-options";
-import { ClientFilter, ScraperFilter, useOnboardingStore } from "@/stores/onboarding";
+import {
+  ClientFilter,
+  ScraperFilter,
+  useOnboardingStore,
+} from "@/stores/onboarding";
 import { SelectOption } from "@/types/select-option";
 import { capitalize } from "@/utils/capitalize-string";
 import { supabase } from "@/utils/supabase";
@@ -21,6 +25,7 @@ import { Switch } from "../ui/switch";
 import FilterSelect from "./filter-select";
 
 export default function CreateFilterForm() {
+  // TODO: setIsLoading will be used once Supabase implementation is complete
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const setFilters = useOnboardingStore((s) => s.setFilters);
@@ -47,6 +52,8 @@ export default function CreateFilterForm() {
       .select("property_type")
       .then(({ data, error }) => {
         if (error) {
+          // TODO: Show an error (setError) if this fails. Without property types
+          // the user can't pass validation in onSubmit and is stuck on this screen
           console.log("Failed to load propertyTypes");
         } else {
           const types = data.map((row) => row.property_type).filter(Boolean);
@@ -75,9 +82,9 @@ export default function CreateFilterForm() {
     }
 
     const scraperFilter: ScraperFilter = {
-        area: area.trim(),
-        propertyTypes: propertyType,
-    }
+      area: area.trim(),
+      propertyTypes: propertyType,
+    };
 
     const clientFilter: ClientFilter = {
       minRooms: rooms ? Number(rooms.value) : undefined,
@@ -86,6 +93,8 @@ export default function CreateFilterForm() {
       showNewProduction,
     };
 
+    // TODO: Going back from /connect and submitting again is OK for now
+    // since setFilters overwrites previous values
     setFilters(scraperFilter, clientFilter, informationInterval);
     router.push({ pathname: "/connect" });
   }

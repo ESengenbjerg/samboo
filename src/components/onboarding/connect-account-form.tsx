@@ -1,12 +1,13 @@
+import { useOnboardingStore } from "@/stores/onboarding";
 import { useState } from "react";
 import { View } from "react-native";
 import FormError from "../form-error";
 import { SendInviteDialog } from "../modals/send-invite-dialog";
 import { Button } from "../ui/button";
 import { Text } from "../ui/text";
-import { useOnboardingStore } from "@/stores/onboarding";
 
 export default function ConnectAccountForm() {
+  // TODO: setError will be used once Supabase implementation is complete
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [invitationDialogOpen, setInvitationDialogOpen] = useState(false);
@@ -19,7 +20,7 @@ export default function ConnectAccountForm() {
 
   async function onInvite() {
     setIsLoading(true);
-    // TODO: Aend invite to account
+    // TODO: Send invite to account
 
     setInvitationDialogOpen(false);
     setIsLoading(false);
@@ -27,7 +28,7 @@ export default function ConnectAccountForm() {
   }
 
   async function onSkip() {
-    await finish()
+    await finish();
   }
 
   return (

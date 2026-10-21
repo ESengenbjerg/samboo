@@ -11,6 +11,7 @@ import { useState } from "react";
 import { View } from "react-native";
 
 export default function ProfileForm() {
+  // TODO: setIsLoading will be used once Supabase implementation is complete
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

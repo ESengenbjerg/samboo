@@ -25,10 +25,14 @@ type OnboardingState = {
   scraperFilter: ScraperFilter | null;
   clientFilter: ClientFilter | null;
   informationInterval: InformationInterval;
-  onboardincComplete: boolean;
+  onboardingComplete: boolean;
   completeOnboarding: () => void;
   setProfile: (name: string, image: string) => void;
-  setFilters: (scraper: ScraperFilter, client: ClientFilter, interval: InformationInterval) => void;
+  setFilters: (
+    scraper: ScraperFilter,
+    client: ClientFilter,
+    interval: InformationInterval,
+  ) => void;
   reset: () => void;
 };
 
@@ -38,9 +42,18 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
   scraperFilter: null,
   clientFilter: null,
   informationInterval: "day",
-  onboardincComplete: false,
-  completeOnboarding: () => set({ onboardincComplete: true }),
+  onboardingComplete: false,
+  completeOnboarding: () => set({ onboardingComplete: true }),
   setProfile: (profileName, profileImage) => set({ profileName, profileImage }),
-  setFilters: (scraperFilter, clientFilter, informationInterval) => set({ scraperFilter, clientFilter, informationInterval }),
-  reset: () => set({ profileName: "", profileImage: "", scraperFilter: null, clientFilter: null, informationInterval: "day" }),
+  setFilters: (scraperFilter, clientFilter, informationInterval) =>
+    set({ scraperFilter, clientFilter, informationInterval }),
+  reset: () =>
+    set({
+      profileName: "",
+      profileImage: "",
+      scraperFilter: null,
+      clientFilter: null,
+      informationInterval: "day",
+      onboardingComplete: false,
+    }),
 }));

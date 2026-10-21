@@ -53,7 +53,12 @@ export default function RootLayout() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (!session) setProfile(null);
+      if (!session) {
+        setProfile(null);
+        // Resets onboarding to not affect next user.
+        // Will be read from Supabase next time
+        useOnboardingStore.getState().reset();
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -78,7 +83,7 @@ export default function RootLayout() {
       });
   }, [userId]);
 
-  const onboardingComplete = useOnboardingStore((s) => s.onboardincComplete);
+  const onboardingComplete = useOnboardingStore((s) => s.onboardingComplete);
 
   const isLoggedIn = !!session;
   const isOnboarded = (profile?.isOnboarded ?? false) || onboardingComplete;
@@ -94,24 +99,24 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-    <ThemeProvider value={NAV_THEME[colorScheme ?? "light"]}>
-      {/* Redirects user to correct view */}
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Protected guard={!isLoggedIn}>
-          <Stack.Screen name="(auth)" />
-        </Stack.Protected>
-        <Stack.Protected guard={isLoggedIn && !isOnboarded}>
-          <Stack.Screen name="(onboarding)" />
-        </Stack.Protected>
-        <Stack.Protected guard={isLoggedIn && isOnboarded}>
-          <Stack.Screen
-            name="(tabs)"
-            options={{ headerShown: true, header: () => <Header /> }}
-          />
-        </Stack.Protected>
-      </Stack>
-      <PortalHost />
-    </ThemeProvider>
+      <ThemeProvider value={NAV_THEME[colorScheme ?? "light"]}>
+        {/* Redirects user to correct view */}
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Protected guard={!isLoggedIn}>
+            <Stack.Screen name="(auth)" />
+          </Stack.Protected>
+          <Stack.Protected guard={isLoggedIn && !isOnboarded}>
+            <Stack.Screen name="(onboarding)" />
+          </Stack.Protected>
+          <Stack.Protected guard={isLoggedIn && isOnboarded}>
+            <Stack.Screen
+              name="(tabs)"
+              options={{ headerShown: true, header: () => <Header /> }}
+            />
+          </Stack.Protected>
+        </Stack>
+        <PortalHost />
+      </ThemeProvider>
     </GestureHandlerRootView>
   );
 }
