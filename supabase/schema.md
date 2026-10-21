@@ -32,6 +32,7 @@ Every relation from `profiles` is `ON DELETE CASCADE`, except `group_id`, which 
 | `user_tags` | The user's own tags | Unique on (`user_id`, `tag_name`). `tag_name` is 1–100 characters |
 | `listing_tags` | A tag applied to a matched listing | Unique on (`user_tag_id`, `user_listing_id`) |
 | `scrape_issues` | Failures and suspicious results from the scraper | At most one open issue per (`agency`, `kind`). RLS on with no policies, so only service_role can reach it |
+| `api_rate_limit` | Write requests per user and minute, used by `check_request()` | Primary key (`user_id`, `minute`). No foreign key on purpose. No grants and no policies: only the functions and service_role touch it |
 
 Full columns, types and defaults are in [schema.sql](schema.sql).
 
@@ -72,7 +73,8 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 `anon` can call none of them.
 
 - **`authenticated` and service_role:** `accept_invite`, `decline_invite`, `in_my_group`, `is_active_user`, `leave_group`, `like_listing`, `my_group_id`, `my_pending_invites`, `shared_likes`, `shares_group_with`, `delete_my_account`.
-- **service_role only:** `handle_deleted_profile`, `handle_new_user`, `limit_invites_per_pair`, `match_user_listings`, `purge_removed_listings`, `rls_auto_enable`, `search_params_match_trigger`.
+- **`anon`, `authenticated`, service_role and `authenticator`:** `check_request` only. PostgREST runs it before every request as the requesting role, so revoking it would break every request.
+- **service_role only:** `handle_deleted_profile`, `handle_new_user`, `limit_invites_per_pair`, `match_user_listings`, `purge_rate_limit_counters`, `purge_removed_listings`, `rls_auto_enable`, `search_params_match_trigger`.
 
 ## Functions
 
@@ -93,6 +95,8 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 | `match_user_listings(user_id?)` | security invoker | Matches search profile(s) against `listings` (a search with no municipality and no area matches nothing), inserts new rows and deletes rows that no longer match (except liked, tagged and removed listings) |
 | `limit_invites_per_pair()` | trigger, security definer | Rejects a new invite if the sender has already sent 20 invites (any status) to the same e-mail. Error: `Du har skickat för många inbjudningar till den här personen` |
 | `search_params_match_trigger()` | trigger, security definer | Runs `match_user_listings` for the user when their search profile changes |
+| `check_request()` | pre-request function, security definer | Runs before every Data API request (`pgrst.db_pre_request`). Allows a signed-in user at most 100 write requests (POST/PUT/PATCH/DELETE, including RPC) per 5 minutes and otherwise answers HTTP 429. Skips reads, `service_role` and `anon` |
+| `purge_rate_limit_counters()` | security definer | Deletes counters older than one hour. Called by the scraper |
 | `purge_removed_listings()` | security definer | Deletes listings that have been removed for more than 14 days |
 | `rls_auto_enable()` | event trigger function (`ensure_rls`) | Enables RLS on new tables in `public` |
 

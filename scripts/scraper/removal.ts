@@ -114,3 +114,10 @@ export async function purgeRemoved(db: SupabaseClient): Promise<number> {
   if (error) throw error;
   return data as number;
 }
+
+// Deletes rate limit counters older than one hour (written by the pre-request function check_request())
+export async function purgeRateLimitCounters(db: SupabaseClient): Promise<number> {
+  const { data, error } = await db.rpc("purge_rate_limit_counters");
+  if (error) throw error;
+  return data as number;
+}

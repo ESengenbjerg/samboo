@@ -30,6 +30,7 @@ import {
   findMissing,
   isSuspiciousRemoval,
   markRemoved,
+  purgeRateLimitCounters,
   purgeRemoved,
   tooManyPagesFailed,
 } from "./removal.ts";
@@ -221,6 +222,14 @@ try {
 } catch (error) {
   console.error("Failed to purge removed listings:", error);
   failedAgencies++;
+}
+
+// Old rate limit counters. Not critical, so a failure is logged but does not fail the run
+try {
+  const purgedCounters = await purgeRateLimitCounters(supabaseAdmin);
+  console.log(`${purgedCounters} old rate limit counters purged`);
+} catch (error) {
+  console.error("Failed to purge rate limit counters:", error);
 }
 
 // A non-zero exit code makes a scheduled run show up as failed.

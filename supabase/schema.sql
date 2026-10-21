@@ -10,6 +10,7 @@
 --   * Auth settings in Supabase (OTP, SMTP/Resend, disabled sign-ups)
 --   * Event triggers managed by Supabase itself (pgrst_*, graphql, pg_cron / pg_net access)
 --   * pg_cron jobs (none appear in the list of extensions)
+--   * Role settings: authenticator has pgrst.db_pre_request = 'public.check_request' (see the note at the end of this file)
 --   * Realtime publications (no tables are published)
 --   * Storage buckets, custom schemas and Vault secrets (none exist)
 -- 
@@ -156,6 +157,17 @@ create table public.scrape_issues (
   constraint scrape_issues_pkey primary key (id),
   constraint scrape_issues_kind_check   check (kind = any (array['failed', 'suspicious'])),
   constraint scrape_issues_status_check check (status = any (array['open', 'resolved']))
+);
+
+
+-- Write requests per signed-in user and minute. Used by check_request() to rate limit.
+-- No foreign key on purpose: a failing insert would make the request fail. Old rows are deleted by purge_rate_limit_counters().
+-- No grants and no policies: only the security definer function and service_role touch it.
+create table public.api_rate_limit (
+  user_id  uuid not null,
+  minute   timestamptz not null,
+  writes   integer not null default 0,
+  constraint api_rate_limit_pkey primary key (user_id, minute)
 );
 
 
@@ -564,6 +576,71 @@ AS $function$
   select count(*)::int from deleted;
 $function$;
 
+-- Deletes rate limit counters older than one hour. Called by the scraper after the purge of removed listings.
+CREATE OR REPLACE FUNCTION public.purge_rate_limit_counters()
+ RETURNS integer
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+  with deleted as (
+    delete from public.api_rate_limit
+    where minute < now() - interval '1 hour'
+    returning 1
+  )
+  select count(*)::int from deleted;
+$function$;
+
+-- Runs before EVERY Data API request (registered as pgrst.db_pre_request, see the note at the end of this file).
+-- Limits a signed-in user to 100 write requests (POST/PUT/PATCH/DELETE, including RPC) per 5 minutes.
+-- Reads cannot be counted: GET and HEAD run in a read-only transaction.
+-- A rejected request is rolled back together with its own counter increment, so rejected requests do not extend the block.
+CREATE OR REPLACE FUNCTION public.check_request()
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  method text := current_setting('request.method', true);
+  claims json := nullif(current_setting('request.jwt.claims', true), '')::json;
+  uid uuid;
+  total integer;
+begin
+  -- Reads cannot write the counter, and are not limited
+  if method is null or method in ('GET', 'HEAD', 'OPTIONS') then
+    return;
+  end if;
+
+  -- Only signed-in users are limited. service_role (the scraper) and anon pass
+  if claims is null or claims ->> 'role' is distinct from 'authenticated' then
+    return;
+  end if;
+
+  uid := (claims ->> 'sub')::uuid;
+  if uid is null then
+    return;
+  end if;
+
+  insert into public.api_rate_limit (user_id, minute, writes)
+  values (uid, date_trunc('minute', now()), 1)
+  on conflict (user_id, minute)
+  do update set writes = public.api_rate_limit.writes + 1;
+
+  select coalesce(sum(writes), 0) into total
+  from public.api_rate_limit
+  where user_id = uid
+    and minute > now() - interval '5 minutes';
+
+  if total > 100 then
+    -- PGRST is a custom error for PostgREST: message and detail become the HTTP response
+    raise sqlstate 'PGRST' using
+      message = '{"code": "rate_limited", "message": "Too many requests, try again in a moment"}',
+      detail  = '{"status": 429, "headers": {"Retry-After": "60"}}';
+  end if;
+end;
+$function$;
+
 -- Automatically enables RLS on new tables in public.
 CREATE OR REPLACE FUNCTION public.rls_auto_enable()
  RETURNS event_trigger
@@ -629,6 +706,7 @@ CREATE EVENT TRIGGER ensure_rls ON ddl_command_end
 -- Row Level Security
 -- ---------------------------------------------------------------------
 
+alter table public.api_rate_limit enable row level security;  -- no policies = service_role and security definer functions only
 alter table public.groups         enable row level security;
 alter table public.invites        enable row level security;
 alter table public.listing_tags   enable row level security;
@@ -806,7 +884,24 @@ grant execute on function
   public.handle_new_user(),
   public.limit_invites_per_pair(),
   public.match_user_listings(uuid),
+  public.purge_rate_limit_counters(),
   public.purge_removed_listings(),
   public.rls_auto_enable(),
   public.search_params_match_trigger()
 to service_role;
+
+-- Called by PostgREST before every Data API request, as the role making the request. It must therefore be executable by all of them.
+-- This is a deliberate exception to the rule above: revoking it would make EVERY request fail.
+grant execute on function public.check_request()
+to anon, authenticated, service_role, authenticator;
+
+
+-- ---------------------------------------------------------------------
+-- Pre-request function (role setting, not part of the schema itself)
+-- ---------------------------------------------------------------------
+-- Registered once per project:
+--   alter role authenticator set pgrst.db_pre_request = 'public.check_request';
+--   notify pgrst, 'reload config';
+-- Remove again (e.g. if requests start failing):
+--   alter role authenticator reset pgrst.db_pre_request;
+--   notify pgrst, 'reload config';
