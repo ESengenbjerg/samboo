@@ -7,8 +7,11 @@ import {
   MONTHLY_FEE_OPTIONS,
   ROOM_OPTIONS,
 } from "@/constants/filter-options";
+import { ClientFilter, ScraperFilter, useOnboardingStore } from "@/stores/onboarding";
 import { SelectOption } from "@/types/select-option";
+import { capitalize } from "@/utils/capitalize-string";
 import { supabase } from "@/utils/supabase";
+import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import FormError from "../form-error";
@@ -16,17 +19,18 @@ import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
 import { Switch } from "../ui/switch";
 import FilterSelect from "./filter-select";
-import { capitalize } from "@/utils/capitalize-string";
 
 export default function CreateFilterForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const setFilters = useOnboardingStore((s) => s.setFilters);
 
   const [existingPropertyTypes, setExistingPropertyTypes] = useState<string[]>(
     [],
   );
 
   // Filter alternatives
+  // Used to save user input before saving to scraperFilter and clientFilter
   const [area, setArea] = useState("");
   const [propertyType, setPropertyType] = useState<string[]>([]);
   const [rooms, setRooms] = useState<SelectOption>();
@@ -51,13 +55,48 @@ export default function CreateFilterForm() {
       });
   }, []);
 
+  function onSubmit() {
+    setError(null);
+    // setIsLoading(true);
+
+    if (!area && propertyType.length === 0) {
+      setError(
+        "Du måste lägga till minst ett område och bostadstyp för att spara.",
+      );
+      return;
+    }
+    if (!area) {
+      setError("Du måste lägga till minst ett område för att spara.");
+      return;
+    }
+    if (propertyType.length === 0) {
+      setError("Du måste lägga till minst en bostadstyp för att spara.");
+      return;
+    }
+
+    const scraperFilter: ScraperFilter = {
+        area: area.trim(),
+        propertyTypes: propertyType,
+    }
+
+    const clientFilter: ClientFilter = {
+      minRooms: rooms ? Number(rooms.value) : undefined,
+      maxMonthlyFee: monthlyFee ? Number(monthlyFee.value) : undefined,
+      minLivingArea: livingArea ? Number(livingArea.value) : undefined,
+      showNewProduction,
+    };
+
+    setFilters(scraperFilter, clientFilter, informationInterval);
+    router.push({ pathname: "/connect" });
+  }
+
   return (
     <View className="flex-1 justify-center w-full px-12 gap-6">
       <Text variant="h1">Skapa bevakning</Text>
 
       {/* --- AREA --- */}
       <View className="gap-1.5">
-        <Label htmlFor="create-area">Område</Label>
+        <Label htmlFor="create-area">Område*</Label>
         <Input
           id="create-area"
           placeholder="Sök område..."
@@ -72,7 +111,7 @@ export default function CreateFilterForm() {
 
       {/* --- PROPERTY TYPE --- */}
       <View>
-        <Label>Bostadstyp</Label>
+        <Label>Bostadstyp*</Label>
         <ToggleGroup
           type="multiple"
           aria-label="Bostadstyp"
@@ -145,7 +184,7 @@ export default function CreateFilterForm() {
       {error && <FormError>{error}</FormError>}
 
       <View className="items-center mt-10">
-        <Button variant="secondary" className="max-w-44">
+        <Button variant="secondary" className="max-w-44" onPress={onSubmit}>
           <Text>Skapa bevakning</Text>
         </Button>
       </View>

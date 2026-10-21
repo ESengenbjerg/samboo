@@ -4,21 +4,38 @@ import { create } from "zustand";
 // @react-native-async-storage/async-storage
 // Wrap store in persist(..., { name: "onboarding", storage: createJSONStorage(() => AsyncStorage) }) from zustand/middleware
 
+export type ScraperFilter = {
+  area: string;
+  propertyTypes: string[];
+};
+
+export type ClientFilter = {
+  minRooms?: number;
+  maxMonthlyFee?: number;
+  minLivingArea?: number;
+  showNewProduction: boolean;
+};
+
+export type InformationInterval = "day" | "week";
+
 type OnboardingState = {
   profileName: string;
   profileImage: string;
-  // TODO: Swap to correct type when filter type is set
-  savedSearch: Record<string, unknown> | null;
+  scraperFilter: ScraperFilter | null;
+  clientFilter: ClientFilter | null;
+  informationInterval: InformationInterval;
   setProfile: (name: string, image: string) => void;
-  setSavedSearch: (savedSearch: Record<string, unknown>) => void;
+  setFilters: (scraper: ScraperFilter, client: ClientFilter, interval: InformationInterval) => void;
   reset: () => void;
 };
 
 export const useOnboardingStore = create<OnboardingState>((set) => ({
   profileName: "",
   profileImage: "",
-  savedSearch: null,
+  scraperFilter: null,
+  clientFilter: null,
+  informationInterval: "day",
   setProfile: (profileName, profileImage) => set({ profileName, profileImage }),
-  setSavedSearch: (savedSearch) => set({ savedSearch }),
-  reset: () => set({ profileName: "", profileImage: "", savedSearch: null }),
+  setFilters: (scraperFilter, clientFilter, informationInterval) => set({ scraperFilter, clientFilter, informationInterval }),
+  reset: () => set({ profileName: "", profileImage: "", scraperFilter: null, clientFilter: null, informationInterval: "day" }),
 }));
