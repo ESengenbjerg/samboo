@@ -176,6 +176,14 @@ create unique index invites_one_pending
   on public.invites using btree (from_user_id, lower(to_email))
   where (status = 'pending');
 
+-- Foreign key columns that are looked up by the RLS policies and match_user_listings().
+-- user_listings (user_id, listing_id) is unique, but its first column is user_id, so lookups on listing_id alone need their own index.
+create index user_listings_listing_id_idx
+  on public.user_listings using btree (listing_id);
+
+create index listing_tags_user_listing_id_idx
+  on public.listing_tags using btree (user_listing_id);
+
 
 -- ---------------------------------------------------------------------
 -- Functions
