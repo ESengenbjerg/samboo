@@ -1,69 +1,40 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  NativeSelectScrollView,
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Text } from "@/components/ui/text";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  LIVING_AREA_OPTIONS,
+  MONTHLY_FEE_OPTIONS,
+  ROOM_OPTIONS,
+} from "@/constants/filter-options";
+import { SelectOption } from "@/types/select-option";
 import { supabase } from "@/utils/supabase";
 import { useEffect, useState } from "react";
-import { LayoutChangeEvent, View } from "react-native";
+import { View } from "react-native";
+import FormError from "../form-error";
 import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
 import { Switch } from "../ui/switch";
-import { SelectOption } from "@/types/select-option"
+import FilterSelect from "./filter-select";
 
 export default function CreateFilterForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [existingPropertyTypes, setExistingPropertyTypes] = useState<string[]>(
+    [],
+  );
+
+  // Filter alternatives
+  const [area, setArea] = useState("");
+  const [propertyType, setPropertyType] = useState<string[]>([]);
+  const [rooms, setRooms] = useState<SelectOption>();
+  const [monthlyFee, setMonthlyFee] = useState<SelectOption>();
+  const [livingArea, setLivingArea] = useState<SelectOption>();
   const [showNewProduction, setShowNewProduction] = useState(true);
   const [informationInterval, setInformationInterval] = useState<
     "day" | "week"
   >("day");
-  const [area, setArea] = useState("");
-  const [existingPropertyTypes, setExistingPropertyTypes] = useState<string[]>(
-    [],
-  );
-  const [propertyType, setPropertyType] = useState<string | undefined>("");
-  const [rooms, setRooms] = useState<SelectOption>();
-  const [monthlyFee, setMonthlyFee] = useState<SelectOption>();
-  const [livingArea, setLivingArea] = useState<SelectOption>();
-
-  // Dropdowns should be as wide as their trigger
-  const [triggerWidth, setTriggerWidth] = useState<number>();
-  const onTriggerLayout = (e: LayoutChangeEvent) =>
-    setTriggerWidth(e.nativeEvent.layout.width);
-  const contentStyle = triggerWidth ? { width: triggerWidth } : undefined;
-
-  const roomSelectValues = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
-  const monthlyFeeSelectValues = [3000, 6000, 9000, 12000, 15000];
-  const livingAreaSelectValues = [
-    "20",
-    "30",
-    "40",
-    "50",
-    "60",
-    "70",
-    "80",
-    "90",
-    "100",
-    "110",
-    "120",
-    "130",
-    "140",
-    "150",
-    "160",
-    "170",
-    "180",
-    "190",
-    "200",
-  ];
 
   useEffect(() => {
     supabase
@@ -85,7 +56,7 @@ export default function CreateFilterForm() {
 
       {/* --- AREA --- */}
       <View className="gap-1.5">
-        <Label htmlFor="profile-name">Område</Label>
+        <Label htmlFor="create-area">Område</Label>
         <Input
           id="create-area"
           placeholder="Sök område..."
@@ -102,7 +73,7 @@ export default function CreateFilterForm() {
       <View>
         <Label>Bostadstyp</Label>
         <ToggleGroup
-          type="single"
+          type="multiple"
           aria-label="Bostadstyp"
           value={propertyType}
           onValueChange={setPropertyType}
@@ -118,91 +89,26 @@ export default function CreateFilterForm() {
       </View>
 
       {/* --- MIN / MAX SELECTS --- */}
-      <View className="gap-6">
-        <View>
-          <Label>Minst antal rum</Label>
-          <View className="flex-row gap-2 justify-between">
-            {/* --- Min --- */}
-            <Select value={rooms} onValueChange={setRooms}>
-              <SelectTrigger className="w-full" onLayout={onTriggerLayout}>
-                <SelectValue placeholder="Min" />
-              </SelectTrigger>
-              <SelectContent style={contentStyle}>
-                <NativeSelectScrollView>
-                  {roomSelectValues.map((r) => (
-                    <SelectItem
-                      key={r}
-                      value={r}
-                      label={
-                        roomSelectValues.indexOf(r) ===
-                        roomSelectValues.length - 1
-                          ? `${r} eller fler`
-                          : `${r} rum`
-                      }
-                    />
-                  ))}
-                </NativeSelectScrollView>
-              </SelectContent>
-            </Select>
-          </View>
-        </View>
+      <FilterSelect
+        label={"Minst antal rum"}
+        value={rooms}
+        onValueChange={setRooms}
+        options={ROOM_OPTIONS}
+      />
 
-        <View>
-          <Label>Högtsa månadsavgift</Label>
-          <View className="flex-row gap-2 justify-between">
-            {/* --- Min --- */}
-            <Select value={monthlyFee} onValueChange={setMonthlyFee}>
-              <SelectTrigger className="w-full" onLayout={onTriggerLayout}>
-                <SelectValue placeholder="Min" />
-              </SelectTrigger>
-              <SelectContent style={contentStyle}>
-                <SelectGroup>
-                  {monthlyFeeSelectValues.map((m) => (
-                    <SelectItem
-                      key={m}
-                      value={m.toString()}
-                      label={
-                        monthlyFeeSelectValues.indexOf(m) ===
-                        monthlyFeeSelectValues.length - 1
-                          ? `${m.toLocaleString("sv-SE")}kr eller mer`
-                          : `${m.toLocaleString("sv-SE")}kr`
-                      }
-                    />
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </View>
-        </View>
+      <FilterSelect
+        label={"Högsta månadsavgift"}
+        value={monthlyFee}
+        onValueChange={setMonthlyFee}
+        options={MONTHLY_FEE_OPTIONS}
+      />
 
-        <View>
-          <Label>Minsta boarea</Label>
-          <View className="flex-row gap-2 justify-between">
-            {/* --- Min --- */}
-            <Select value={livingArea} onValueChange={setLivingArea}>
-              <SelectTrigger className="w-full" onLayout={onTriggerLayout}>
-                <SelectValue placeholder="Min" />
-              </SelectTrigger>
-              <SelectContent style={contentStyle}>
-                <NativeSelectScrollView>
-                  {livingAreaSelectValues.map((l) => (
-                    <SelectItem
-                      key={l}
-                      value={l}
-                      label={
-                        livingAreaSelectValues.indexOf(l) ===
-                        livingAreaSelectValues.length - 1
-                          ? `${l} kvm eller större`
-                          : `${l} kvm`
-                      }
-                    />
-                  ))}
-                </NativeSelectScrollView>
-              </SelectContent>
-            </Select>
-          </View>
-        </View>
-      </View>
+      <FilterSelect
+        label={"Minsta boarea"}
+        value={livingArea}
+        onValueChange={setLivingArea}
+        options={LIVING_AREA_OPTIONS}
+      />
 
       {/* --- NEW PRODUCTION --- */}
       <View className="flex-row items-center justify-between">
@@ -235,6 +141,8 @@ export default function CreateFilterForm() {
       </View>
 
       {/* --- SUBMIT --- */}
+      {error && <FormError>{error}</FormError>}
+
       <View className="items-center mt-10">
         <Button variant="secondary" className="max-w-44">
           <Text>Skapa bevakning</Text>

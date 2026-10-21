@@ -1,6 +1,4 @@
-export type SelectOption =
-  | {
-      value: string;
-      label: string;
-    }
-  | undefined;
+export type SelectOption = {
+  value: string;
+  label: string;
+};
