@@ -3,6 +3,7 @@ import { create } from "zustand";
 // TODO: Add persistens for data to survive if app is closed
 // @react-native-async-storage/async-storage
 // Wrap store in persist(..., { name: "onboarding", storage: createJSONStorage(() => AsyncStorage) }) from zustand/middleware
+// Leave onboarding states outside with partialize
 
 export type ScraperFilter = {
   area: string;
@@ -24,6 +25,8 @@ type OnboardingState = {
   scraperFilter: ScraperFilter | null;
   clientFilter: ClientFilter | null;
   informationInterval: InformationInterval;
+  onboardincComplete: boolean;
+  completeOnboarding: () => void;
   setProfile: (name: string, image: string) => void;
   setFilters: (scraper: ScraperFilter, client: ClientFilter, interval: InformationInterval) => void;
   reset: () => void;
@@ -35,6 +38,8 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
   scraperFilter: null,
   clientFilter: null,
   informationInterval: "day",
+  onboardincComplete: false,
+  completeOnboarding: () => set({ onboardincComplete: true }),
   setProfile: (profileName, profileImage) => set({ profileName, profileImage }),
   setFilters: (scraperFilter, clientFilter, informationInterval) => set({ scraperFilter, clientFilter, informationInterval }),
   reset: () => set({ profileName: "", profileImage: "", scraperFilter: null, clientFilter: null, informationInterval: "day" }),

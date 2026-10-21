@@ -53,7 +53,7 @@ export default function ProfileForm() {
   }
 
   return (
-    <View className="flex-1 justify-center w-full px-12 gap-6">
+    <View className="flex-1 justify-center w-full px-8 gap-6">
       <Text variant="h1">Din profil</Text>
       <View className="gap-1.5">
         <Label htmlFor="profile-name">Visningsnamn</Label>

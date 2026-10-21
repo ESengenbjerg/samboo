@@ -19,6 +19,7 @@ import { Session } from "@supabase/supabase-js";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { useOnboardingStore } from "@/stores/onboarding";
 
 // Stays on start screen until fonts are loaded
 SplashScreen.preventAutoHideAsync();
@@ -77,8 +78,10 @@ export default function RootLayout() {
       });
   }, [userId]);
 
+  const onboardingComplete = useOnboardingStore((s) => s.onboardincComplete);
+
   const isLoggedIn = !!session;
-  const isOnboarded = profile?.isOnboarded ?? false;
+  const isOnboarded = (profile?.isOnboarded ?? false) || onboardingComplete;
   const isProfileLoading = isLoggedIn && profile?.userId !== userId;
   const isReady = fontsLoaded && isSessionLoaded && !isProfileLoading;
 

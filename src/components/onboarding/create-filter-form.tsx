@@ -91,7 +91,7 @@ export default function CreateFilterForm() {
   }
 
   return (
-    <View className="flex-1 justify-center w-full px-12 gap-6">
+    <View className="flex-1 justify-center w-full px-8 gap-6">
       <Text variant="h1">Skapa bevakning</Text>
 
       {/* --- AREA --- */}
@@ -110,7 +110,7 @@ export default function CreateFilterForm() {
       </View>
 
       {/* --- PROPERTY TYPE --- */}
-      <View>
+      <View className="gap-1.5">
         <Label>Bostadstyp*</Label>
         <ToggleGroup
           type="multiple"
