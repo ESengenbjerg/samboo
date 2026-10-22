@@ -10,6 +10,7 @@
 --   * Auth settings in Supabase (OTP, SMTP/Resend, disabled sign-ups)
 --   * Event triggers managed by Supabase itself (pgrst_*, graphql, pg_cron / pg_net access)
 --   * pg_cron jobs (none appear in the list of extensions)
+--   * Role settings: authenticator has pgrst.db_pre_request = 'public.check_request' (see the note at the end of this file)
 --   * Realtime publications (no tables are published)
 --   * Storage buckets, custom schemas and Vault secrets (none exist)
 -- 
@@ -39,7 +40,8 @@ create table public.profiles (
   onboarding_completed_at  timestamptz,
   constraint profiles_pkey primary key (id),
   constraint profiles_id_fkey       foreign key (id)       references auth.users (id) on delete cascade,
-  constraint profiles_group_id_fkey foreign key (group_id) references public.groups (id) on delete set null
+  constraint profiles_group_id_fkey foreign key (group_id) references public.groups (id) on delete set null,
+  constraint profiles_name_length check (char_length(name) between 1 and 100)
 );
 
 create table public.invites (
@@ -50,7 +52,9 @@ create table public.invites (
   status        text not null default 'pending',
   constraint invites_pkey primary key (id),
   constraint invites_status_check check (status = any (array['pending', 'accepted', 'declined'])),
-  constraint invites_from_user_id_fkey foreign key (from_user_id) references public.profiles (id) on delete cascade
+  constraint invites_from_user_id_fkey foreign key (from_user_id) references public.profiles (id) on delete cascade,
+  -- 254 = longest possible e-mail address (RFC 5321)
+  constraint invites_email_length check (char_length(to_email) <= 254)
 );
 
 -- Scraped listings. Shared data, not tied to any user.
@@ -96,7 +100,9 @@ create table public.search_params (
   constraint search_params_rooms_check check (min_rooms is null or max_rooms is null or min_rooms <= max_rooms),
   constraint search_params_property_types_check check (
     property_types <@ array['villa', 'radhus', 'lagenhet', 'fritidshus', 'tomt', 'other']
-  )
+  ),
+  -- Caps the size of one search so nobody can make the scraper cover the whole country
+  constraint search_params_place_limit check (cardinality(municipalities) <= 10 and cardinality(areas) <= 20)
 );
 
 -- Match between user and listing. Filled by match_user_listings() and like_listing().
@@ -120,7 +126,8 @@ create table public.user_tags (
   tag_name    text not null,
   constraint user_tags_pkey primary key (id),
   constraint user_tags_unique unique (user_id, tag_name),
-  constraint user_tags_user_id_fkey foreign key (user_id) references public.profiles (id) on delete cascade
+  constraint user_tags_user_id_fkey foreign key (user_id) references public.profiles (id) on delete cascade,
+  constraint user_tags_name_length check (char_length(tag_name) between 1 and 100)
 );
 
 create table public.listing_tags (
@@ -153,6 +160,17 @@ create table public.scrape_issues (
 );
 
 
+-- Write requests per signed-in user and minute. Used by check_request() to rate limit.
+-- No foreign key on purpose: a failing insert would make the request fail. Old rows are deleted by purge_rate_limit_counters().
+-- No grants and no policies: only the security definer function and service_role touch it.
+create table public.api_rate_limit (
+  user_id  uuid not null,
+  minute   timestamptz not null,
+  writes   integer not null default 0,
+  constraint api_rate_limit_pkey primary key (user_id, minute)
+);
+
+
 -- ---------------------------------------------------------------------
 -- Indexes (beyond those created by the constraints above)
 -- ---------------------------------------------------------------------
@@ -164,6 +182,19 @@ create index listings_agency_active_idx
 create unique index scrape_issues_one_open
   on public.scrape_issues using btree (agency, kind)
   where (status = 'open');
+
+-- At most one pending invite per sender and recipient (e-mail compared case-insensitively)
+create unique index invites_one_pending
+  on public.invites using btree (from_user_id, lower(to_email))
+  where (status = 'pending');
+
+-- Foreign key columns that are looked up by the RLS policies and match_user_listings().
+-- user_listings (user_id, listing_id) is unique, but its first column is user_id, so lookups on listing_id alone need their own index.
+create index user_listings_listing_id_idx
+  on public.user_listings using btree (listing_id);
+
+create index listing_tags_user_listing_id_idx
+  on public.listing_tags using btree (user_listing_id);
 
 
 -- ---------------------------------------------------------------------
@@ -262,6 +293,10 @@ declare
   inv public.invites;
   g bigint;
 begin
+  if not public.is_active_user() then
+    raise exception 'Ditt konto är inte aktivt';
+  end if;
+
   select * into inv from public.invites
   where id = invite_id
     and status = 'pending'
@@ -284,6 +319,47 @@ begin
   update public.profiles set group_id = g where id = auth.uid();
   update public.invites set status = 'accepted' where id = invite_id;
 end;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.decline_invite(invite_id bigint)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+begin
+  if not public.is_active_user() then
+    raise exception 'Ditt konto är inte aktivt';
+  end if;
+
+  update public.invites
+  set status = 'declined'
+  where id = invite_id
+    and status = 'pending'
+    and lower(to_email) = lower(auth.jwt() ->> 'email');
+
+  if not found then
+    raise exception 'Inbjudan finns inte eller är inte din';
+  end if;
+end;
+$function$;
+
+-- Pending invites addressed to me, with the sender's name and e-mail. Needed because the recipient cannot read the sender's profile (not in the same group) or auth.users.
+CREATE OR REPLACE FUNCTION public.my_pending_invites()
+ RETURNS TABLE (id bigint, created_at timestamptz, from_user_id uuid, from_name text, from_email text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+  select i.id, i.created_at, i.from_user_id, p.name, u.email::text
+  from public.invites i
+  join public.profiles p on p.id = i.from_user_id
+  join auth.users u on u.id = i.from_user_id
+  where public.is_active_user()
+    and p.is_active
+    and i.status = 'pending'
+    and lower(i.to_email) = lower(auth.jwt() ->> 'email')
+  order by i.created_at desc;
 $function$;
 
 CREATE OR REPLACE FUNCTION public.leave_group()
@@ -317,6 +393,19 @@ CREATE OR REPLACE FUNCTION public.like_listing(p_listing_id bigint)
  SET search_path TO ''
 AS $function$
 begin
+  if not public.is_active_user() then
+    raise exception 'Ditt konto är inte aktivt';
+  end if;
+
+  -- Only listings that are already visible to me: matched to me or to someone in my group
+  if not exists (
+    select 1 from public.user_listings ul
+    where ul.listing_id = p_listing_id
+      and public.shares_group_with(ul.user_id)
+  ) then
+    raise exception 'Annonsen finns inte eller är inte tillgänglig för dig';
+  end if;
+
   insert into public.user_listings (user_id, listing_id, liked, is_new)
   values (auth.uid(), p_listing_id, true, false)
   on conflict (user_id, listing_id) do update set liked = true;
@@ -358,10 +447,9 @@ begin
           -- Type: empty list = all types. A listing without a type never matches a chosen type
           (cardinality(sp.property_types) = 0 or l.property_type = any (sp.property_types))
 
-          -- Location: municipality OR area. Both lists empty = anywhere
+          -- Location: municipality OR area. Both lists empty = no match (a search without a place gets no listings)
       and (
-            (cardinality(sp.municipalities) = 0 and cardinality(sp.areas) = 0)
-            or l.municipality = any (sp.municipalities)
+            l.municipality = any (sp.municipalities)
             or l.area = any (sp.areas)
           )
 
@@ -401,6 +489,25 @@ begin
 
   get diagnostics inserted = row_count;
   return inserted;
+end;
+$function$;
+
+-- At most 20 invites in total (any status) from one sender to one recipient. Declined invites are kept so they count.
+CREATE OR REPLACE FUNCTION public.limit_invites_per_pair()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+begin
+  if (
+    select count(*) from public.invites
+    where from_user_id = new.from_user_id
+      and lower(to_email) = lower(new.to_email)
+  ) >= 20 then
+    raise exception 'Du har skickat för många inbjudningar till den här personen';
+  end if;
+  return new;
 end;
 $function$;
 
@@ -469,6 +576,71 @@ AS $function$
   select count(*)::int from deleted;
 $function$;
 
+-- Deletes rate limit counters older than one hour. Called by the scraper after the purge of removed listings.
+CREATE OR REPLACE FUNCTION public.purge_rate_limit_counters()
+ RETURNS integer
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+  with deleted as (
+    delete from public.api_rate_limit
+    where minute < now() - interval '1 hour'
+    returning 1
+  )
+  select count(*)::int from deleted;
+$function$;
+
+-- Runs before EVERY Data API request (registered as pgrst.db_pre_request, see the note at the end of this file).
+-- Limits a signed-in user to 100 write requests (POST/PUT/PATCH/DELETE, including RPC) per 5 minutes.
+-- Reads cannot be counted: GET and HEAD run in a read-only transaction.
+-- A rejected request is rolled back together with its own counter increment, so rejected requests do not extend the block.
+CREATE OR REPLACE FUNCTION public.check_request()
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  method text := current_setting('request.method', true);
+  claims json := nullif(current_setting('request.jwt.claims', true), '')::json;
+  uid uuid;
+  total integer;
+begin
+  -- Reads cannot write the counter, and are not limited
+  if method is null or method in ('GET', 'HEAD', 'OPTIONS') then
+    return;
+  end if;
+
+  -- Only signed-in users are limited. service_role (the scraper) and anon pass
+  if claims is null or claims ->> 'role' is distinct from 'authenticated' then
+    return;
+  end if;
+
+  uid := (claims ->> 'sub')::uuid;
+  if uid is null then
+    return;
+  end if;
+
+  insert into public.api_rate_limit (user_id, minute, writes)
+  values (uid, date_trunc('minute', now()), 1)
+  on conflict (user_id, minute)
+  do update set writes = public.api_rate_limit.writes + 1;
+
+  select coalesce(sum(writes), 0) into total
+  from public.api_rate_limit
+  where user_id = uid
+    and minute > now() - interval '5 minutes';
+
+  if total > 100 then
+    -- PGRST is a custom error for PostgREST: message and detail become the HTTP response
+    raise sqlstate 'PGRST' using
+      message = '{"code": "rate_limited", "message": "Too many requests, try again in a moment"}',
+      detail  = '{"status": 429, "headers": {"Retry-After": "60"}}';
+  end if;
+end;
+$function$;
+
 -- Automatically enables RLS on new tables in public.
 CREATE OR REPLACE FUNCTION public.rls_auto_enable()
  RETURNS event_trigger
@@ -517,6 +689,10 @@ CREATE TRIGGER search_params_match
   ON public.search_params
   FOR EACH ROW EXECUTE FUNCTION public.search_params_match_trigger();
 
+CREATE TRIGGER invites_limit_per_pair
+  BEFORE INSERT ON public.invites
+  FOR EACH ROW EXECUTE FUNCTION public.limit_invites_per_pair();
+
 CREATE TRIGGER on_profile_deleted
   AFTER DELETE ON public.profiles
   FOR EACH ROW EXECUTE FUNCTION public.handle_deleted_profile();
@@ -530,6 +706,7 @@ CREATE EVENT TRIGGER ensure_rls ON ddl_command_end
 -- Row Level Security
 -- ---------------------------------------------------------------------
 
+alter table public.api_rate_limit enable row level security;  -- no policies = service_role and security definer functions only
 alter table public.groups         enable row level security;
 alter table public.invites        enable row level security;
 alter table public.listing_tags   enable row level security;
@@ -548,7 +725,12 @@ create policy groups_select on public.groups
 -- invites
 create policy invites_insert on public.invites
   for insert to authenticated
-  with check (is_active_user() and from_user_id = (select auth.uid()));
+  with check (
+    is_active_user()
+    and from_user_id = (select auth.uid())
+    -- You cannot invite your own e-mail address
+    and lower(to_email) <> lower(coalesce((select auth.jwt()) ->> 'email', ''))
+  );
 
 create policy invites_select on public.invites
   for select to authenticated
@@ -684,11 +866,13 @@ revoke execute on all functions in schema public from public, anon, authenticate
 -- Callable by signed-in users (RPC / used inside RLS policies)
 grant execute on function
   public.accept_invite(bigint),
+  public.decline_invite(bigint),
   public.in_my_group(uuid),
   public.is_active_user(),
   public.leave_group(),
   public.like_listing(bigint),
   public.my_group_id(),
+  public.my_pending_invites(),
   public.shared_likes(),
   public.shares_group_with(uuid),
   public.delete_my_account()
@@ -698,8 +882,26 @@ to authenticated, service_role;
 grant execute on function
   public.handle_deleted_profile(),
   public.handle_new_user(),
+  public.limit_invites_per_pair(),
   public.match_user_listings(uuid),
+  public.purge_rate_limit_counters(),
   public.purge_removed_listings(),
   public.rls_auto_enable(),
   public.search_params_match_trigger()
 to service_role;
+
+-- Called by PostgREST before every Data API request, as the role making the request. It must therefore be executable by all of them.
+-- This is a deliberate exception to the rule above: revoking it would make EVERY request fail.
+grant execute on function public.check_request()
+to anon, authenticated, service_role, authenticator;
+
+
+-- ---------------------------------------------------------------------
+-- Pre-request function (role setting, not part of the schema itself)
+-- ---------------------------------------------------------------------
+-- Registered once per project:
+--   alter role authenticator set pgrst.db_pre_request = 'public.check_request';
+--   notify pgrst, 'reload config';
+-- Remove again (e.g. if requests start failing):
+--   alter role authenticator reset pgrst.db_pre_request;
+--   notify pgrst, 'reload config';
