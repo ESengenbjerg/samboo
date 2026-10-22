@@ -75,8 +75,10 @@ export async function scrape(
       } catch {
         throw new ScrapeLayoutError(`No result counter on ${searchUrl}`);
       }
-      const expected = Number(await counter.getAttribute("data-count"));
-      if (!Number.isInteger(expected)) {
+      // Number(null) and Number("") are both 0, which would look like a true 0 hits
+      const raw = await counter.getAttribute("data-count");
+      const expected = raw === null || raw.trim() === "" ? NaN : Number(raw);
+      if (!Number.isInteger(expected) || expected < 0) {
         throw new ScrapeLayoutError(
           `Unreadable result counter on ${searchUrl}`,
         );

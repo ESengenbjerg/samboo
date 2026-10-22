@@ -139,8 +139,10 @@ export async function scrape(
         } catch {
           throw new ScrapeLayoutError(`No hit wrapper on ${url}`);
         }
-        expected = Number(await wrapper.getAttribute("data-hitcount"));
-        if (!Number.isInteger(expected)) {
+        // Number(null) and Number("") are both 0, which would look like a true 0 hits
+        const raw = await wrapper.getAttribute("data-hitcount");
+        expected = raw === null || raw.trim() === "" ? NaN : Number(raw);
+        if (!Number.isInteger(expected) || expected < 0) {
           throw new ScrapeLayoutError(`Unreadable hit count on ${url}`);
         }
 
