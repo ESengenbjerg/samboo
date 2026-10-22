@@ -5,7 +5,7 @@ import { Text } from "@/components/ui/text";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
 import { TextInput, View } from "react-native";
-import FormError from "./form-error";
+import FormError from "@/components/form-error";
 
 export function ResetPasswordForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -138,7 +138,9 @@ export function ResetPasswordForm() {
       <View className="gap-6 items-center justify-center mt-6">
         {isVerified && (
           <Button className="px-10" onPress={onSubmit} disabled={isLoading}>
-            <Text>{!isLoading ? "Återställ lösenord" : "Återställer lösenord..."}</Text>
+            <Text>
+              {!isLoading ? "Återställ lösenord" : "Återställer lösenord..."}
+            </Text>
           </Button>
         )}
         <Button variant="link" onPress={() => router.dismissTo("/login")}>

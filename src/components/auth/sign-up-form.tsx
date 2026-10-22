@@ -5,7 +5,7 @@ import { Text } from "@/components/ui/text";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
 import { TextInput, View } from "react-native";
-import FormError from "./form-error";
+import FormError from "@/components/form-error";
 
 export function SignUpForm() {
   const [isLoading, setIsLoading] = useState(false);

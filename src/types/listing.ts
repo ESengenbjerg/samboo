@@ -11,5 +11,7 @@ export type Listing = {
     streetAddress?: string;
     livingArea?: number;
     image?: string;
+    monthlyFee?: number,
+    newProduction?: boolean,
   };
 };

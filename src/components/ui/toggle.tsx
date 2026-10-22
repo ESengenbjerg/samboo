@@ -17,6 +17,12 @@ const toggleVariants = cva(
     variants: {
       variant: {
         default: 'bg-transparent',
+        secondary: cn(
+          'bg-ring active:bg-foreground/80',
+          Platform.select({
+            web: 'hover:bg-foreground/80 hover:text-background focus-visible:ring-foreground/50',
+          })
+        ),
         outline: cn(
           'active:bg-accent bg-transparent shadow-sm shadow-black/5',
           Platform.select({
@@ -46,7 +52,7 @@ function Toggle({
   return (
     <TextClassContext.Provider
       value={cn(
-        'text-sm text-foreground font-medium',
+        'text-sm text-foreground font-sans-medium',
         props.pressed
           ? 'text-accent-foreground'
           : Platform.select({ web: 'group-hover:text-muted-foreground' }),
