@@ -27,6 +27,9 @@ export type MappedListing = {
   rooms: number | null;
   latitude: number | null;
   longitude: number | null;
+  monthly_fee: number | null;
+  living_area: number | null;
+  is_new_construction: boolean;
 };
 
 // A row ready to be upserted into listings

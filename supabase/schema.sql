@@ -74,6 +74,9 @@ create table public.listings (
   rooms          numeric,
   latitude       double precision,
   longitude      double precision,
+  monthly_fee    bigint,
+  living_area    numeric,
+  is_new_construction boolean not null default false,
   constraint listings_pkey primary key (id),
   constraint listings_agency_external_id_key unique (agency, external_id),
   constraint listings_property_type_check check (
@@ -93,11 +96,17 @@ create table public.search_params (
   max_price       bigint,
   min_rooms       numeric,
   max_rooms       numeric,
+  max_monthly_fee bigint,
+  min_living_area numeric,
+  -- null counts as true: new builds are shown unless the user turns them off
+  include_new_construction boolean default true,
   constraint "SearchParams_pkey" primary key (id),
   constraint "SearchParams_user_id_key" unique (user_id),
   constraint "SearchParams_user_id_fkey" foreign key (user_id) references public.profiles (id) on delete cascade,
   constraint search_params_price_check check (min_price is null or max_price is null or min_price <= max_price),
   constraint search_params_rooms_check check (min_rooms is null or max_rooms is null or min_rooms <= max_rooms),
+  constraint search_params_monthly_fee_check check (max_monthly_fee is null or max_monthly_fee >= 0),
+  constraint search_params_living_area_check check (min_living_area is null or min_living_area >= 0),
   constraint search_params_property_types_check check (
     property_types <@ array['villa', 'radhus', 'lagenhet', 'fritidshus', 'tomt', 'other']
   ),
@@ -460,6 +469,15 @@ begin
           -- Rooms: unknown rooms passes
       and (sp.min_rooms is null or l.rooms is null or l.rooms >= sp.min_rooms)
       and (sp.max_rooms is null or l.rooms is null or l.rooms <= sp.max_rooms)
+
+          -- Monthly fee: unknown fee passes (houses and plots have none)
+      and (sp.max_monthly_fee is null or l.monthly_fee is null or l.monthly_fee <= sp.max_monthly_fee)
+
+          -- Living area: unknown area passes
+      and (sp.min_living_area is null or l.living_area is null or l.living_area >= sp.min_living_area)
+
+          -- New builds: shown unless the user has turned them off (null = shown)
+      and (sp.include_new_construction is not false or not l.is_new_construction)
     )
     where (p_user_id is null or sp.user_id = p_user_id)
       and l.removed_at is null
@@ -685,7 +703,7 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 CREATE TRIGGER search_params_match
-  AFTER INSERT OR UPDATE OF property_types, municipalities, areas, min_price, max_price, min_rooms, max_rooms
+  AFTER INSERT OR UPDATE OF property_types, municipalities, areas, min_price, max_price, min_rooms, max_rooms, max_monthly_fee, min_living_area, include_new_construction
   ON public.search_params
   FOR EACH ROW EXECUTE FUNCTION public.search_params_match_trigger();
 

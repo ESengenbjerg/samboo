@@ -25,12 +25,15 @@ const seedSearches = [
     email: process.env.SEED_USER_EMAIL,
     searchParams: {
       property_types: ["villa", "radhus", "tomt"],
-      municipalities: ["Partille"],
+      municipalities: ["Partille", "Höganäs"],
       areas: [],
       min_price: null,
       max_price: null,
       min_rooms: null,
       max_rooms: null,
+      max_monthly_fee: null,
+      min_living_area: null,
+      include_new_construction: true,
     },
   },
   {
@@ -43,6 +46,9 @@ const seedSearches = [
       max_price: 4000000,
       min_rooms: null,
       max_rooms: null,
+      max_monthly_fee: null,
+      min_living_area: null,
+      include_new_construction: true,
     },
   },
 ];
@@ -84,19 +90,3 @@ for (const { email, searchParams } of seedSearches) {
   // Success
   console.log(`Saved search params for ${email}`);
 }
-
-// ----------------------------- MATCH -----------------------------
-
-// THIS PART IS RUN BY DB NOW
-// // Match the user's search params against the listings
-// const { data: newMatches, error: matchError } = await supabaseAdmin.rpc(
-//   "match_user_listings",
-//   { p_user_id: user.id },
-// );
-
-// if (matchError) {
-//   console.error("Failed to match listings:", matchError);
-//   process.exit(1);
-// }
-
-// console.log(`${newMatches} new matching listings for ${email}`);

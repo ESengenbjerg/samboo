@@ -64,6 +64,10 @@ export function mapListing(data: MockdataLdJson): MappedListing {
     rooms: toNumber(data.rooms),
     latitude: toNumber(data.geo?.latitude),
     longitude: toNumber(data.geo?.longitude),
+    // Mockdata has no such fields
+    monthly_fee: null,
+    living_area: null,
+    is_new_construction: false,
     // NOTE! toNumber always returns an actuall number or null. So if value is missing it will be null
   };
 }
