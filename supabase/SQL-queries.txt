@@ -161,3 +161,11 @@ where schema_name not in ('pg_catalog', 'information_schema', 'public', 'auth', 
 union all
 select 'vault_secret', name, description from vault.secrets
 order by 1, 2;
+
+
+
+PG_CRON JOBS (the extension itself is listed by the ENUMS, EXTENSIONS query):
+
+select jobname, schedule, command, active
+from cron.job
+order by jobname;
