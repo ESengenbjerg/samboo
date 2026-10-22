@@ -24,7 +24,10 @@ const storage = {
     isServer ? undefined : AsyncStorage.removeItem(key),
 };
 
-// Create connection to Supabase
+// Create connection to Supabase.
+// Note: createClient also sets up the realtime client, which needs the global
+// WebSocket that only exists in Node 22+. The static web export (`output: "static"`)
+// runs this file in Node, so building for web fails on older Node versions (see .nvmrc).
 export const supabase = createClient(url, key, {
   auth: {
     storage,
