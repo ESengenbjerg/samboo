@@ -132,7 +132,7 @@ export default function ConnectAccountForm() {
           disabled={isLoading}
           className="px-10"
         >
-          <Text>{!isLoading ? "Bjud in konto" : "Bjuder in..."}</Text>
+          <Text>Bjud in konto</Text>
         </Button>
         <Text>Detta kan göras senare via dina kontoinställningar</Text>
         <Button

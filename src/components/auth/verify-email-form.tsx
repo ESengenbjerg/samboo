@@ -40,6 +40,7 @@ export function VerifyEmailForm() {
       } else if (error) {
         setError("Något gick fel, försök igen");
       }
+      
       // If succeeded navigation will automatically redirect user to next step
     } catch {
       setError("Något gick fel, försök igen");

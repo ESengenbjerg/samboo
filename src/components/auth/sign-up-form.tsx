@@ -33,9 +33,12 @@ export function SignUpForm() {
         setError("Lösenorden matchar inte");
         return;
       }
+
+      // Send params to Supabase to create account
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
+        options: { data: { name }}
       });
 
       if (error) {

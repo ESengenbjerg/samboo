@@ -62,6 +62,7 @@ export function SendInviteDialog({
         <DialogFooter>
           <View className="flex-1 gap-4">
             <Button onPress={() => onAction(email.trim())}>
+              {/* TODO: Update text based on loading state */}
               <Text>Skicka inbjudan</Text>
             </Button>
           </View>
