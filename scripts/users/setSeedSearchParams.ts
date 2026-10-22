@@ -25,7 +25,7 @@ const seedSearches = [
     email: process.env.SEED_USER_EMAIL,
     searchParams: {
       property_types: ["villa", "radhus", "tomt"],
-      municipalities: ["Partille"],
+      municipalities: ["Partille", "Höganäs"],
       areas: [],
       min_price: null,
       max_price: null,
