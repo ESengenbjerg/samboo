@@ -26,8 +26,8 @@ Every relation from `profiles` is `ON DELETE CASCADE`, except `group_id`, which 
 | `profiles` | One row per user, created by the `on_auth_user_created` trigger | `id` → `auth.users` (cascade). `group_id` → `groups` (set null). `is_active` is used by RLS |
 | `groups` | A group (only an id and a timestamp) | Removed by `leave_group()` when at most 1 member remains |
 | `invites` | Invitation to a group by email | `status` ∈ pending/accepted/declined. `from_user_id` → `profiles` (cascade). `to_email` is free text |
-| `search_params` | The user's search profile | `user_id` is unique (at most one per user). Price and room ranges must satisfy min ≤ max. `property_types` may only contain known types |
-| `listings` | Scraped listings, shared data | Unique on (`agency`, `external_id`). `property_type` ∈ villa/radhus/lagenhet/fritidshus/tomt/other. `removed_at` is set when a listing has disappeared |
+| `search_params` | The user's search profile | `user_id` is unique (at most one per user). Price and room ranges must satisfy min ≤ max. `property_types` may only contain known types. Optional filters (null = no limit): `min_rooms`, `max_monthly_fee`, `min_living_area`. `include_new_construction` (default true, null counts as true) hides new builds only when false |
+| `listings` | Scraped listings, shared data | Unique on (`agency`, `external_id`). `property_type` ∈ villa/radhus/lagenhet/fritidshus/tomt/other. `removed_at` is set when a listing has disappeared. `monthly_fee` (apartments only), `living_area` and `is_new_construction` (default false) are filter columns. Unknown fee and area pass the match |
 | `user_listings` | Matches between users and listings | Unique on (`user_id`, `listing_id`). `is_new` (default true), `liked` (default false) |
 | `user_tags` | The user's own tags | Unique on (`user_id`, `tag_name`) |
 | `listing_tags` | A tag applied to a matched listing | Unique on (`user_tag_id`, `user_listing_id`) |

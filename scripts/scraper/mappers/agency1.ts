@@ -29,6 +29,12 @@ function toPrice(value: unknown): number | null {
   return n !== null && n > 0 ? n : null;
 }
 
+// "4 100 kr/månad" -> 4100. The site separates thousands with a (non-breaking) space
+function toFee(text: string | null): number | null {
+  const digits = text?.match(/\d[\d\s\u00a0]*/)?.[0].replace(/\D/g, "");
+  return digits ? toPrice(Number(digits)) : null;
+}
+
 function toText(value: unknown): string | null {
   return typeof value === "string" && value.trim() !== "" ? value.trim() : null;
 }
@@ -57,25 +63,37 @@ export type Agency1LdJson = {
     isRelatedTo?: {
       address?: { addressLocality?: string; addressRegion?: string };
       numberOfRooms?: unknown;
+      floorSize?: { value?: unknown };
       geo?: { latitude?: unknown; longitude?: unknown };
     };
   };
 };
 
-// listingType is the "Typ:" line from the listing page ("Radhus, 2-plans radhus").
-// ld+json calls terraced houses "Villa", so the page text goes first
+// What is not in the ld+json but read from the page or the search card
+export type PageFacts = {
+  // The "Typ:" line ("Radhus, 2-plans radhus"). ld+json calls terraced houses "Villa", so this goes first
+  listingType: string | null;
+  // The "Månadsavgift:" line ("4 100 kr"), only on apartments
+  monthlyFee: string | null;
+  // The new-build label on the search card
+  isNewConstruction: boolean;
+};
+
 export function mapListing(
   data: Agency1LdJson,
-  listingType: string | null,
+  facts: PageFacts,
 ): MappedListing {
   const home = data.product?.isRelatedTo;
   return {
-    property_type: mapPropertyType(listingType ?? data.category),
+    property_type: mapPropertyType(facts.listingType ?? data.category),
     municipality: toText(home?.address?.addressLocality),
     area: toText(home?.address?.addressRegion),
     price: toPrice(data.product?.offers?.price),
     rooms: toNumber(home?.numberOfRooms),
     latitude: toNumber(home?.geo?.latitude),
     longitude: toNumber(home?.geo?.longitude),
+    monthly_fee: toFee(facts.monthlyFee),
+    living_area: toPrice(home?.floorSize?.value),
+    is_new_construction: facts.isNewConstruction,
   };
 }

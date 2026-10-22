@@ -102,7 +102,7 @@ const LISTING_SEGMENTS = new Set([
 // Safety stop for the page loop, the site has 35 hits per page
 const MAX_PAGES = 100;
 
-type Hit = { id: number; href: string };
+type Hit = { id: number; href: string; isNew: boolean };
 
 // -------------- Scraper, find listings --------------
 export async function scrape(
@@ -115,10 +115,10 @@ export async function scrape(
   try {
     // 1. Collect listing URLs from every search page.
     // A failing search page throws: the result would be incomplete
-    const listingUrls = new Map<number, string>(); // external_id -> url
+    const listings = new Map<number, { url: string; isNew: boolean }>(); // external_id -> url and new-build flag
 
     for (const searchUrl of buildUrls(scope)) {
-      const hits = new Map<number, string>();
+      const hits = new Map<number, { url: string; isNew: boolean }>();
       let expected = 0;
 
       for (let n = 0; n < MAX_PAGES; n++) {
@@ -150,12 +150,16 @@ export async function scrape(
             links.map((a) => ({
               id: Number(a.getAttribute("data-targetid")),
               href: a.getAttribute("href") ?? "",
+              // The card has a "new-prod" label on new-build listings
+              isNew: a.querySelector(".search-hit__label.new-prod") !== null,
             })),
           );
 
         const before = hits.size;
-        for (const { id, href } of found) {
-          if (id && href) hits.set(id, new URL(href, baseUrl()).href);
+        for (const { id, href, isNew } of found) {
+          if (id && href) {
+            hits.set(id, { url: new URL(href, baseUrl()).href, isNew });
+          }
         }
 
         // All hits collected, or a page without new hits (beyond the last page)
@@ -169,9 +173,9 @@ export async function scrape(
         );
       }
 
-      for (const [id, url] of hits) {
-        const segment = new URL(url).pathname.split("/")[1] ?? "";
-        if (LISTING_SEGMENTS.has(segment)) listingUrls.set(id, url);
+      for (const [id, hit] of hits) {
+        const segment = new URL(hit.url).pathname.split("/")[1] ?? "";
+        if (LISTING_SEGMENTS.has(segment)) listings.set(id, hit);
       }
     }
 
@@ -180,7 +184,7 @@ export async function scrape(
     const rows: ListingRow<Agency1LdJson>[] = [];
     const seenAt = new Date().toISOString();
 
-    for (const [externalId, url] of listingUrls) {
+    for (const [externalId, { url, isNew }] of listings) {
       try {
         const response = await page.goto(url);
         if (!response?.ok()) throw new Error(`Status ${response?.status()}`);
@@ -201,13 +205,16 @@ export async function scrape(
           );
         if (!data) throw new ScrapeLayoutError(`No listing ld+json on ${url}`);
 
-        // The "Typ:" line in the fact list, e.g. "Radhus, 2-plans radhus". Null if it moves
-        // THIS NEEDS TO BE TESTED!!
-        const listingType = await page.evaluate(() => {
-          const item = Array.from(
-            document.querySelectorAll("li.info--icon"),
-          ).find((li) => /^\s*Typ:/.test(li.textContent ?? ""));
-          return item?.textContent?.replace(/^\s*Typ:\s*/, "").trim() || null;
+        // Facts that are not in the ld+json: the "Typ:" and "Månadsavgift:" lines in the
+        // fact list, e.g. "Radhus, 2-plans radhus" and "4 100 kr". Null if a line is missing
+        const lines = await page.evaluate(() => {
+          const items = Array.from(document.querySelectorAll("li.info--icon"));
+          const read = (label: string) =>
+            items
+              .find((li) => (li.textContent ?? "").trim().startsWith(label))
+              ?.textContent?.replace(label, "")
+              .trim() || null;
+          return { type: read("Typ:"), fee: read("Månadsavgift:") };
         });
 
         rows.push({
@@ -217,7 +224,11 @@ export async function scrape(
           ld_json: data,
           last_seen_at: seenAt,
           removed_at: null, // A listing that is seen again is not "removed"
-          ...mapListing(data, listingType), // Normalized columns used for matching
+          ...mapListing(data, {
+            listingType: lines.type,
+            monthlyFee: lines.fee,
+            isNewConstruction: isNew,
+          }), // Normalized columns used for matching
         });
       } catch (error) {
         failedUrls.push(url);
