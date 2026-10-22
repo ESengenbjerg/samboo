@@ -79,7 +79,7 @@ Small scopes are not affected by the percentage. For example, if 2 of 3 listings
 
 ## Purge
 
-At the end of every run, listings that have been removed for more than 14 days are deleted (the database function `purge_removed_listings`).
+Listings that have been removed for more than 14 days are deleted by a daily pg_cron job (the database function `purge_removed_listings`). This runs inside the database, so it does not depend on the scraper running.
 
 ## Special cases
 
