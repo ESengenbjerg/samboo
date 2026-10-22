@@ -44,10 +44,12 @@ export default function ProfileForm() {
       setError("Lägg till ett visningsnamn");
       return;
     }
-    if (!profileImage) {
-      setError("Lägg till en visningsbild");
-      return;
-    }
+    
+    // TODO: Put back when img_url exist in Supabase
+    // if (!profileImage) {
+    //   setError("Lägg till en visningsbild");
+    //   return;
+    // }
 
     setProfile(profileName, profileImage);
     router.push({ pathname: "/create-filter" });

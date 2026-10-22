@@ -1,10 +1,12 @@
 import { useOnboardingStore } from "@/stores/onboarding";
+import { supabase } from "@/utils/supabase";
 import { useState } from "react";
 import { View } from "react-native";
 import FormError from "../form-error";
 import { SendInviteDialog } from "../modals/send-invite-dialog";
 import { Button } from "../ui/button";
 import { Text } from "../ui/text";
+import { router } from "expo-router";
 
 export default function ConnectAccountForm() {
   // TODO: setError will be used once Supabase implementation is complete
@@ -14,16 +16,88 @@ export default function ConnectAccountForm() {
   const completeOnboarding = useOnboardingStore((s) => s.completeOnboarding);
 
   async function finish() {
-    // TODO: Send profile + filter from store to Supabase and set profiles.onboarding_completed_at
-    completeOnboarding();
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      // Fetch correct user
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) throw new Error("Not signed in");
+
+      // Fetch user input from previous onboarding steps
+      const { profileName, scraperFilter } = useOnboardingStore.getState();
+
+      // If onboarding is not completed, redirect to /profile to start from beginning
+      if (!scraperFilter) {
+        router.replace("/profile");
+        return;
+      }
+
+      // Save search, creates row or updates if it already exist
+      const { error: filterError } = await supabase
+        .from("search_params")
+        .upsert(
+          {
+            user_id: user.id,
+            property_types: scraperFilter.propertyTypes,
+            areas: [scraperFilter.area],
+          },
+          { onConflict: "user_id" },
+        );
+      if (filterError) throw filterError;
+
+      // Save name and update onboarding_completed_at with correct date
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          name: profileName,
+          onboarding_completed_at: new Date().toISOString(),
+        })
+        .eq("id", user.id);
+
+      if (profileError) throw profileError;
+
+      // When everything is saved, onboarding is complete and user is moved to /search
+      completeOnboarding();
+    } catch (e) {
+      console.log("Onboarding error: " + e);
+      setError("Något gick fel, försök igen.");
+    } finally {
+      setIsLoading(false);
+    }
   }
 
-  async function onInvite() {
+  // Send invite to other user
+  async function onInvite(email: string) {
     setIsLoading(true);
-    // TODO: Send invite to account
+
+    // Get user from Supabase
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setError("Något gick fel, försök igen.");
+      setIsLoading(false);
+      return;
+    }
+
+    const { error: inviteError } = await supabase
+      .from("invites")
+      .insert({ from_user_id: user?.id, to_email: email });
 
     setInvitationDialogOpen(false);
-    setIsLoading(false);
+
+    if (inviteError) {
+      console.log("Invite error: " + inviteError);
+      setError("Kunde inte skicka inbjudan, försök igen.");
+      setIsLoading(false);
+      return;
+    }
+
     await finish();
   }
 
@@ -61,7 +135,12 @@ export default function ConnectAccountForm() {
           <Text>{!isLoading ? "Bjud in konto" : "Bjuder in..."}</Text>
         </Button>
         <Text>Detta kan göras senare via dina kontoinställningar</Text>
-        <Button variant="link" className="p-0" onPress={onSkip}>
+        <Button
+          variant="link"
+          className="p-0"
+          onPress={onSkip}
+          disabled={isLoading}
+        >
           <Text>Hoppa över</Text>
         </Button>
       </View>

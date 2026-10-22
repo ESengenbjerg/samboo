@@ -1,11 +1,12 @@
+import FormError from "@/components/form-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
-import { router } from "expo-router";
+import { supabase } from "@/utils/supabase";
+import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type TextStyle, View } from "react-native";
-import FormError from "@/components/form-error";
 
 const RESEND_CODE_INTERVAL_SECONDS = 30;
 
@@ -19,23 +20,27 @@ export function VerifyEmailForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const { email } = useLocalSearchParams<{ email: string }>();
   const [code, setCode] = useState("");
 
-  // TODO: Remove, verify the code with the auth provider instead
-  const DEV_CODE = "123456";
-
-  function onSubmit() {
+  async function onSubmit() {
     if (isLoading) return;
     setError(null);
     setIsLoading(true);
 
     try {
-      if (code === DEV_CODE) {
-        router.dismissTo("/login");
-      } else {
-        setError("Koden stämmer inte.");
-        return;
+      const { error } = await supabase.auth.verifyOtp({
+        email,
+        token: code,
+        type: "email",
+      });
+
+      if (error?.code === "otp_expired") {
+        setError("Koden är fel eller har gått ut.");
+      } else if (error) {
+        setError("Något gick fel, försök igen");
       }
+      // If succeeded navigation will automatically redirect user to next step
     } catch {
       setError("Något gick fel, försök igen");
     } finally {
@@ -57,7 +62,7 @@ export function VerifyEmailForm() {
         </Label>
         <Input
           id="verify-code"
-          placeholder="*****"
+          placeholder="000000"
           autoCapitalize="none"
           returnKeyType="send"
           keyboardType="numeric"
@@ -67,14 +72,22 @@ export function VerifyEmailForm() {
           value={code}
           onChangeText={setCode}
           editable={!isLoading}
+          maxLength={6}
         />
         <Button
           variant="link"
           size="sm"
           disabled={countdown > 0 || isLoading}
-          onPress={() => {
-            // TODO: Resend code
-            restartCountdown();
+          onPress={async () => {
+            const { error } = await supabase.auth.resend({
+              type: "signup",
+              email,
+            });
+            if (error) {
+              setError("Kunde inte skicka koden, försök igen.");
+            } else {
+              restartCountdown();
+            }
           }}
         >
           <Text className="text-center text-sm text-background">
