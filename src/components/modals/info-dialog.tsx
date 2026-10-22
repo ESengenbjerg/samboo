@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Text } from "react-native";
+import { Text } from "@/components/ui/text";
 import {
   Dialog,
   DialogContent,

@@ -18,6 +18,8 @@ import {
 import { Session } from "@supabase/supabase-js";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { useOnboardingStore } from "@/stores/onboarding";
 
 // Stays on start screen until fonts are loaded
 SplashScreen.preventAutoHideAsync();
@@ -51,7 +53,12 @@ export default function RootLayout() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (!session) setProfile(null);
+      if (!session) {
+        setProfile(null);
+        // Resets onboarding to not affect next user.
+        // Will be read from Supabase next time
+        useOnboardingStore.getState().reset();
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -76,8 +83,10 @@ export default function RootLayout() {
       });
   }, [userId]);
 
+  const onboardingComplete = useOnboardingStore((s) => s.onboardingComplete);
+
   const isLoggedIn = !!session;
-  const isOnboarded = profile?.isOnboarded ?? false;
+  const isOnboarded = (profile?.isOnboarded ?? false) || onboardingComplete;
   const isProfileLoading = isLoggedIn && profile?.userId !== userId;
   const isReady = fontsLoaded && isSessionLoaded && !isProfileLoading;
 
@@ -89,26 +98,25 @@ export default function RootLayout() {
   if (!isReady) return null;
 
   return (
-    <ThemeProvider value={NAV_THEME[colorScheme ?? "light"]}>
-      {/* Redirects user to correct view */}
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Protected guard={!isLoggedIn}>
-          <Stack.Screen name="(auth)" />
-        </Stack.Protected>
-        <Stack.Protected guard={isLoggedIn && !isOnboarded}>
-          <Stack.Screen
-            name="(onboarding)"
-            options={{ headerShown: true, header: () => <Header /> }}
-          />
-        </Stack.Protected>
-        <Stack.Protected guard={isLoggedIn && isOnboarded}>
-          <Stack.Screen
-            name="(tabs)"
-            options={{ headerShown: true, header: () => <Header /> }}
-          />
-        </Stack.Protected>
-      </Stack>
-      <PortalHost />
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider value={NAV_THEME[colorScheme ?? "light"]}>
+        {/* Redirects user to correct view */}
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Protected guard={!isLoggedIn}>
+            <Stack.Screen name="(auth)" />
+          </Stack.Protected>
+          <Stack.Protected guard={isLoggedIn && !isOnboarded}>
+            <Stack.Screen name="(onboarding)" />
+          </Stack.Protected>
+          <Stack.Protected guard={isLoggedIn && isOnboarded}>
+            <Stack.Screen
+              name="(tabs)"
+              options={{ headerShown: true, header: () => <Header /> }}
+            />
+          </Stack.Protected>
+        </Stack>
+        <PortalHost />
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }

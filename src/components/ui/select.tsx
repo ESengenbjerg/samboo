@@ -8,6 +8,7 @@ import * as React from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { FadeIn, FadeOut, ReduceMotion } from 'react-native-reanimated';
 import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens';
+import { ScrollView } from 'react-native-gesture-handler';
 
 type Option = SelectPrimitive.Option;
 
@@ -27,7 +28,7 @@ function SelectValue({
     <SelectPrimitive.Value
       ref={ref}
       className={cn(
-        'text-foreground line-clamp-1 flex flex-row items-center gap-2 text-sm',
+        'text-foreground line-clamp-1 flex flex-row items-center gap-2 font-sans text-sm',
         !value && 'text-muted-foreground',
         className
       )}
@@ -82,6 +83,7 @@ function SelectContent({
       <FullWindowOverlay>
         <SelectPrimitive.Overlay
           style={Platform.select({ native: StyleSheet.absoluteFill })}
+          className={Platform.select({ web: 'fixed inset-0 z-50' })}
           asChild={Platform.OS !== 'web'}>
           <NativeOnlyAnimatedView
             className="z-50"
@@ -94,7 +96,7 @@ function SelectContent({
                   'bg-popover border-border relative z-50 min-w-[8rem] rounded-md border shadow-md shadow-black/5',
                   Platform.select({
                     web: cn(
-                      'animate-in fade-in-0 zoom-in-95 origin-(--radix-select-content-transform-origin) max-h-52 overflow-y-auto overflow-x-hidden',
+                      'animate-in fade-in-0 zoom-in-95 origin-(--radix-select-content-transform-origin) w-[var(--radix-select-trigger-width)] max-h-52 overflow-y-auto overflow-x-hidden',
                       props.side === 'bottom' && 'slide-in-from-top-2',
                       props.side === 'top' && 'slide-in-from-bottom-2'
                     ),
@@ -141,7 +143,7 @@ function SelectLabel({
 }: React.ComponentProps<typeof SelectPrimitive.Label>) {
   return (
     <SelectPrimitive.Label
-      className={cn('text-muted-foreground px-2 py-2 text-xs sm:py-1.5', className)}
+      className={cn('text-muted-foreground px-2 py-2 font-sans text-xs sm:py-1.5', className)}
       {...props}
     />
   );
@@ -168,7 +170,7 @@ function SelectItem({
           <Icon as={Check} className="text-muted-foreground size-4 shrink-0" />
         </SelectPrimitive.ItemIndicator>
       </View>
-      <SelectPrimitive.ItemText className="text-foreground group-active:text-accent-foreground select-none text-sm" />
+      <SelectPrimitive.ItemText className="text-foreground group-active:text-accent-foreground select-none font-sans text-sm" />
     </SelectPrimitive.Item>
   );
 }
@@ -229,9 +231,20 @@ function SelectScrollDownButton({
   );
 }
 
+/**
+ * @platform Native only
+ * Returns the children on the web
+ */
+function NativeSelectScrollView({ className, ...props }: React.ComponentProps<typeof ScrollView>) {
+  if (Platform.OS === 'web') {
+    return <>{props.children}</>;
+  }
+  return <ScrollView className={cn('max-h-52', className)} {...props} />;
+}
 
 
 export {
+  NativeSelectScrollView,
   Select,
   SelectContent,
   SelectGroup,

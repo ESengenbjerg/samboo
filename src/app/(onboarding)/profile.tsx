@@ -1,10 +1,10 @@
-import { View } from "react-native";
-import { Text } from "@/components/ui/text";
+import { OnboardingScreen } from "@/components/onboarding/onboarding-screen";
+import ProfileForm from "@/components/onboarding/profile-form";
 
 export default function OnboardingProfileScreen() {
-    return (
-        <View className="flex-1 items-center justify-center bg-background">
-            <Text>Skapa profil</Text>
-        </View>
-    )
+  return (
+    <OnboardingScreen>
+      <ProfileForm />
+    </OnboardingScreen>
+  );
 }
