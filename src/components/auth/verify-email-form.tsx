@@ -8,7 +8,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type TextStyle, View } from "react-native";
 
-const RESEND_CODE_INTERVAL_SECONDS = 30;
+const RESEND_CODE_INTERVAL_SECONDS = 60;
 
 const TABULAR_NUMBERS_STYLE: TextStyle = { fontVariant: ["tabular-nums"] };
 
