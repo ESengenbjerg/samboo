@@ -9,34 +9,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Text } from "@/components/ui/text";
-import { Listing } from "@/types/listing";
-import { supabase } from "@/utils/supabase";
+import { useListings } from "@/hooks/use-listings";
 import { Link, router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ScrollView, View } from "react-native";
 
 export default function SearchScreen() {
-  const [loading, setLoading] = useState(true);
-
-  const [listings, setListings] = useState<Listing[]>([]);
+  // TODO: Remove policy from listings table to give anon permission to read
+  const { data: listings = [], isPending: loading, error } = useListings();
 
   const [view, setView] = useState<"column" | "grid">("column");
-
-  // Get data from database on first run
-  // TODO: Remove policy from listings table to give anon permission to read
-  useEffect(() => {
-    supabase
-      .from("listings")
-      .select("*")
-      .is("removed_at", null)
-      .order("last_seen_at", { ascending: false })
-      .overrideTypes<Listing[]>()
-      .then(({ data, error }) => {
-        if (error) console.error("Failed to load listings: ", error);
-        else setListings(data);
-        setLoading(false);
-      });
-  }, []);
 
   return (
     <View className="flex-1 px-8 bg-background gap-8">
@@ -74,7 +56,8 @@ export default function SearchScreen() {
       </View>
 
       {loading && <Text>Laddar...</Text>}
-      {!loading && listings.length === 0 && <Text>Inga objekt hittades</Text>}
+      {error && <Text>Kunde inte hämta objekt, försök igen.</Text>}
+      {!loading && !error && listings.length === 0 && <Text>Inga objekt hittades</Text>}
 
       {/* Present properties based in column or grid based on user choice */}
       <ScrollView showsVerticalScrollIndicator={false}>

@@ -1,103 +1,64 @@
+import { useCompleteOnboarding } from "@/hooks/use-complete-onboarding";
+import { useSendInvite } from "@/hooks/use-send-invite";
 import { useOnboardingStore } from "@/stores/onboarding";
-import { supabase } from "@/utils/supabase";
+import { router } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 import FormError from "../form-error";
 import { SendInviteDialog } from "../modals/send-invite-dialog";
 import { Button } from "../ui/button";
 import { Text } from "../ui/text";
-import { router } from "expo-router";
 
 export default function ConnectAccountForm() {
-  // TODO: setError will be used once Supabase implementation is complete
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [invitationDialogOpen, setInvitationDialogOpen] = useState(false);
   const completeOnboarding = useOnboardingStore((s) => s.completeOnboarding);
+  const completeOnboardingMutation = useCompleteOnboarding();
+  const inviteMutation = useSendInvite();
+  const isLoading =
+    completeOnboardingMutation.isPending || inviteMutation.isPending;
 
   async function finish() {
     setError(null);
-    setIsLoading(true);
+
+    // Fetch user input from previous onboarding steps
+    const { profileName, scraperFilter } = useOnboardingStore.getState();
+
+    // If onboarding is not completed, redirect to /profile to start from beginning
+    if (!scraperFilter) {
+      router.replace("/profile");
+      return;
+    }
 
     try {
-      // Fetch correct user
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) throw new Error("Not signed in");
-
-      // Fetch user input from previous onboarding steps
-      const { profileName, scraperFilter } = useOnboardingStore.getState();
-
-      // If onboarding is not completed, redirect to /profile to start from beginning
-      if (!scraperFilter) {
-        router.replace("/profile");
-        return;
-      }
-
-      // Save search, creates row or updates if it already exist
-      const { error: filterError } = await supabase
-        .from("search_params")
-        .upsert(
-          {
-            user_id: user.id,
-            property_types: scraperFilter.propertyTypes,
-            areas: [scraperFilter.area],
-          },
-          { onConflict: "user_id" },
-        );
-      if (filterError) throw filterError;
-
-      // Save name and update onboarding_completed_at with correct date
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          name: profileName,
-          onboarding_completed_at: new Date().toISOString(),
-        })
-        .eq("id", user.id);
-
-      if (profileError) throw profileError;
+      // Save search and name, and mark onboarding as completed
+      await completeOnboardingMutation.mutateAsync({
+        profileName,
+        scraperFilter,
+      });
 
       // When everything is saved, onboarding is complete and user is moved to /search
       completeOnboarding();
     } catch (e) {
       console.log("Onboarding error: " + e);
       setError("Något gick fel, försök igen.");
-    } finally {
-      setIsLoading(false);
     }
   }
 
   // Send invite to other user
   async function onInvite(email: string) {
-    setIsLoading(true);
+    setError(null);
 
-    // Get user from Supabase
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      setError("Något gick fel, försök igen.");
-      setIsLoading(false);
+    try {
+      await inviteMutation.mutateAsync(email);
+    } catch (e) {
+      console.log("Invite error: " + e);
+      setInvitationDialogOpen(false);
+      setError("Kunde inte skicka inbjudan, försök igen.");
       return;
     }
-
-    const { error: inviteError } = await supabase
-      .from("invites")
-      .insert({ from_user_id: user?.id, to_email: email });
 
     setInvitationDialogOpen(false);
-
-    if (inviteError) {
-      console.log("Invite error: " + inviteError);
-      setError("Kunde inte skicka inbjudan, försök igen.");
-      setIsLoading(false);
-      return;
-    }
-
     await finish();
   }
 

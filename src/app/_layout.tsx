@@ -10,6 +10,8 @@ import { useEffect, useState } from "react";
 import Header from "@/components/header";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { useProfile } from "@/hooks/use-profile";
+import { signOut } from "@/services/auth";
 import { useOnboardingStore } from "@/stores/onboarding";
 import { supabase } from "@/utils/supabase";
 import { MomoTrustDisplay_400Regular } from "@expo-google-fonts/momo-trust-display";
@@ -19,6 +21,7 @@ import {
   MomoTrustSans_700Bold,
 } from "@expo-google-fonts/momo-trust-sans";
 import { Session } from "@supabase/supabase-js";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { View } from "react-native";
@@ -27,7 +30,17 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 // Stays on start screen until fonts are loaded
 SplashScreen.preventAutoHideAsync();
 
+const queryClient = new QueryClient();
+
 export default function RootLayout() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <RootNavigator />
+    </QueryClientProvider>
+  );
+}
+
+function RootNavigator() {
   const [fontsLoaded] = useFonts({
     MomoTrustDisplay_400Regular,
     MomoTrustSans_400Regular,
@@ -39,14 +52,6 @@ export default function RootLayout() {
   const [session, setSession] = useState<Session | null>(null);
   // True once the stored session has been read (it can be null = logged out)
   const [isSessionLoaded, setIsSessionLoaded] = useState(false);
-  // Onboarding status for a specific user, so a stale value is never used for a new session
-  const [profile, setProfile] = useState<{
-    userId: string;
-    isOnboarded: boolean;
-    failed?: boolean;
-  } | null>(null);
-  // Changes when user presses "Försök igen" (Try again) so the fetch retries
-  const [retryCount, setRetryCount] = useState(0);
 
   // Load session and listen to login/logout
   useEffect(() => {
@@ -60,9 +65,9 @@ export default function RootLayout() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (!session) {
-        setProfile(null);
-        // Resets onboarding to not affect next user.
+        // Resets cache and onboarding to not affect next user.
         // Will be read from Supabase next time
+        queryClient.clear();
         useOnboardingStore.getState().reset();
       }
     });
@@ -70,34 +75,16 @@ export default function RootLayout() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Get onboarding status when the logged in user changes
-  const userId = session?.user.id;
-  useEffect(() => {
-    if (!userId) return;
-
-    supabase
-      .from("profiles")
-      .select("onboarding_completed_at")
-      .eq("id", userId)
-      .single()
-      .then(({ data, error }) => {
-        if (error) {
-          console.log("Profile error:", error);
-          setProfile({ userId, isOnboarded: false, failed: true });
-          return;
-        }
-        setProfile({
-          userId,
-          isOnboarded: !!data?.onboarding_completed_at,
-        });
-      });
-  }, [userId, retryCount]);
+  // Get onboarding status when a user is logged in
+  const isLoggedIn = !!session;
+  const profileQuery = useProfile({ enabled: isLoggedIn });
+  const profileFailed = profileQuery.isError && !profileQuery.data;
 
   const onboardingComplete = useOnboardingStore((s) => s.onboardingComplete);
 
-  const isLoggedIn = !!session;
-  const isOnboarded = (profile?.isOnboarded ?? false) || onboardingComplete;
-  const isProfileLoading = isLoggedIn && profile?.userId !== userId;
+  const isOnboarded =
+    !!profileQuery.data?.onboarding_completed_at || onboardingComplete;
+  const isProfileLoading = isLoggedIn && profileQuery.isPending;
   const isReady = fontsLoaded && isSessionLoaded && !isProfileLoading;
 
   // Leave start screen when everything is loaded
@@ -107,20 +94,17 @@ export default function RootLayout() {
 
   if (!isReady) return null;
 
-  if (profile?.failed) {
+  if (profileFailed) {
     return (
       <ThemeProvider value={NAV_THEME[colorScheme ?? "light"]}>
         <View className="flex-1 items-center justify-center gap-4 bg-background px-8">
           <Text>Kunde inte hämta din profil.</Text>
           <Button
-            onPress={() => {
-              setProfile(null);
-              setRetryCount((c) => c + 1);
-            }}
+            onPress={() => profileQuery.refetch()}
           >
             <Text>Försök igen</Text>
           </Button>
-          <Button variant="link" onPress={() => supabase.auth.signOut()}>
+          <Button variant="link" onPress={() => signOut().catch(() => {})}>
             <Text>Logga ut</Text>
           </Button>
         </View>

@@ -1,5 +1,5 @@
 import { Icon } from "@/components/ui/icon";
-import { supabase } from "@/utils/supabase";
+import { signOut } from "@/services/auth";
 import { Image } from "expo-image";
 import { Link, router } from "expo-router";
 import { Bell, UserCircle2 } from "lucide-react-native";
@@ -50,8 +50,11 @@ export default function Header() {
             <DropdownMenuItem
               onPress={async () => {
                 setIsLoading(true);
-                const { error } = await supabase.auth.signOut();
-                if (error) setIsLoading(false);
+                try {
+                  await signOut();
+                } catch {
+                  setIsLoading(false);
+                }
               }}
             >
               <Text>{!isLoading ? "Logga ut" : "Loggar ut..."}</Text>

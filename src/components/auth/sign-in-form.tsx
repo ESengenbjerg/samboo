@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
-import { supabase } from "@/utils/supabase";
+import { resendSignupCode, signIn } from "@/services/auth";
+import { AuthError } from "@supabase/supabase-js";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
 import { type TextInput, View } from "react-native";
@@ -24,30 +25,28 @@ export function SignInForm() {
 
     try {
       // Match credentials to Supabase
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
-
-      if (error) {
-        console.log("Auth error:", error);
-
-        // If user exist but they never confirmed their email,
-        // send new verification email and redirect to /verify-email
-        if (error.code === "email_not_confirmed") {
-          await supabase.auth.resend({ type: "signup", email: email.trim() });
-          router.push({
-            pathname: "/verify-email",
-            params: { email: email.trim() },
-          });
-          return;
-        }
-
-        setError("Fel e-post eller lösenord.");
+      await signIn(email.trim(), password);
+    } catch (e) {
+      if (!(e instanceof AuthError)) {
+        setError("Något gick fel, försök igen.");
         return;
       }
-    } catch {
-      setError("Något gick fel, försök igen.");
+      console.log("Auth error:", e);
+
+      // If user exist but they never confirmed their email,
+      // send new verification email and redirect to /verify-email
+      if (e.code === "email_not_confirmed") {
+        try {
+          await resendSignupCode(email.trim());
+        } catch {}
+        router.push({
+          pathname: "/verify-email",
+          params: { email: email.trim() },
+        });
+        return;
+      }
+
+      setError("Fel e-post eller lösenord.");
     } finally {
       setIsLoading(false);
     }
