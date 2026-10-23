@@ -9,7 +9,7 @@
 --   * Data (users, listings, ...)
 --   * Auth settings in Supabase (OTP, SMTP/Resend, disabled sign-ups)
 --   * Event triggers managed by Supabase itself (pgrst_*, graphql, pg_cron / pg_net access)
---   * pg_cron jobs (none appear in the list of extensions)
+--   * pg_cron job state (the jobs themselves are listed in the pg_cron section at the end of this file)
 --   * Role settings: authenticator has pgrst.db_pre_request = 'public.check_request' (see the note at the end of this file)
 --   * Realtime publications (no tables are published)
 --   * Storage buckets, custom schemas and Vault secrets (none exist)
@@ -18,7 +18,8 @@
 -- ---------------------------------------------------------------------
 -- Extensions (beyond the Supabase defaults)
 -- ---------------------------------------------------------------------
--- pg_stat_statements 1.11, pgcrypto 1.3, plpgsql 1.0, supabase_vault 0.3.1, uuid-ossp 1.1
+-- pg_cron, pg_stat_statements 1.11, pgcrypto 1.3, plpgsql 1.0, supabase_vault 0.3.1, uuid-ossp 1.1
+-- create extension if not exists pg_cron with schema pg_catalog;
 
 
 -- ---------------------------------------------------------------------
@@ -38,10 +39,13 @@ create table public.profiles (
   is_active                boolean not null default true,
   created_at               timestamptz not null default now(),
   onboarding_completed_at  timestamptz,
+  -- Profile image, stored as a URL (https only)
+  avatar_url               text,
   constraint profiles_pkey primary key (id),
   constraint profiles_id_fkey       foreign key (id)       references auth.users (id) on delete cascade,
   constraint profiles_group_id_fkey foreign key (group_id) references public.groups (id) on delete set null,
-  constraint profiles_name_length check (char_length(name) between 1 and 100)
+  constraint profiles_name_length check (char_length(name) between 1 and 100),
+  constraint profiles_avatar_url_check check (avatar_url is null or (char_length(avatar_url) <= 2048 and avatar_url ~ '^https://'))
 );
 
 create table public.invites (
@@ -50,8 +54,11 @@ create table public.invites (
   from_user_id  uuid not null,
   to_email      text not null,
   status        text not null default 'pending',
+  -- When the invite left 'pending' (accepted, declined or cancelled). Used by purge_old_invites()
+  responded_at  timestamptz,
   constraint invites_pkey primary key (id),
-  constraint invites_status_check check (status = any (array['pending', 'accepted', 'declined'])),
+  -- 'cancelled' = withdrawn by the sender. Kept (not deleted) so it still counts towards the 20 per pair limit. Hidden from the recipient by invites_select
+  constraint invites_status_check check (status = any (array['pending', 'accepted', 'declined', 'cancelled'])),
   constraint invites_from_user_id_fkey foreign key (from_user_id) references public.profiles (id) on delete cascade,
   -- 254 = longest possible e-mail address (RFC 5321)
   constraint invites_email_length check (char_length(to_email) <= 254)
@@ -169,6 +176,21 @@ create table public.scrape_issues (
 );
 
 
+-- Every insert/update of a user's search_params. Used by limit_search_params_changes() to allow at most 5 changes per 24 hours, and as an audit trail.
+-- Old rows are deleted by purge_search_params_log(). service_role only (RLS on, no policies, no grants).
+create table public.search_params_log (
+  id          bigint generated always as identity,
+  user_id     uuid not null,
+  changed_at  timestamptz not null default now(),
+  operation   text not null,
+  old_values  jsonb,
+  new_values  jsonb not null,
+  constraint search_params_log_pkey primary key (id),
+  constraint search_params_log_user_id_fkey foreign key (user_id) references public.profiles (id) on delete cascade,
+  constraint search_params_log_operation_check check (operation = any (array['INSERT', 'UPDATE']))
+);
+
+
 -- Write requests per signed-in user and minute. Used by check_request() to rate limit.
 -- No foreign key on purpose: a failing insert would make the request fail. Old rows are deleted by purge_rate_limit_counters().
 -- No grants and no policies: only the security definer function and service_role touch it.
@@ -196,6 +218,9 @@ create unique index scrape_issues_one_open
 create unique index invites_one_pending
   on public.invites using btree (from_user_id, lower(to_email))
   where (status = 'pending');
+
+create index search_params_log_user_changed_idx
+  on public.search_params_log using btree (user_id, changed_at);
 
 -- Foreign key columns that are looked up by the RLS policies and match_user_listings().
 -- user_listings (user_id, listing_id) is unique, but its first column is user_id, so lookups on listing_id alone need their own index.
@@ -292,6 +317,7 @@ AS $function$
     );
 $function$;
 
+-- A group has at most 10 members (MAX_GROUP_MEMBERS). The group row is locked while counting, so two simultaneous accepts cannot both take the last place.
 CREATE OR REPLACE FUNCTION public.accept_invite(invite_id bigint)
  RETURNS void
  LANGUAGE plpgsql
@@ -323,10 +349,15 @@ begin
   if g is null then
     insert into public.groups default values returning id into g;
     update public.profiles set group_id = g where id = inv.from_user_id;
+  else
+    perform 1 from public.groups where id = g for update;
+    if (select count(*) from public.profiles where group_id = g) >= 10 then
+      raise exception 'Gruppen är full (max 10 medlemmar)';
+    end if;
   end if;
 
   update public.profiles set group_id = g where id = auth.uid();
-  update public.invites set status = 'accepted' where id = invite_id;
+  update public.invites set status = 'accepted', responded_at = now() where id = invite_id;
 end;
 $function$;
 
@@ -342,10 +373,34 @@ begin
   end if;
 
   update public.invites
-  set status = 'declined'
+  set status = 'declined', responded_at = now()
   where id = invite_id
     and status = 'pending'
     and lower(to_email) = lower(auth.jwt() ->> 'email');
+
+  if not found then
+    raise exception 'Inbjudan finns inte eller är inte din';
+  end if;
+end;
+$function$;
+
+-- The sender withdraws a pending invite (e.g. wrong e-mail address). The row is kept with status 'cancelled' so it still counts towards the 20 per pair limit.
+CREATE OR REPLACE FUNCTION public.cancel_invite(invite_id bigint)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+begin
+  if not public.is_active_user() then
+    raise exception 'Ditt konto är inte aktivt';
+  end if;
+
+  update public.invites
+  set status = 'cancelled', responded_at = now()
+  where id = invite_id
+    and status = 'pending'
+    and from_user_id = auth.uid();
 
   if not found then
     raise exception 'Inbjudan finns inte eller är inte din';
@@ -579,7 +634,7 @@ begin
 end;
 $function$;
 
--- Deletes listings that have been removed for more than 14 days.
+-- Deletes listings that have been removed for more than 14 days. Run by pg_cron.
 CREATE OR REPLACE FUNCTION public.purge_removed_listings()
  RETURNS integer
  LANGUAGE sql
@@ -594,7 +649,7 @@ AS $function$
   select count(*)::int from deleted;
 $function$;
 
--- Deletes rate limit counters older than one hour. Called by the scraper after the purge of removed listings.
+-- Deletes rate limit counters older than one hour. Run by pg_cron.
 CREATE OR REPLACE FUNCTION public.purge_rate_limit_counters()
  RETURNS integer
  LANGUAGE sql
@@ -604,6 +659,78 @@ AS $function$
   with deleted as (
     delete from public.api_rate_limit
     where minute < now() - interval '1 hour'
+    returning 1
+  )
+  select count(*)::int from deleted;
+$function$;
+
+-- Deletes pending invites older than 90 days, and accepted/declined/cancelled invites a year after the answer.
+-- The year matters: all invites count towards the 20 per pair limit (limit_invites_per_pair), so deleting them earlier would loosen the spam protection. Run by pg_cron.
+CREATE OR REPLACE FUNCTION public.purge_old_invites()
+ RETURNS integer
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+  with deleted as (
+    delete from public.invites
+    where (status = 'pending' and created_at < now() - interval '90 days')
+       or (status <> 'pending' and coalesce(responded_at, created_at) < now() - interval '1 year')
+    returning 1
+  )
+  select count(*)::int from deleted;
+$function$;
+
+-- At most 5 changes to the search per user and 24 hours (insert or update of the search columns). Every change is logged in search_params_log.
+-- Only requests from signed-in users are limited: service_role and the SQL Editor (no auth.uid()) pass and are not logged.
+-- A rejected change is rolled back, so it is not logged and does not extend the block. Unchanged updates do not count.
+CREATE OR REPLACE FUNCTION public.limit_search_params_changes()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+begin
+  if auth.uid() is null then
+    return new;
+  end if;
+
+  if tg_op = 'UPDATE' and new is not distinct from old then
+    return new;
+  end if;
+
+  -- Serialize per user, so two simultaneous requests cannot both pass the count
+  perform pg_advisory_xact_lock(hashtext(new.user_id::text));
+
+  if (
+    select count(*) from public.search_params_log
+    where user_id = new.user_id
+      and changed_at > now() - interval '24 hours'
+  ) >= 5 then
+    raise exception 'Du har ändrat din sökning för många gånger. Försök igen senare';
+  end if;
+
+  insert into public.search_params_log (user_id, operation, old_values, new_values)
+  values (
+    new.user_id,
+    tg_op,
+    case when tg_op = 'UPDATE' then to_jsonb(old) end,
+    to_jsonb(new)
+  );
+  return new;
+end;
+$function$;
+
+-- Deletes search log rows older than 90 days. Run by pg_cron.
+CREATE OR REPLACE FUNCTION public.purge_search_params_log()
+ RETURNS integer
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+  with deleted as (
+    delete from public.search_params_log
+    where changed_at < now() - interval '90 days'
     returning 1
   )
   select count(*)::int from deleted;
@@ -707,6 +834,12 @@ CREATE TRIGGER search_params_match
   ON public.search_params
   FOR EACH ROW EXECUTE FUNCTION public.search_params_match_trigger();
 
+-- Fires before search_params_match (which is AFTER). Same column list.
+CREATE TRIGGER search_params_limit_changes
+  BEFORE INSERT OR UPDATE OF property_types, municipalities, areas, min_price, max_price, min_rooms, max_rooms, max_monthly_fee, min_living_area, include_new_construction
+  ON public.search_params
+  FOR EACH ROW EXECUTE FUNCTION public.limit_search_params_changes();
+
 CREATE TRIGGER invites_limit_per_pair
   BEFORE INSERT ON public.invites
   FOR EACH ROW EXECUTE FUNCTION public.limit_invites_per_pair();
@@ -731,6 +864,7 @@ alter table public.listing_tags   enable row level security;
 alter table public.listings       enable row level security;
 alter table public.profiles       enable row level security;
 alter table public.scrape_issues  enable row level security;  -- no policies = service_role only
+alter table public.search_params_log enable row level security;  -- no policies = service_role and security definer functions only
 alter table public.search_params  enable row level security;
 alter table public.user_listings  enable row level security;
 alter table public.user_tags      enable row level security;
@@ -754,7 +888,8 @@ create policy invites_select on public.invites
   for select to authenticated
   using (is_active_user() and (
     from_user_id = (select auth.uid())
-    or lower(to_email) = lower(((select auth.jwt()) ->> 'email'))
+    -- The recipient does not see invites the sender has cancelled
+    or (lower(to_email) = lower(((select auth.jwt()) ->> 'email')) and status <> 'cancelled')
   ));
 
 -- listing_tags
@@ -870,7 +1005,7 @@ grant select, insert, update, delete on public.user_tags     to authenticated;
 
 -- Column level. Direct writes are limited to these columns; everything else (e.g. profiles.is_active, profiles.group_id) can only change via functions or service_role.
 grant insert (from_user_id, to_email) on public.invites       to authenticated;
-grant update (name, onboarding_completed_at) on public.profiles      to authenticated;
+grant update (name, onboarding_completed_at, avatar_url) on public.profiles to authenticated;
 grant update (is_new, liked)          on public.user_listings to authenticated;
 
 
@@ -893,7 +1028,8 @@ grant execute on function
   public.my_pending_invites(),
   public.shared_likes(),
   public.shares_group_with(uuid),
-  public.delete_my_account()
+  public.delete_my_account(),
+  public.cancel_invite(bigint)
 to authenticated, service_role;
 
 -- service_role only (scraper, triggers, maintenance)
@@ -902,8 +1038,11 @@ grant execute on function
   public.handle_new_user(),
   public.limit_invites_per_pair(),
   public.match_user_listings(uuid),
+  public.limit_search_params_changes(),
+  public.purge_old_invites(),
   public.purge_rate_limit_counters(),
   public.purge_removed_listings(),
+  public.purge_search_params_log(),
   public.rls_auto_enable(),
   public.search_params_match_trigger()
 to service_role;
@@ -923,3 +1062,18 @@ to anon, authenticated, service_role, authenticator;
 -- Remove again (e.g. if requests start failing):
 --   alter role authenticator reset pgrst.db_pre_request;
 --   notify pgrst, 'reload config';
+
+
+-- ---------------------------------------------------------------------
+-- pg_cron jobs (times are UTC)
+-- ---------------------------------------------------------------------
+-- The jobs run as the database owner (postgres), which can call the service_role-only functions above.
+-- cron.schedule() with an existing job name updates that job, so this block can be re-run.
+-- Check results: select * from cron.job_run_details order by start_time desc limit 20;
+
+select cron.schedule('purge-removed-listings',     '15 3 * * *',  $$select public.purge_removed_listings()$$);
+select cron.schedule('purge-rate-limit-counters',  '5 * * * *',   $$select public.purge_rate_limit_counters()$$);
+select cron.schedule('purge-old-invites',          '30 3 * * *',  $$select public.purge_old_invites()$$);
+select cron.schedule('purge-search-params-log',    '45 3 * * *',  $$select public.purge_search_params_log()$$);
+-- cron.job_run_details grows with every run
+select cron.schedule('purge-cron-history',         '0 4 * * *',   $$delete from cron.job_run_details where end_time < now() - interval '7 days'$$);

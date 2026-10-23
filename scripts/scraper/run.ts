@@ -8,7 +8,7 @@
 // - A failed run (F1-F4) never touches removed_at, it is logged in scrape_issues
 // - A suspicious run (many listings vanish at once) saves/updates what was found, removes nothing,
 //   and is logged in scrape_issues
-// - Listings removed for more than 14 days are purged at the end of the run
+// - Listings removed for more than 14 days are purged by pg_cron in the database, not by this script
 
 import { chromium } from "playwright";
 import { ScrapeLayoutError } from "../lib/errors.ts";
@@ -31,8 +31,6 @@ import {
   findMissing,
   isSuspiciousRemoval,
   markRemoved,
-  purgeRateLimitCounters,
-  purgeRemoved,
   tooManyPagesFailed,
 } from "./removal.ts";
 import { buildScope } from "./scope.ts";
@@ -213,24 +211,6 @@ if (matchError) {
   failedAgencies++;
 } else {
   console.log(`${newMatches} new user matches`);
-}
-
-// ---------------------- PURGE --------------------------
-// Listings removed for more than 14 days are deleted permanently, so dead data does not accumulate
-try {
-  const purged = await purgeRemoved(supabaseAdmin);
-  console.log(`${purged} old removed listings purged`);
-} catch (error) {
-  console.error("Failed to purge removed listings:", error);
-  failedAgencies++;
-}
-
-// Old rate limit counters. Not critical, so a failure is logged but does not fail the run
-try {
-  const purgedCounters = await purgeRateLimitCounters(supabaseAdmin);
-  console.log(`${purgedCounters} old rate limit counters purged`);
-} catch (error) {
-  console.error("Failed to purge rate limit counters:", error);
 }
 
 // A non-zero exit code makes a scheduled run show up as failed.

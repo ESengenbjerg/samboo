@@ -107,17 +107,3 @@ export async function markRemoved(
     .is("removed_at", null); // Never overwrite an earlier removed_at, days need to be counted for permanent delete from database.
   if (error) throw error;
 }
-
-// Deletes listings that have been removed for more than 14 days (user_listings follow by cascade)
-export async function purgeRemoved(db: SupabaseClient): Promise<number> {
-  const { data, error } = await db.rpc("purge_removed_listings");
-  if (error) throw error;
-  return data as number;
-}
-
-// Deletes rate limit counters older than one hour (written by the pre-request function check_request())
-export async function purgeRateLimitCounters(db: SupabaseClient): Promise<number> {
-  const { data, error } = await db.rpc("purge_rate_limit_counters");
-  if (error) throw error;
-  return data as number;
-}

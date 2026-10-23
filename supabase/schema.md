@@ -14,7 +14,7 @@ auth.users ──1:1──> profiles ──N:1──> groups
                       │              └──1:N──> listing_tags ──N:1──> user_tags <──N:1── profiles
                       └──1:N──> invites (from_user_id)
 
-scrape_issues  (standalone, service_role only)
+scrape_issues, api_rate_limit, search_params_log  (standalone, service_role only)
 ```
 
 Every relation from `profiles` is `ON DELETE CASCADE`, except `group_id`, which is `SET NULL`. A group is just an id: membership is `profiles.group_id`, there is no membership table.
@@ -23,15 +23,16 @@ Every relation from `profiles` is `ON DELETE CASCADE`, except `group_id`, which 
 
 | Table | Purpose | Key rules |
 |---|---|---|
-| `profiles` | One row per user, created by the `on_auth_user_created` trigger | `id` → `auth.users` (cascade). `group_id` → `groups` (set null). `is_active` is used by RLS. `name` is 1–100 characters |
+| `profiles` | One row per user, created by the `on_auth_user_created` trigger | `id` → `auth.users` (cascade). `group_id` → `groups` (set null). `is_active` is used by RLS. `name` is 1–100 characters. `avatar_url` (nullable) is the profile image as a URL: https only, max 2048 characters. Updatable by the user |
 | `groups` | A group (only an id and a timestamp) | Removed by `leave_group()` when at most 1 member remains |
-| `invites` | Invitation to a group by email | `status` ∈ pending/accepted/declined. `from_user_id` → `profiles` (cascade). `to_email` is free text, max 254 characters. At most one pending invite per sender and recipient (unique index) and at most 20 invites in total per pair (trigger). Both rules are per direction |
+| `invites` | Invitation to a group by email | `status` ∈ pending/accepted/declined/cancelled (cancelled = withdrawn by the sender; hidden from the recipient, kept so it still counts towards the 20 per pair limit). `responded_at` is set when the invite leaves pending. Invites are cleaned up by pg_cron (see below). `from_user_id` → `profiles` (cascade). `to_email` is free text, max 254 characters. At most one pending invite per sender and recipient (unique index) and at most 20 invites in total per pair (trigger). Both rules are per direction |
 | `search_params` | The user's search profile | `user_id` is unique (at most one per user). Price and room ranges must satisfy min ≤ max. `property_types` may only contain known types. At most 10 municipalities and 20 areas per search. Optional filters (null = no limit): `min_rooms`, `max_monthly_fee`, `min_living_area`. `include_new_construction` (default true, null counts as true) hides new builds only when false |
 | `listings` | Scraped listings, shared data | Unique on (`agency`, `external_id`). `property_type` ∈ villa/radhus/lagenhet/fritidshus/tomt/other. `removed_at` is set when a listing has disappeared. `monthly_fee` (apartments only), `living_area` and `is_new_construction` (default false) are filter columns. Unknown fee and area pass the match |
 | `user_listings` | Matches between users and listings | Unique on (`user_id`, `listing_id`). `is_new` (default true), `liked` (default false) |
 | `user_tags` | The user's own tags | Unique on (`user_id`, `tag_name`). `tag_name` is 1–100 characters |
 | `listing_tags` | A tag applied to a matched listing | Unique on (`user_tag_id`, `user_listing_id`) |
 | `scrape_issues` | Failures and suspicious results from the scraper | At most one open issue per (`agency`, `kind`). RLS on with no policies, so only service_role can reach it |
+| `search_params_log` | Every insert/update of a user's search, written by `limit_search_params_changes()` | Max 5 changes per user per 24 hours. Rows deleted after 90 days. Cascade on profile delete. No grants and no policies: service_role only |
 | `api_rate_limit` | Write requests per user and minute, used by `check_request()` | Primary key (`user_id`, `minute`). No foreign key on purpose. No grants and no policies: only the functions and service_role touch it |
 
 Full columns, types and defaults are in [schema.sql](schema.sql).
@@ -44,7 +45,7 @@ RLS is enabled on every table. All policies apply to the `authenticated` role, a
 |---|---|---|
 | `profiles` | Own row, or anyone in my group | Update own row |
 | `groups` | My own group | No direct writes (via functions) |
-| `invites` | Ones I sent, or addressed to my email | Create own (not to my own email) |
+| `invites` | Ones I sent (all statuses, so a declined invite is visible to the sender), or addressed to my email (not cancelled) | Create own (not to my own email) |
 | `search_params` | Own | Create, update, delete own |
 | `user_listings` | Mine and my group members' | Update own |
 | `listings` | Listings matched to me or to someone in my group | None (the scraper uses service_role) |
@@ -72,9 +73,9 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 
 `anon` can call none of them.
 
-- **`authenticated` and service_role:** `accept_invite`, `decline_invite`, `in_my_group`, `is_active_user`, `leave_group`, `like_listing`, `my_group_id`, `my_pending_invites`, `shared_likes`, `shares_group_with`, `delete_my_account`.
+- **`authenticated` and service_role:** `accept_invite`, `decline_invite`, `in_my_group`, `is_active_user`, `leave_group`, `like_listing`, `my_group_id`, `my_pending_invites`, `shared_likes`, `shares_group_with`, `delete_my_account`, `cancel_invite`.
 - **`anon`, `authenticated`, service_role and `authenticator`:** `check_request` only. PostgREST runs it before every request as the requesting role, so revoking it would break every request.
-- **service_role only:** `handle_deleted_profile`, `handle_new_user`, `limit_invites_per_pair`, `match_user_listings`, `purge_rate_limit_counters`, `purge_removed_listings`, `rls_auto_enable`, `search_params_match_trigger`.
+- **service_role only:** `handle_deleted_profile`, `handle_new_user`, `limit_invites_per_pair`, `limit_search_params_changes`, `match_user_listings`, `purge_old_invites`, `purge_rate_limit_counters`, `purge_removed_listings`, `purge_search_params_log`, `rls_auto_enable`, `search_params_match_trigger`.
 
 ## Functions
 
@@ -84,9 +85,10 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 | `is_active_user()` | security definer | See above |
 | `my_group_id()` | security definer | The signed-in user's `group_id` |
 | `in_my_group(uuid)`, `shares_group_with(uuid)` | security definer | Whether the target is me or in my group |
-| `accept_invite(invite_id)` | RPC, security definer | Joins the inviter's group (creating it if missing) and marks the invite accepted. Requires that I am not already in a group and that my account is active |
+| `accept_invite(invite_id)` | RPC, security definer | Joins the inviter's group (creating it if missing) and marks the invite accepted. Requires that I am not already in a group and that my account is active. Fails with `Gruppen är full (max 10 medlemmar)` if the group already has 10 members (the group row is locked while counting) |
+| `cancel_invite(invite_id)` | RPC, security definer | The sender sets a pending invite to `cancelled` (e.g. wrong e-mail address). Fails with `Inbjudan finns inte eller är inte din` if it is not mine or no longer pending |
 | `my_pending_invites()` | RPC, security definer | Pending invites addressed to my email, with `from_name` and `from_email` of the sender. The recipient cannot read the sender's profile directly, so the app uses this to show who invited |
-| `decline_invite(invite_id)` | RPC, security definer | Marks a pending invite addressed to my email as `declined`. Requires an active account. Fails with `Inbjudan finns inte eller är inte din` if it is not mine or no longer pending |
+| `decline_invite(invite_id)` | RPC, security definer | Marks a pending invite addressed to my email as `declined` and sets `responded_at`. Requires an active account. Fails with `Inbjudan finns inte eller är inte din` if it is not mine or no longer pending |
 | `delete_my_account()` | RPC, security definer | Deletes the signed-in user from `auth.users`. Everything else follows via cascade and the `on_profile_deleted` trigger. Fails with `Not signed in` without a session |
 | `handle_deleted_profile()` | trigger, security definer | After a profile is deleted: if at most 1 member remains in its group, the group is dissolved (same rule as `leave_group()`) |
 | `leave_group()` | RPC, security definer | Leaves the group. If at most 1 member remains, the group is dissolved |
@@ -96,8 +98,11 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 | `limit_invites_per_pair()` | trigger, security definer | Rejects a new invite if the sender has already sent 20 invites (any status) to the same e-mail. Error: `Du har skickat för många inbjudningar till den här personen` |
 | `search_params_match_trigger()` | trigger, security definer | Runs `match_user_listings` for the user when their search profile changes |
 | `check_request()` | pre-request function, security definer | Runs before every Data API request (`pgrst.db_pre_request`). Allows a signed-in user at most 100 write requests (POST/PUT/PATCH/DELETE, including RPC) per 5 minutes and otherwise answers HTTP 429. Skips reads, `service_role` and `anon` |
-| `purge_rate_limit_counters()` | security definer | Deletes counters older than one hour. Called by the scraper |
-| `purge_removed_listings()` | security definer | Deletes listings that have been removed for more than 14 days |
+| `limit_search_params_changes()` | trigger, security definer | Before insert/update of the search columns: rejects the change if the user has already made 5 in the last 24 hours (`Du har ändrat din sökning för många gånger. Försök igen senare`), otherwise logs it in `search_params_log`. service_role and the SQL Editor are skipped. Unchanged updates do not count |
+| `purge_rate_limit_counters()` | security definer | Deletes counters older than one hour. Run by pg_cron |
+| `purge_removed_listings()` | security definer | Deletes listings that have been removed for more than 14 days. Run by pg_cron |
+| `purge_old_invites()` | security definer | Deletes pending invites older than 90 days, and accepted/declined/cancelled invites one year after `responded_at`. One year because all invites count towards the 20 per pair limit. Run by pg_cron |
+| `purge_search_params_log()` | security definer | Deletes `search_params_log` rows older than 90 days. Run by pg_cron |
 | `rls_auto_enable()` | event trigger function (`ensure_rls`) | Enables RLS on new tables in `public` |
 
 ## Triggers
@@ -107,6 +112,7 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 | `on_auth_user_created` | `auth.users` | after insert | `handle_new_user()` |
 | `invites_limit_per_pair` | `invites` | before insert | `limit_invites_per_pair()` |
 | `on_profile_deleted` | `profiles` | after delete | `handle_deleted_profile()` |
+| `search_params_limit_changes` | `search_params` | before insert, or update of a search column | `limit_search_params_changes()` |
 | `search_params_match` | `search_params` | after insert, or update of a search column | `search_params_match_trigger()` |
 
 ## Other Supabase features
@@ -117,9 +123,23 @@ No storage buckets, custom schemas, Vault secrets, Realtime-published tables or 
 
 Supabase sets default privileges so that new objects in `public` get broad grants: tables get all privileges for `anon`, `authenticated` and `service_role`, and functions get execute for `authenticated` and `service_role`. This database has narrowed the table grants (`anon` has none, `authenticated` only what is listed above) and the function grants. A replica must therefore revoke first and then grant, which [schema.sql](schema.sql) does. RLS is the second line of defence for any new table.
 
+## pg_cron jobs
+
+Cleanup runs inside the database and no longer depends on the scraper (GitHub Action). Times are UTC.
+
+| Job | Schedule | Runs |
+|---|---|---|
+| `purge-removed-listings` | daily 03:15 | `purge_removed_listings()` |
+| `purge-rate-limit-counters` | hourly, minute 5 | `purge_rate_limit_counters()` |
+| `purge-old-invites` | daily 03:30 | `purge_old_invites()` |
+| `purge-search-params-log` | daily 03:45 | `purge_search_params_log()` |
+| `purge-cron-history` | daily 04:00 | deletes `cron.job_run_details` older than 7 days |
+
+Check results with `select * from cron.job_run_details order by start_time desc limit 20;`.
+
 ## Extensions
 
-`pg_stat_statements`, `pgcrypto`, `plpgsql`, `supabase_vault`, `uuid-ossp`.
+`pg_cron`, `pg_stat_statements`, `pgcrypto`, `plpgsql`, `supabase_vault`, `uuid-ossp`.
 
 ## What happens when a user deletes their account
 

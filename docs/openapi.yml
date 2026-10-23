@@ -1,0 +1,686 @@
+openapi: 3.0.3
+
+info:
+  title: Samboo Data API (Supabase / PostgREST)
+  version: 1.0.0
+  description: |
+    The part of the database API that the app uses. Documentation only: the app calls it through supabase-js
+    (`supabase.rpc('name', {...})` and `supabase.from('table')`), which sends the requests described here.
+
+    This file is written by hand and describes our own rules, which PostgREST's auto-generated spec
+    (`GET /rest/v1/` with the apikey header) does not know about. Source of truth for the database is
+    supabase/schema.sql and supabase/schema.md. Update this file when functions, grants or policies change.
+
+    **Common rules**
+    - Every call requires a signed-in user with a confirmed e-mail and an active profile (`is_active_user()`).
+      Otherwise reads return empty lists and RPC calls fail with `Ditt konto är inte aktivt`.
+    - `anon` has no access to anything.
+    - Rate limit: at most 100 write requests (POST/PUT/PATCH/DELETE, RPC included) per user per 5 minutes.
+      Reads are not counted. Over the limit gives HTTP 429 (see `RateLimited`).
+    - Table reads accept the usual PostgREST filters (`?column=eq.value`, `select=`, `order=`, `limit=`).
+      supabase-js builds them, so they are not repeated per endpoint.
+
+servers:
+  - url: https://{project}.supabase.co/rest/v1
+    variables:
+      project:
+        default: your-project-ref
+
+security:
+  - apikey: []
+    bearerAuth: []
+
+tags:
+  - name: Groups and invites
+  - name: Listings
+  - name: Account
+  - name: Search
+  - name: Tags
+
+paths:
+  # ---------------------------------------------------------------------
+  # RPC functions
+  # ---------------------------------------------------------------------
+  /rpc/accept_invite:
+    post:
+      tags: [Groups and invites]
+      summary: Accept an invite
+      description: |
+        The recipient accepts a pending invite addressed to their e-mail. Joins the sender's group
+        (the group is created if the sender has none) and marks the invite `accepted`.
+        A group has at most 10 members.
+      operationId: accept_invite
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [invite_id]
+              properties:
+                invite_id: { type: integer, format: int64 }
+      responses:
+        '200': { $ref: '#/components/responses/VoidOk' }
+        '400':
+          description: |
+            Business rule violated. `message` is one of:
+            `Ditt konto är inte aktivt`, `Inbjudan finns inte eller är inte din`,
+            `Du är redan med i en grupp. Lämna den först.`, `Gruppen är full (max 10 medlemmar)`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /rpc/decline_invite:
+    post:
+      tags: [Groups and invites]
+      summary: Decline an invite
+      description: The recipient declines a pending invite addressed to their e-mail. The sender still sees it as `declined`.
+      operationId: decline_invite
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [invite_id]
+              properties:
+                invite_id: { type: integer, format: int64 }
+      responses:
+        '200': { $ref: '#/components/responses/VoidOk' }
+        '400':
+          description: '`Ditt konto är inte aktivt` or `Inbjudan finns inte eller är inte din` (not mine, or no longer pending).'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /rpc/cancel_invite:
+    post:
+      tags: [Groups and invites]
+      summary: Withdraw an invite I sent
+      description: |
+        The sender withdraws a pending invite (for example a wrong e-mail address). The invite is kept with
+        status `cancelled` so it still counts towards the 20 per pair limit. It is hidden from the recipient.
+      operationId: cancel_invite
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [invite_id]
+              properties:
+                invite_id: { type: integer, format: int64 }
+      responses:
+        '200': { $ref: '#/components/responses/VoidOk' }
+        '400':
+          description: '`Ditt konto är inte aktivt` or `Inbjudan finns inte eller är inte din` (not mine, or no longer pending).'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /rpc/my_pending_invites:
+    post:
+      tags: [Groups and invites]
+      summary: Pending invites addressed to me
+      description: |
+        Lists pending invites sent to my e-mail, newest first, with the sender's name and e-mail.
+        Needed because the recipient cannot read the sender's profile (not in the same group).
+        Counted as a write request by the rate limit because it is a POST.
+      operationId: my_pending_invites
+      responses:
+        '200':
+          description: List of invites (empty if none).
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PendingInvite' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /rpc/leave_group:
+    post:
+      tags: [Groups and invites]
+      summary: Leave my group
+      description: If at most 1 member remains afterwards, the group is dissolved.
+      operationId: leave_group
+      responses:
+        '200': { $ref: '#/components/responses/VoidOk' }
+        '400':
+          description: '`Du är inte med i någon grupp`.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /rpc/like_listing:
+    post:
+      tags: [Listings]
+      summary: Like a listing
+      description: |
+        Sets `liked = true` on my `user_listings` row for the listing (the row is created if missing).
+        Only allowed for listings that are already visible to me, i.e. matched to me or to someone in my group.
+        There is no unlike function: to remove a like, update `user_listings.liked` to false directly.
+      operationId: like_listing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [p_listing_id]
+              properties:
+                p_listing_id: { type: integer, format: int64 }
+      responses:
+        '200': { $ref: '#/components/responses/VoidOk' }
+        '400':
+          description: '`Ditt konto är inte aktivt` or `Annonsen finns inte eller är inte tillgänglig för dig`.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /rpc/shared_likes:
+    post:
+      tags: [Listings]
+      summary: The shared list ("Gemensam-listan")
+      description: Listings that every member of my group has liked. Recalculated on every call.
+      operationId: shared_likes
+      responses:
+        '200':
+          description: Listings (empty if I am not in a group or nothing is liked by everyone).
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Listing' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /rpc/delete_my_account:
+    post:
+      tags: [Account]
+      summary: Delete my account permanently
+      description: |
+        Deletes the signed-in user from `auth.users`. No grace period. Cascades to profile, search, matches,
+        tags and sent invites. The group is dissolved if at most 1 member remains.
+        Invites sent to my e-mail by others are not removed (known gap, GDPR follow-up).
+        An already issued JWT stays valid until it expires, but every request is blocked by RLS after deletion.
+      operationId: delete_my_account
+      responses:
+        '200': { $ref: '#/components/responses/VoidOk' }
+        '400':
+          description: '`Not signed in` (English text).'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  # ---------------------------------------------------------------------
+  # Tables
+  # ---------------------------------------------------------------------
+  /profiles:
+    get:
+      tags: [Account]
+      summary: Read my profile and my group members' profiles
+      operationId: profiles_select
+      responses:
+        '200':
+          description: Profiles.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Profile' }
+    patch:
+      tags: [Account]
+      summary: Update my profile
+      description: |
+        Filter on my own id (`?id=eq.<uid>`). Only `name`, `onboarding_completed_at` and `avatar_url`
+        can be written. `group_id` and `is_active` can only change through functions.
+      operationId: profiles_update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProfileUpdate' }
+      responses:
+        '204': { description: Updated. }
+        '400': { description: 'Constraint violated (name not 1-100 characters, avatar_url not https or longer than 2048).' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /groups:
+    get:
+      tags: [Groups and invites]
+      summary: Read my group
+      description: Only my own group is visible. A group is just an id; members are the profiles with that `group_id`.
+      operationId: groups_select
+      responses:
+        '200':
+          description: My group (empty list if I have none).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: integer, format: int64 }
+                    created_at: { type: string, format: date-time }
+
+  /invites:
+    get:
+      tags: [Groups and invites]
+      summary: Read invites I sent, and invites addressed to my e-mail
+      description: |
+        Sent invites are shown with every status (the sender sees `declined`). Received invites are shown
+        unless `cancelled`. To show who sent a received invite, use `my_pending_invites` instead.
+      operationId: invites_select
+      responses:
+        '200':
+          description: Invites.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Invite' }
+    post:
+      tags: [Groups and invites]
+      summary: Send an invite
+      description: |
+        Only `from_user_id` (must be my id) and `to_email` can be set. Rules:
+        not to my own e-mail; at most one pending invite per recipient;
+        at most 20 invites in total (any status) per recipient.
+        E-mail addresses are compared case-insensitively.
+      operationId: invites_insert
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [from_user_id, to_email]
+              properties:
+                from_user_id: { type: string, format: uuid }
+                to_email: { type: string, maxLength: 254 }
+      responses:
+        '201': { description: Created. }
+        '400':
+          description: '`Du har skickat för många inbjudningar till den här personen` (the 20 limit) or a check constraint.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403': { description: 'Rejected by RLS (not my id, or my own e-mail).' }
+        '409': { description: There is already a pending invite to this e-mail. }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /search_params:
+    get:
+      tags: [Search]
+      summary: Read my search
+      operationId: search_params_select
+      responses:
+        '200':
+          description: My search (empty list if I have not made one).
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/SearchParams' }
+    post:
+      tags: [Search]
+      summary: Create my search
+      description: |
+        At most one per user (`user_id` is unique, a second POST gives 409; use PATCH or upsert).
+        Saving triggers matching in the database: matching listings appear in `user_listings` with `is_new = true`.
+        A search without municipality and area matches nothing.
+        At most 5 changes (insert or update) per 24 hours. Unchanged updates do not count.
+      operationId: search_params_insert
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SearchParamsWrite' }
+      responses:
+        '201': { description: Created. }
+        '400':
+          description: |
+            `Du har ändrat din sökning för många gånger. Försök igen senare`, or a check constraint
+            (min greater than max for price or rooms, unknown property type, more than 10 municipalities or 20 areas).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '409': { description: I already have a search. }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    patch:
+      tags: [Search]
+      summary: Update my search
+      description: 'Same rules and limits as POST. Matching is re-run: new matches are added, and old matches that no longer fit are removed, except liked, tagged and removed listings.'
+      operationId: search_params_update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SearchParamsWrite' }
+      responses:
+        '204': { description: Updated. }
+        '400':
+          description: Same errors as POST.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    delete:
+      tags: [Search]
+      summary: Delete my search
+      operationId: search_params_delete
+      responses:
+        '204': { description: Deleted. }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /user_listings:
+    get:
+      tags: [Listings]
+      summary: Read matches (mine and my group members')
+      description: |
+        Use `select=*,listings(*)` to get the listing in the same request. Filter on `user_id` for only mine.
+        A match is kept when the user has liked or tagged the listing, even if the search no longer fits.
+      operationId: user_listings_select
+      responses:
+        '200':
+          description: Matches.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/UserListing' }
+    patch:
+      tags: [Listings]
+      summary: Mark a match as seen, or remove a like
+      description: Only my own rows, and only `is_new` and `liked` can be written. Use `like_listing` to like.
+      operationId: user_listings_update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                is_new: { type: boolean }
+                liked: { type: boolean }
+      responses:
+        '204': { description: Updated. }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /listings:
+    get:
+      tags: [Listings]
+      summary: Read listings matched to me or to someone in my group
+      description: |
+        Shared scraped data, read only. Listings where `removed_at` is set have disappeared from the agency's site:
+        show them as "Hittas inte". They are deleted 14 days after `removed_at` (daily cleanup by pg_cron).
+        `ld_json` is the raw schema.org data from the agency.
+      operationId: listings_select
+      responses:
+        '200':
+          description: Listings.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Listing' }
+
+  /user_tags:
+    get:
+      tags: [Tags]
+      summary: Read my tags
+      operationId: user_tags_select
+      responses:
+        '200':
+          description: My tags.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/UserTag' }
+    post:
+      tags: [Tags]
+      summary: Create a tag
+      description: '`user_id` must be my id. `tag_name` is 1-100 characters and unique per user (otherwise 409).'
+      operationId: user_tags_insert
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, tag_name]
+              properties:
+                user_id: { type: string, format: uuid }
+                tag_name: { type: string, minLength: 1, maxLength: 100 }
+      responses:
+        '201': { description: Created. }
+        '409': { description: I already have a tag with this name. }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    patch:
+      tags: [Tags]
+      summary: Rename a tag
+      operationId: user_tags_update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tag_name: { type: string, minLength: 1, maxLength: 100 }
+      responses:
+        '204': { description: Updated. }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    delete:
+      tags: [Tags]
+      summary: Delete a tag
+      description: Its `listing_tags` rows are deleted with it (cascade).
+      operationId: user_tags_delete
+      responses:
+        '204': { description: Deleted. }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /listing_tags:
+    get:
+      tags: [Tags]
+      summary: Read my tags on listings
+      operationId: listing_tags_select
+      responses:
+        '200':
+          description: Tag applications.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ListingTag' }
+    post:
+      tags: [Tags]
+      summary: Tag a listing
+      description: Both the tag and the `user_listings` row must be mine. A tagged listing is kept when the search changes.
+      operationId: listing_tags_insert
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_tag_id, user_listing_id]
+              properties:
+                user_tag_id: { type: integer, format: int64 }
+                user_listing_id: { type: integer, format: int64 }
+      responses:
+        '201': { description: Created. }
+        '403': { description: The tag or the match is not mine. }
+        '409': { description: The listing already has this tag. }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    delete:
+      tags: [Tags]
+      summary: Remove a tag from a listing
+      operationId: listing_tags_delete
+      responses:
+        '204': { description: Deleted. }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+components:
+  securitySchemes:
+    apikey:
+      type: apiKey
+      in: header
+      name: apikey
+      description: The project's anon (publishable) key. supabase-js sets it.
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: The signed-in user's access token. supabase-js sets it.
+
+  responses:
+    VoidOk:
+      description: Done. The function returns nothing (`null` body).
+    RateLimited:
+      description: More than 100 write requests in 5 minutes.
+      headers:
+        Retry-After:
+          schema: { type: string, example: '60' }
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              code: { type: string, example: rate_limited }
+              message: { type: string, example: 'Too many requests, try again in a moment' }
+
+  schemas:
+    Error:
+      type: object
+      description: PostgREST error. For our own rules `message` holds the Swedish text.
+      properties:
+        code: { type: string }
+        message: { type: string }
+        details: { type: string, nullable: true }
+        hint: { type: string, nullable: true }
+
+    PropertyType:
+      type: string
+      enum: [villa, radhus, lagenhet, fritidshus, tomt, other]
+
+    Profile:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        group_id: { type: integer, format: int64, nullable: true }
+        is_active: { type: boolean }
+        created_at: { type: string, format: date-time }
+        onboarding_completed_at: { type: string, format: date-time, nullable: true }
+        avatar_url: { type: string, nullable: true, description: 'https URL, max 2048 characters' }
+
+    ProfileUpdate:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        onboarding_completed_at: { type: string, format: date-time, nullable: true }
+        avatar_url: { type: string, nullable: true, maxLength: 2048, pattern: '^https://' }
+
+    Invite:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        created_at: { type: string, format: date-time }
+        from_user_id: { type: string, format: uuid }
+        to_email: { type: string }
+        status: { type: string, enum: [pending, accepted, declined, cancelled] }
+        responded_at: { type: string, format: date-time, nullable: true }
+
+    PendingInvite:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        created_at: { type: string, format: date-time }
+        from_user_id: { type: string, format: uuid }
+        from_name: { type: string }
+        from_email: { type: string }
+
+    SearchParamsWrite:
+      type: object
+      description: |
+        Empty `property_types` means all types. Null on a limit means no limit.
+        `include_new_construction` null counts as true (new builds are hidden only when false).
+        Listings with an unknown value for a filtered field (price, rooms, fee, area) still match.
+      properties:
+        user_id: { type: string, format: uuid, description: Required on POST. Must be my id. }
+        property_types:
+          type: array
+          items: { $ref: '#/components/schemas/PropertyType' }
+        municipalities: { type: array, maxItems: 10, items: { type: string } }
+        areas: { type: array, maxItems: 20, items: { type: string } }
+        min_price: { type: integer, format: int64, nullable: true }
+        max_price: { type: integer, format: int64, nullable: true }
+        min_rooms: { type: number, nullable: true }
+        max_rooms: { type: number, nullable: true }
+        max_monthly_fee: { type: integer, format: int64, nullable: true, minimum: 0 }
+        min_living_area: { type: number, nullable: true, minimum: 0 }
+        include_new_construction: { type: boolean, nullable: true, default: true }
+
+    SearchParams:
+      allOf:
+        - $ref: '#/components/schemas/SearchParamsWrite'
+        - type: object
+          properties:
+            id: { type: integer, format: int64 }
+            created_at: { type: string, format: date-time }
+
+    UserListing:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        created_at: { type: string, format: date-time }
+        user_id: { type: string, format: uuid }
+        listing_id: { type: integer, format: int64 }
+        is_new: { type: boolean, description: true until the user has seen it }
+        liked: { type: boolean }
+
+    Listing:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        created_at: { type: string, format: date-time }
+        agency: { type: string }
+        external_id: { type: integer, format: int64 }
+        url: { type: string }
+        ld_json: { type: object, description: Raw schema.org data from the agency }
+        last_seen_at: { type: string, format: date-time }
+        removed_at: { type: string, format: date-time, nullable: true, description: Set when the listing disappeared from the agency's site. Deleted after 14 days. }
+        property_type: { $ref: '#/components/schemas/PropertyType' }
+        municipality: { type: string, nullable: true }
+        area: { type: string, nullable: true }
+        price: { type: integer, format: int64, nullable: true }
+        rooms: { type: number, nullable: true }
+        latitude: { type: number, nullable: true }
+        longitude: { type: number, nullable: true }
+        monthly_fee: { type: integer, format: int64, nullable: true, description: Apartments only }
+        living_area: { type: number, nullable: true }
+        is_new_construction: { type: boolean }
+
+    UserTag:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        created_at: { type: string, format: date-time }
+        user_id: { type: string, format: uuid }
+        tag_name: { type: string }
+
+    ListingTag:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        created_at: { type: string, format: date-time }
+        user_tag_id: { type: integer, format: int64 }
+        user_listing_id: { type: integer, format: int64 }
