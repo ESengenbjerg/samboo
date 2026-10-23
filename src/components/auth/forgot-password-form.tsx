@@ -1,3 +1,4 @@
+import FormError from "@/components/form-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -5,7 +6,6 @@ import { Text } from "@/components/ui/text";
 import { router } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
-import FormError from "@/components/form-error";
 
 export function ForgotPasswordForm() {
   const [isLoading, setIsLoading] = useState(false);
