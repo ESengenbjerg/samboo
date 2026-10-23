@@ -1,0 +1,48 @@
+name: Scrape listings
+
+# NOTE! In GitHub Action Secrets - needs to put in dotenv variables PRIOR to first test run!
+# THEREFORE! Codeline 7-10 is out commented, otherwise GitHub would try to scrape with failure.
+
+on:
+  # schedule:
+  #   # Once a day. GitHub cron is always UTC: 02:07 UTC = 03:07 Swedish winter time,
+  #   # 04:07 summer time. Off the hour on purpose, GitHub delays jobs queued at :00
+  #   # Planned delay on 7 minutes since GitHub tend to delay runs scheduled on sharp hours.
+  #   - cron: "7 2 * * *"
+
+  workflow_dispatch: # Manual run from the Actions tab
+
+# Never run two scrapes at once
+concurrency:
+  group: scrape
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24 # Runs .ts files natively
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck backend
+        run: npx tsc --noEmit -p scripts/tsconfig.json
+
+      - run: npx playwright install --with-deps chromium
+
+      # run.ts calls process.loadEnvFile(".env"), which throws if the file is missing.
+      # An empty file is fine: variables already in the environment are not overwritten.
+      - run: touch .env
+
+      - name: Scrape and match
+        run: node scripts/scraper/run.ts
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BASE_PATH_MOCK_DATA: ${{ secrets.BASE_PATH_MOCK_DATA }}
