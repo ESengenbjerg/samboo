@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
-import { supabase } from "@/utils/supabase";
+import { resendSignUpCode, verifyEmailOtp } from "@/services/auth";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type TextStyle, View } from "react-native";
@@ -29,11 +29,7 @@ export function VerifyEmailForm() {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.verifyOtp({
-        email,
-        token: code,
-        type: "email",
-      });
+      const { error } = await verifyEmailOtp(email, code);
 
       if (error?.code === "otp_expired") {
         setError("Koden är fel eller har gått ut.");
@@ -80,10 +76,7 @@ export function VerifyEmailForm() {
           size="sm"
           disabled={countdown > 0 || isLoading}
           onPress={async () => {
-            const { error } = await supabase.auth.resend({
-              type: "signup",
-              email,
-            });
+            const { error } = await resendSignUpCode(email);
             if (error) {
               setError("Kunde inte skicka koden, försök igen.");
             } else {

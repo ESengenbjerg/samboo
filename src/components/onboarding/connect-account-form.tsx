@@ -1,5 +1,7 @@
+import { getCurrentUser } from "@/services/auth";
+import { createInvite } from "@/services/invites";
+import { saveOnboarding } from "@/services/onboarding";
 import { useOnboardingStore } from "@/stores/onboarding";
-import { supabase } from "@/utils/supabase";
 import { useState } from "react";
 import { View } from "react-native";
 import FormError from "../form-error";
@@ -21,9 +23,7 @@ export default function ConnectAccountForm() {
 
     try {
       // Fetch correct user
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const user = await getCurrentUser();
 
       if (!user) throw new Error("Not signed in");
 
@@ -36,29 +36,8 @@ export default function ConnectAccountForm() {
         return;
       }
 
-      // Save search, creates row or updates if it already exist
-      const { error: filterError } = await supabase
-        .from("search_params")
-        .upsert(
-          {
-            user_id: user.id,
-            property_types: scraperFilter.propertyTypes,
-            areas: [scraperFilter.area],
-          },
-          { onConflict: "user_id" },
-        );
-      if (filterError) throw filterError;
-
-      // Save name and update onboarding_completed_at with correct date
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          name: profileName,
-          onboarding_completed_at: new Date().toISOString(),
-        })
-        .eq("id", user.id);
-
-      if (profileError) throw profileError;
+      // Save search and profile name, marks onboarding as completed
+      await saveOnboarding(user.id, profileName, scraperFilter);
 
       // When everything is saved, onboarding is complete and user is moved to /search
       completeOnboarding();
@@ -75,9 +54,7 @@ export default function ConnectAccountForm() {
     setIsLoading(true);
 
     // Get user from Supabase
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
 
     if (!user) {
       setError("Något gick fel, försök igen.");
@@ -85,9 +62,7 @@ export default function ConnectAccountForm() {
       return;
     }
 
-    const { error: inviteError } = await supabase
-      .from("invites")
-      .insert({ from_user_id: user?.id, to_email: email });
+    const { error: inviteError } = await createInvite(user.id, email);
 
     setInvitationDialogOpen(false);
 
