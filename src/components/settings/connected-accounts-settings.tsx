@@ -10,6 +10,7 @@ type ConnectedAccount = {
   avatar: string;
 };
 
+// TODO: Replace with correct info from Supabase
 const DEV_CONNECTED_ACCOUNTS: ConnectedAccount[] = [
   {
     name: "Emilie",
