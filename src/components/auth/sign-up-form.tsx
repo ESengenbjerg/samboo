@@ -38,7 +38,6 @@ export function SignUpForm() {
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
-        options: { data: { name }}
       });
 
       if (error) {
