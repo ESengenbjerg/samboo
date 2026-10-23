@@ -15,7 +15,7 @@ export default function DeleteAccount() {
         <ConfirmDialog
           open={true}
           onOpenChange={() => setDialogOpen(false)}
-          title={"Är du säker"}
+          title={"Är du säker?"}
           description={
             "Om du tar bort ditt konto försvinner alla dina listor och bevakningar. Vill du verkligen radera ditt konto?"
           }
