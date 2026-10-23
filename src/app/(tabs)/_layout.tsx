@@ -38,6 +38,7 @@ export default function TabsLayout() {
           }}
         />
         <Tabs.Screen name="notifications" options={{ href: null }} />
+        <Tabs.Screen name="index" options={{ href: null }} />
       </Tabs>
     </>
   );

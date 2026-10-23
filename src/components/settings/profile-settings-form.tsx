@@ -1,5 +1,6 @@
-import { useOnboardingStore } from "@/stores/onboarding";
-import { pickImage } from "@/utils/pick-image";
+import { useProfile } from "@/hooks/useProfile";
+import { useSession } from "@/hooks/useSession";
+import { updateProfileName } from "@/services/profiles";
 import { useState } from "react";
 import { View } from "react-native";
 import FormError from "../form-error";
@@ -10,52 +11,57 @@ import { Label } from "../ui/label";
 import { Text } from "../ui/text";
 
 export default function ProfileSettingsForm() {
-  // TODO: setIsLoading will be used once Supabase implementation is complete
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const { session } = useSession();
+  const userId = session?.user.id;
+  const {
+    profile,
+    isLoading: isLoadingProfile,
+    error: loadError,
+  } = useProfile(userId);
 
-  const [profileName, setProfileName] = useState("");
-  const [updatedProfileName, setUpdatedProfileName] = useState("");
-  const [profileImage, setProfileImage] = useState("");
-  const [updatedProfileImage, setUpdatedProfileImage] = useState("");
-  const setProfile = useOnboardingStore((s) => s.setProfile);
+  // Name currently saved in Supabase
+  const [savedName, setSavedName] = useState("");
+  // Name user has typed
+  const [newName, setNewName] = useState("");
 
-  function onSubmit() {
-    setError(null);
-    setMessage(null);
-    setIsLoading(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>("");
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-    if (
-      profileName !== updatedProfileName &&
-      profileImage !== updatedProfileImage
-    ) {
-      setProfile(updatedProfileName, updatedProfileImage);
-      setMessage("Ditt visningsnamn och profilbild har uppdaterats!");
-      setIsLoading(false);
+  // Returns true if new name is typed in input
+  const nameIsChanged: boolean = newName.trim() !== savedName;
+  const errorMessage = saveError ?? loadError;
+  const isLoading = isLoadingProfile || isSaving;
+
+  // TODO: Add support for update image
+
+  console.log("DB NAME: " + profile?.name);
+  console.log("NEW NAME: " + newName);
+  console.log("NAME IS CHANGED: " + nameIsChanged);
+
+  async function onSubmit() {
+    if (!userId || !nameIsChanged) return;
+
+    setSaveError(null);
+    setSuccessMessage(null);
+
+    if (!newName.trim()) {
+      setSaveError("Du måste skriva in ett nytt namn för att spara.");
       return;
     }
 
-    if (profileName !== updatedProfileName) {
-      setProfile(updatedProfileName, profileImage);
-      setMessage("Ditt visningsnamn har uppdaterats!");
-      setIsLoading(false);
-      return;
-    }
-    if (profileImage !== updatedProfileImage) {
-      setProfile(profileName, updatedProfileImage);
-      setMessage("Din profilbild har uppdaterats!");
-      setIsLoading(false);
+    setIsSaving(true);
+    const { error } = await updateProfileName(userId, newName.trim());
+    setIsSaving(false);
+
+    if (error) {
+      console.log("Update profile error:", error);
+      setSaveError("Kunde inte uppdatera namn. Försök igen.");
       return;
     }
 
-    if (!updatedProfileName && !updatedProfileImage) {
-      setError(
-        "Skriv in önskat namn eller lägg till en bild för att uppdatera din profil.",
-      );
-      setIsLoading(false);
-      return;
-    }
+    setSavedName(newName.trim());
+    setSuccessMessage("Ditt visningsnamn har uppdaterats!");
   }
 
   return (
@@ -69,8 +75,9 @@ export default function ProfileSettingsForm() {
             placeholder="Namn"
             returnKeyType="next"
             submitBehavior="submit"
-            value={profileName}
-            onChangeText={setProfileName}
+            value={newName}
+            onChangeText={setNewName}
+            onSubmitEditing={onSubmit}
             editable={!isLoading}
             textContentType="name"
             className="bg-white border-accent shadow-none"
@@ -79,21 +86,26 @@ export default function ProfileSettingsForm() {
         <View className="gap-1.5">
           <Label htmlFor="profile-image">Profilbild</Label>
 
-          <Button
+          {/* TODO: Put back after added support for image */}
+          {/* <Button
             variant="outline"
             onPress={() => pickImage(setProfileImage)}
-            disabled={isLoading}
+            disabled={isProfileLoading}
             className="bg-white border-accent shadow-none"
           >
             <Text>{profileImage ? "Byt bild" : "Välj bild"}</Text>
-          </Button>
+          </Button> */}
         </View>
 
-        {error && <FormError>{error}</FormError>}
-        {message && <FormMessage>{message}</FormMessage>}
+        {errorMessage && <FormError>{errorMessage}</FormError>}
+        {successMessage && <FormMessage>{successMessage}</FormMessage>}
 
-        <Button onPress={onSubmit} disabled={isLoading} className="max-w-36">
-          <Text>{!isLoading ? "Uppdatera" : "Uppdaterar..."}</Text>
+        <Button
+          onPress={onSubmit}
+          disabled={isLoading || !nameIsChanged}
+          className="max-w-36"
+        >
+          <Text>{!isSaving ? "Uppdatera" : "Uppdaterar..."}</Text>
         </Button>
       </View>
     </View>
