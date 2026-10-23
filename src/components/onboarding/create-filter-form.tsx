@@ -5,6 +5,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   LIVING_AREA_OPTIONS,
   MONTHLY_FEE_OPTIONS,
+  PROPERTY_TYPES_OPTIONS,
   ROOM_OPTIONS,
 } from "@/constants/filter-options";
 import {
@@ -14,7 +15,6 @@ import {
 } from "@/stores/onboarding";
 import { SelectOption } from "@/types/select-option";
 import { capitalize } from "@/utils/capitalize-string";
-import { supabase } from "@/utils/supabase";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
@@ -25,14 +25,8 @@ import { Switch } from "../ui/switch";
 import FilterSelect from "./filter-select";
 
 export default function CreateFilterForm() {
-  // TODO: setIsLoading will be used once Supabase implementation is complete
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const setFilters = useOnboardingStore((s) => s.setFilters);
-
-  const [existingPropertyTypes, setExistingPropertyTypes] = useState<string[]>(
-    [],
-  );
 
   // Filter alternatives
   // Used to save user input before saving to scraperFilter and clientFilter
@@ -46,25 +40,67 @@ export default function CreateFilterForm() {
     "day" | "week"
   >("day");
 
+  // Fetches made choices in case user has started onboarding and then leaves app, after making filter choices
+  const savedScrapeFilter = useOnboardingStore((s) => s.scraperFilter);
+  const savedClientFilter = useOnboardingStore((s) => s.clientFilter);
+  const savedInformationInterval = useOnboardingStore(
+    (s) => s.informationInterval,
+  );
+
+  // Tracks whether zustand's persist middleware has finished loading
+  // the saved state from AsyncStorage. Initialized with the current status,
+  // since hydration may already be complete on first render.
+  const [hasHydrated, setHasHydrated] = useState(
+    useOnboardingStore.persist.hasHydrated(),
+  );
+
   useEffect(() => {
-    supabase
-      .from("listings")
-      .select("property_type")
-      .then(({ data, error }) => {
-        if (error) {
-          // TODO: Show an error (setError) if this fails. Without property types
-          // the user can't pass validation in onSubmit and is stuck on this screen
-          console.log("Failed to load propertyTypes");
-        } else {
-          const types = data.map((row) => row.property_type).filter(Boolean);
-          setExistingPropertyTypes([...new Set(types)]);
-        }
-      });
+    // Subscribe to the hydration-finished event so the component re-renders
+    // when AsyncStorage has been read (hydration is async and may finish late).
+    const unsub = useOnboardingStore.persist.onFinishHydration(() =>
+      setHasHydrated(true),
+    );
+    // Covers the case where hydration finished between the first render
+    // and this effect, so the event would never fire.
+    setHasHydrated(useOnboardingStore.persist.hasHydrated());
+    return unsub;
   }, []);
+
+  useEffect(() => {
+    // Wait until the store is hydrated, otherwise the saved values
+    // are still null/default and would overwrite the form with empty values
+    if (!hasHydrated) return;
+
+    // Sets area and propertyType to saved values
+    if (savedScrapeFilter) {
+      setArea(savedScrapeFilter.area);
+      setPropertyType(savedScrapeFilter.propertyTypes);
+    }
+    // Sets minRooms, maxMonthlyFee, minLivingArea, and showNewProduction to saved values
+    if (savedClientFilter) {
+      setRooms(
+        ROOM_OPTIONS.find(
+          (o) => Number(o.value) === savedClientFilter.minRooms,
+        ),
+      );
+      setMonthlyFee(
+        MONTHLY_FEE_OPTIONS.find(
+          (o) => Number(o.value) === savedClientFilter.maxMonthlyFee,
+        ),
+      );
+      setLivingArea(
+        LIVING_AREA_OPTIONS.find(
+          (o) => Number(o.value) === savedClientFilter.minLivingArea,
+        ),
+      );
+      setShowNewProduction(savedClientFilter.showNewProduction);
+    }
+    // Sets informationInterval to saved value
+    setInformationInterval(savedInformationInterval);
+  }, [hasHydrated]); // Runs once hydration completes.
 
   function onSubmit() {
     setError(null);
-    // setIsLoading(true);
 
     if (!area && propertyType.length === 0) {
       setError(
@@ -93,8 +129,6 @@ export default function CreateFilterForm() {
       showNewProduction,
     };
 
-    // TODO: Going back from /connect and submitting again is OK for now
-    // since setFilters overwrites previous values
     setFilters(scraperFilter, clientFilter, informationInterval);
     router.push({ pathname: "/connect" });
   }
@@ -113,7 +147,6 @@ export default function CreateFilterForm() {
           submitBehavior="submit"
           value={area}
           onChangeText={setArea}
-          editable={!isLoading}
           textContentType="addressCity"
         />
       </View>
@@ -126,12 +159,17 @@ export default function CreateFilterForm() {
           aria-label="Bostadstyp"
           value={propertyType}
           onValueChange={setPropertyType}
-          className="gap-2"
+          className="flex-1 gap-2 flex-wrap"
           variant="secondary"
         >
-          {existingPropertyTypes.map((p) => (
-            <ToggleGroupItem key={p} value={p} aria-label={`Boendetyp ${p}`}>
-              <Text className="m-2">{capitalize(p)}</Text>
+          {PROPERTY_TYPES_OPTIONS.map((p) => (
+            <ToggleGroupItem
+              key={p}
+              value={p}
+              aria-label={`Boendetyp ${p}`}
+              className="flex-none shrink-0"
+            >
+              <Text className="p-2">{capitalize(p)}</Text>
             </ToggleGroupItem>
           ))}
         </ToggleGroup>

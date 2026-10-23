@@ -1,11 +1,12 @@
+import FormError from "@/components/form-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
+import { supabase } from "@/utils/supabase";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
 import { TextInput, View } from "react-native";
-import FormError from "@/components/form-error";
 
 export function SignUpForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -32,7 +33,24 @@ export function SignUpForm() {
         setError("Lösenorden matchar inte");
         return;
       }
-      router.push("/verify-email");
+
+      // Send params to Supabase to create account
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+      });
+
+      if (error) {
+        setError("Något gick fel, försök igen.");
+        return;
+      }
+
+      if (data.session === null) {
+        router.push({
+          pathname: "/verify-email",
+          params: { email: email.trim() },
+        });
+      }
     } catch {
       setError("Något gick fel, försök igen.");
     } finally {

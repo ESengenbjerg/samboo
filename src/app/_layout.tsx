@@ -8,6 +8,9 @@ import { NAV_THEME } from "@/lib/theme";
 import { useEffect, useState } from "react";
 
 import Header from "@/components/header";
+import { Button } from "@/components/ui/button";
+import { Text } from "@/components/ui/text";
+import { useOnboardingStore } from "@/stores/onboarding";
 import { supabase } from "@/utils/supabase";
 import { MomoTrustDisplay_400Regular } from "@expo-google-fonts/momo-trust-display";
 import {
@@ -18,8 +21,8 @@ import {
 import { Session } from "@supabase/supabase-js";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
+import { View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { useOnboardingStore } from "@/stores/onboarding";
 
 // Stays on start screen until fonts are loaded
 SplashScreen.preventAutoHideAsync();
@@ -40,7 +43,10 @@ export default function RootLayout() {
   const [profile, setProfile] = useState<{
     userId: string;
     isOnboarded: boolean;
+    failed?: boolean;
   } | null>(null);
+  // Changes when user presses "Försök igen" (Try again) so the fetch retries
+  const [retryCount, setRetryCount] = useState(0);
 
   // Load session and listen to login/logout
   useEffect(() => {
@@ -75,13 +81,17 @@ export default function RootLayout() {
       .eq("id", userId)
       .single()
       .then(({ data, error }) => {
-        if (error) console.log("Profile error:", error);
+        if (error) {
+          console.log("Profile error:", error);
+          setProfile({ userId, isOnboarded: false, failed: true });
+          return;
+        }
         setProfile({
           userId,
           isOnboarded: !!data?.onboarding_completed_at,
         });
       });
-  }, [userId]);
+  }, [userId, retryCount]);
 
   const onboardingComplete = useOnboardingStore((s) => s.onboardingComplete);
 
@@ -96,6 +106,27 @@ export default function RootLayout() {
   }, [isReady]);
 
   if (!isReady) return null;
+
+  if (profile?.failed) {
+    return (
+      <ThemeProvider value={NAV_THEME[colorScheme ?? "light"]}>
+        <View className="flex-1 items-center justify-center gap-4 bg-background px-8">
+          <Text>Kunde inte hämta din profil.</Text>
+          <Button
+            onPress={() => {
+              setProfile(null);
+              setRetryCount((c) => c + 1);
+            }}
+          >
+            <Text>Försök igen</Text>
+          </Button>
+          <Button variant="link" onPress={() => supabase.auth.signOut()}>
+            <Text>Logga ut</Text>
+          </Button>
+        </View>
+      </ThemeProvider>
+    );
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

@@ -7,7 +7,7 @@ import { useOnboardingStore } from "@/stores/onboarding";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 
 export default function ProfileForm() {
@@ -15,10 +15,18 @@ export default function ProfileForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // TODO: When persistens is added (see /stores/onboarding), states should start from saved values
   const [profileName, setProfileName] = useState("");
   const [profileImage, setProfileImage] = useState("");
   const setProfile = useOnboardingStore((s) => s.setProfile);
+
+  // Fetches name and image in case user has started onboarding and then leaves app, after choosing name and image
+  const savedName = useOnboardingStore((s) => s.profileName);
+  const savedImage = useOnboardingStore((s) => s.profileImage);
+
+  useEffect(() => {
+    if (savedName) setProfileName(savedName);
+    if (savedImage) setProfileName(savedImage);
+  }, [savedName, savedImage])
 
   async function pickImage() {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -44,10 +52,12 @@ export default function ProfileForm() {
       setError("Lägg till ett visningsnamn");
       return;
     }
-    if (!profileImage) {
-      setError("Lägg till en visningsbild");
-      return;
-    }
+
+    // TODO: Put back when img_url exist in Supabase
+    // if (!profileImage) {
+    //   setError("Lägg till en visningsbild");
+    //   return;
+    // }
 
     setProfile(profileName, profileImage);
     router.push({ pathname: "/create-filter" });
