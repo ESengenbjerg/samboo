@@ -1,13 +1,14 @@
+import { useDeleteAccount } from "@/hooks/useDeleteAccount";
 import { useState } from "react";
 import { View } from "react-native";
+import FormError from "../form-error";
 import { ConfirmDialog } from "../modals/confirm-dialog";
 import { Button } from "../ui/button";
 import { Text } from "../ui/text";
 
 export default function DeleteAccount() {
+  const { deleteAccount, isDeleting, error } = useDeleteAccount();
   const [dialogOpen, setDialogOpen] = useState(false);
-  // TODO: Delete when correct funtion from Supabase is implemented
-  const [devIsDeleted, setDevIsDeleted] = useState(false);
 
   return (
     <>
@@ -19,13 +20,18 @@ export default function DeleteAccount() {
           description={
             "Om du tar bort ditt konto försvinner alla dina listor och bevakningar. Vill du verkligen radera ditt konto?"
           }
-          actionLabel={"Bekräfta radering"}
-          // TODO: Implement correct funtion from Supabase
-          onAction={() => setDevIsDeleted(true)}
+          actionLabel={isDeleting ? "Raderar..." : "Bekräfta radering"}
+          onAction={async () => {
+            const deleted = await deleteAccount();
+            if (!deleted) setDialogOpen(false);
+          }}
           cancelLabel={"Avbryt"}
           onCancel={() => setDialogOpen(false)}
+          isLoading={isDeleting}
         />
       )}
+
+      {error && <FormError>{error}</FormError>}
 
       <View>
         <Text variant="h2">Radera konto</Text>

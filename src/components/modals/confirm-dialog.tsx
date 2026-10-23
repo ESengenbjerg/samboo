@@ -11,6 +11,7 @@ import {
   AlertDialogTitle,
 } from "../ui/alert-dialog";
 import * as AlertDialogPrimitive from '@rn-primitives/alert-dialog';
+import { isLoading } from "expo-font";
 
 type ConfirmDialogProps = {
   open: boolean;
@@ -21,6 +22,7 @@ type ConfirmDialogProps = {
   onAction: () => void;
   cancelLabel: string;
   onCancel: () => void;
+  isLoading: boolean;
 };
 
 // Function to make buttonVariants accessible to AlertDialogAction
@@ -66,6 +68,7 @@ export function ConfirmDialog({
   onAction,
   cancelLabel,
   onCancel,
+  isLoading,
 }: ConfirmDialogProps) {
   return (
     <>
@@ -80,6 +83,7 @@ export function ConfirmDialog({
             <AlertDialogAction
               variant="destructive"
               onPress={onAction}
+              disabled={isLoading}
             >
               <Text>
                 {actionLabel}
