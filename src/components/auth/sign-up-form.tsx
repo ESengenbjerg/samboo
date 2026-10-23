@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
-import { supabase } from "@/utils/supabase";
+import { signUp } from "@/services/auth";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
 import { TextInput, View } from "react-native";
@@ -35,10 +35,7 @@ export function SignUpForm() {
       }
 
       // Send params to Supabase to create account
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-      });
+      const { data, error } = await signUp(email.trim(), password);
 
       if (error) {
         setError("Något gick fel, försök igen.");

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
-import { supabase } from "@/utils/supabase";
+import { resendSignUpCode, signIn } from "@/services/auth";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
 import { type TextInput, View } from "react-native";
@@ -24,10 +24,7 @@ export function SignInForm() {
 
     try {
       // Match credentials to Supabase
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
+      const { error } = await signIn(email.trim(), password);
 
       if (error) {
         console.log("Auth error:", error);
@@ -35,7 +32,7 @@ export function SignInForm() {
         // If user exist but they never confirmed their email,
         // send new verification email and redirect to /verify-email
         if (error.code === "email_not_confirmed") {
-          await supabase.auth.resend({ type: "signup", email: email.trim() });
+          await resendSignUpCode(email.trim());
           router.push({
             pathname: "/verify-email",
             params: { email: email.trim() },
