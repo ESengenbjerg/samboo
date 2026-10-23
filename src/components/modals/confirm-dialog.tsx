@@ -69,7 +69,7 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   return (
     <>
-      <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialog open={open} onOpenChange={onOpenChange} className="absolute">
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{title}</AlertDialogTitle>

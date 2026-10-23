@@ -7,7 +7,7 @@ import * as React from 'react';
 import {   Platform,   Text,   View,   type GestureResponderEvent,   type ViewProps } from 'react-native';
 import { FadeIn, FadeOut, ReduceMotion } from 'react-native-reanimated';
 import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens';
-import { useKeyboardHeight } from "@/hooks/useKeyboardHeight";
+import { useKeyboardHeight } from "@/hooks/use-keyboard-height";
 
 const Dialog = DialogPrimitive.Root;
 

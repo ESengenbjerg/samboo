@@ -24,7 +24,7 @@ export default function ProfileForm() {
     setError(null);
 
     if (!profileName && !profileImage) {
-      setError("Lägg till visningsnamn och visningsbild");
+      setError("Lägg till visningsnamn och profilbild");
       return;
     }
     if (!profileName) {
@@ -32,7 +32,7 @@ export default function ProfileForm() {
       return;
     }
     if (!profileImage) {
-      setError("Lägg till en visningsbild");
+      setError("Lägg till en profilbild");
       return;
     }
 
@@ -57,7 +57,7 @@ export default function ProfileForm() {
         />
       </View>
       <View className="gap-1.5">
-        <Label htmlFor="profile-image">Visningsbild</Label>
+        <Label htmlFor="profile-image">Profilbild</Label>
 
         <Button
           variant="outline"
