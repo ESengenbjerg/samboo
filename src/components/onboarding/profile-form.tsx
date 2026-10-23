@@ -4,8 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
 import { useOnboardingStore } from "@/stores/onboarding";
+import { pickImage } from "@/utils/pick-image";
 import { Image } from "expo-image";
-import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
@@ -19,45 +19,21 @@ export default function ProfileForm() {
   const [profileImage, setProfileImage] = useState("");
   const setProfile = useOnboardingStore((s) => s.setProfile);
 
-  // Fetches name and image in case user has started onboarding and then leaves app, after choosing name and image
-  const savedName = useOnboardingStore((s) => s.profileName);
-  const savedImage = useOnboardingStore((s) => s.profileImage);
-
-  useEffect(() => {
-    if (savedName) setProfileName(savedName);
-    if (savedImage) setProfileName(savedImage);
-  }, [savedName, savedImage])
-
-  async function pickImage() {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (!result.canceled) {
-      setProfileImage(result.assets[0].uri);
-    }
-  }
-
   function onSubmit() {
     setError(null);
 
     if (!profileName && !profileImage) {
-      setError("Lägg till visningsnamn och visningsbild");
+      setError("Lägg till visningsnamn och profilbild");
       return;
     }
     if (!profileName) {
       setError("Lägg till ett visningsnamn");
       return;
     }
-
-    // TODO: Put back when img_url exist in Supabase
-    // if (!profileImage) {
-    //   setError("Lägg till en visningsbild");
-    //   return;
-    // }
+    if (!profileImage) {
+      setError("Lägg till en profilbild");
+      return;
+    }
 
     setProfile(profileName, profileImage);
     router.push({ pathname: "/create-filter" });
@@ -80,9 +56,13 @@ export default function ProfileForm() {
         />
       </View>
       <View className="gap-1.5">
-        <Label htmlFor="profile-image">Visningsbild</Label>
+        <Label htmlFor="profile-image">Profilbild</Label>
 
-        <Button variant="outline" onPress={pickImage} disabled={isLoading}>
+        <Button
+          variant="outline"
+          onPress={() => pickImage(setProfileImage)}
+          disabled={isLoading}
+        >
           <Text>{profileImage ? "Byt bild" : "Välj bild"}</Text>
         </Button>
       </View>

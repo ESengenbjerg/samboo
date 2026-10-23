@@ -1,5 +1,14 @@
 import { supabase } from "@/lib/supabase";
 
+// TODO: add "avatar_url" to select once the column and image upload exist
+export function getProfile(userId: string) {
+  return supabase.from("profiles").select("name").eq("id", userId).single();
+}
+
+export function updateProfileName(userId: string, name: string) {
+  return supabase.from("profiles").update({ name }).eq("id", userId);
+}
+
 export function getOnboardingStatus(userId: string) {
   return supabase
     .from("profiles")

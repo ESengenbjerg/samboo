@@ -36,6 +36,12 @@ export function signOut() {
   return supabase.auth.signOut();
 }
 
+// Clears the session on this device only, without calling the server.
+// Used after the account is deleted, when the server no longer knows the user
+export function signOutLocal() {
+  return supabase.auth.signOut({ scope: "local" });
+}
+
 export function verifyEmailOtp(email: string, token: string) {
   return supabase.auth.verifyOtp({ email, token, type: "email" });
 }
@@ -43,4 +49,10 @@ export function verifyEmailOtp(email: string, token: string) {
 // Sends a new verification code to an unconfirmed account
 export function resendSignUpCode(email: string) {
   return supabase.auth.resend({ type: "signup", email });
+}
+
+// Deletes the signed-in user permanently (no grace period). The database cascades
+// to profile, search, matches, tags and sent invites
+export function deleteMyAccount() {
+  return supabase.rpc("delete_my_account");
 }
