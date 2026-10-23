@@ -7,7 +7,7 @@ import { useOnboardingStore } from "@/stores/onboarding";
 import { pickImage } from "@/utils/pick-image";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 
 export default function ProfileForm() {
@@ -15,7 +15,6 @@ export default function ProfileForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // TODO: When persistens is added (see /stores/onboarding), states should start from saved values
   const [profileName, setProfileName] = useState("");
   const [profileImage, setProfileImage] = useState("");
   const setProfile = useOnboardingStore((s) => s.setProfile);

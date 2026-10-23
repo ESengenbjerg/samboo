@@ -11,11 +11,12 @@ import {
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
+import { useState } from "react";
 
 type SendInviteDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAction: () => void;
+  onAction: (email: string) => void;
 };
 
 export function SendInviteDialog({
@@ -23,6 +24,7 @@ export function SendInviteDialog({
   onOpenChange,
   onAction,
 }: SendInviteDialogProps) {
+  const [email, setEmail] = useState("");
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -36,6 +38,8 @@ export function SendInviteDialog({
             <Input
               id="invite-email"
               placeholder="m@example.com"
+              value={email}
+              onChangeText={setEmail}
               keyboardType="email-address"
               autoComplete="email"
               autoCapitalize="none"
@@ -57,7 +61,8 @@ export function SendInviteDialog({
 
         <DialogFooter>
           <View className="flex-1 gap-4">
-            <Button onPress={onAction}>
+            <Button onPress={() => onAction(email.trim())}>
+              {/* TODO: Update text based on loading state */}
               <Text>Skicka inbjudan</Text>
             </Button>
           </View>

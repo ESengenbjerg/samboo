@@ -1,12 +1,12 @@
+import FormError from "@/components/form-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
-import { supabase } from "@/utils/supabase";
+import { resendSignUpCode, signIn } from "@/services/auth";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
 import { type TextInput, View } from "react-native";
-import FormError from "@/components/form-error";
 
 export function SignInForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -24,13 +24,22 @@ export function SignInForm() {
 
     try {
       // Match credentials to Supabase
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
+      const { error } = await signIn(email.trim(), password);
 
       if (error) {
         console.log("Auth error:", error);
+
+        // If user exist but they never confirmed their email,
+        // send new verification email and redirect to /verify-email
+        if (error.code === "email_not_confirmed") {
+          await resendSignUpCode(email.trim());
+          router.push({
+            pathname: "/verify-email",
+            params: { email: email.trim() },
+          });
+          return;
+        }
+
         setError("Fel e-post eller lösenord.");
         return;
       }

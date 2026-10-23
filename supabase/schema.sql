@@ -7,7 +7,7 @@
 --
 -- Not included in this file:
 --   * Data (users, listings, ...)
---   * Auth settings in Supabase (OTP, SMTP/Resend, disabled sign-ups)
+--   * Auth settings in Supabase (OTP, SMTP/Resend, disabled sign-ups). Email delivery is described in docs/email-setup.md
 --   * Event triggers managed by Supabase itself (pgrst_*, graphql, pg_cron / pg_net access)
 --   * pg_cron job state (the jobs themselves are listed in the pg_cron section at the end of this file)
 --   * Role settings: authenticator has pgrst.db_pre_request = 'public.check_request' (see the note at the end of this file)
