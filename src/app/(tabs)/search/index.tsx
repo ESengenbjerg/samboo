@@ -68,8 +68,9 @@ export default function SearchScreen() {
               key={`${listing.agency}-${listing.external_id}`}
               address={listing.ld_json.streetAddress ?? ""}
               area={listing.area ?? ""}
+              municipiality={listing.municipality ?? ""}
               price={listing.price ?? 0}
-              livingArea={listing.ld_json.livingArea ?? 0}
+              livingArea={listing.living_area ?? 0}
               rooms={listing.rooms ?? 0}
               imageUrl={listing.ld_json.image ?? ""}
               onPress={() =>
