@@ -4,15 +4,15 @@ import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
-import { TextInput, View } from "react-native";
+import { type TextInputInstance, View } from "react-native";
 import FormError from "@/components/form-error";
 
 export function ResetPasswordForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const passwordInputRef = useRef<TextInput>(null);
-  const repeatPasswordInputRef = useRef<TextInput>(null);
+  const passwordInputRef = useRef<TextInputInstance>(null);
+  const repeatPasswordInputRef = useRef<TextInputInstance>(null);
 
   const [isVerified, setIsVerified] = useState(false);
   const [code, setCode] = useState("");

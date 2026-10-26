@@ -7,10 +7,10 @@ import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
 import { SETTING_OPTIONS } from "@/constants/setting-options";
 import { useRef } from "react";
-import { LayoutChangeEvent, ScrollView, View } from "react-native";
+import { LayoutChangeEvent, ScrollView, type ScrollViewInstance, View } from "react-native";
 
 export default function SettingsScreen() {
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   // Y-position for each section, saved without triggering rerender
   const sectionY = useRef<Record<string, number>>({});
 

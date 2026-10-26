@@ -1,5 +1,5 @@
 import { BlurView } from "expo-blur";
-import { BottomTabBarProps } from "expo-router/build/react-navigation/bottom-tabs";
+import { BottomTabBarProps } from "expo-router/build/react-navigation/bottom-tabs/index";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "./ui/text";
@@ -7,7 +7,8 @@ import { Text } from "./ui/text";
 export default function TabsNavigation({
   state,
   descriptors,
-  navigation,
+  emitter,
+  navigateToTab,
 }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
 
@@ -26,13 +27,13 @@ export default function TabsNavigation({
           const color = "#293907";
 
           const onPress = () => {
-            const event = navigation.emit({
+            const event = emitter.emit({
               type: "tabPress",
               target: route.key,
               canPreventDefault: true,
             });
             if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name, route.params);
+              navigateToTab(route.key);
             }
           };
 
