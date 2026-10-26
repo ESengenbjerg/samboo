@@ -30,7 +30,7 @@ export function SignUpForm() {
 
     try {
       if (password !== repeatPassword) {
-        setError("Lösenorden matchar inte");
+        setError("Lösenorden matchar inte.");
         return;
       }
 

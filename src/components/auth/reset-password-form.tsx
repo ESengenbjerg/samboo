@@ -46,7 +46,7 @@ export function ResetPasswordForm() {
         // TODO: Set new password with the auth provider
         router.dismissTo("/login");
       } else {
-        setError("Lösenorden matchar inte");
+        setError("Lösenorden matchar inte.");
         return;
       }
     } catch {

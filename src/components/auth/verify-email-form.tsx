@@ -34,12 +34,12 @@ export function VerifyEmailForm() {
       if (error?.code === "otp_expired") {
         setError("Koden är fel eller har gått ut.");
       } else if (error) {
-        setError("Något gick fel, försök igen");
+        setError("Något gick fel, försök igen.");
       }
       
       // If succeeded navigation will automatically redirect user to next step
     } catch {
-      setError("Något gick fel, försök igen");
+      setError("Något gick fel, försök igen.");
     } finally {
       setIsLoading(false);
     }
