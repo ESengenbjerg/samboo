@@ -7,7 +7,7 @@ import { useOnboardingStore } from "@/stores/onboarding";
 import { pickImage } from "@/utils/pick-image";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { View } from "react-native";
 
 export default function ProfileForm() {
@@ -49,6 +49,7 @@ export default function ProfileForm() {
           placeholder="Namn"
           returnKeyType="next"
           submitBehavior="submit"
+          maxLength={100}
           value={profileName}
           onChangeText={setProfileName}
           editable={!isLoading}

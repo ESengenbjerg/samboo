@@ -25,7 +25,7 @@ export default function ProfileSettingsForm() {
   const [newName, setNewName] = useState("");
 
   const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>("");
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Returns true if new name is typed in input
@@ -75,6 +75,7 @@ export default function ProfileSettingsForm() {
             placeholder="Namn"
             returnKeyType="next"
             submitBehavior="submit"
+            maxLength={100}
             value={newName}
             onChangeText={setNewName}
             onSubmitEditing={onSubmit}
@@ -97,8 +98,8 @@ export default function ProfileSettingsForm() {
           </Button> */}
         </View>
 
-        {errorMessage && <FormError>{errorMessage}</FormError>}
-        {successMessage && <FormMessage>{successMessage}</FormMessage>}
+        {!!errorMessage && <FormError>{errorMessage}</FormError>}
+        {!!successMessage && <FormMessage>{successMessage}</FormMessage>}
 
         <Button
           onPress={onSubmit}
