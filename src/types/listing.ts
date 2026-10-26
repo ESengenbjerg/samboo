@@ -1,4 +1,5 @@
 export type Listing = {
+  id: number;
   agency: string;
   external_id: number;
   url: string;
@@ -14,4 +15,11 @@ export type Listing = {
     monthlyFee?: number;
     newProduction?: boolean;
   };
+};
+
+export type UserListing = {
+  id: number;
+  is_new: boolean;
+  liked: boolean;
+  listings: Listing;
 };

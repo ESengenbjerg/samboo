@@ -1,12 +1,16 @@
 import { supabase } from "@/lib/supabase";
-import { Listing } from "@/types/listing";
+import { Listing, UserListing } from "@/types/listing";
 
-// TODO: Remove policy from listings table to give anon permission to read
-export function getActiveListings() {
+// TODO: Remove policy from listings table that give anon permission to read
+export function getActiveListings(userId: string) {
   return supabase
-    .from("listings")
-    .select("*")
-    .is("removed_at", null)
-    .order("last_seen_at", { ascending: false })
-    .overrideTypes<Listing[]>();
+    .from("user_listings")
+    // !inner removes deleted listings. Eithout !inner listings is null and
+    // app will crash on listing.ld_json
+    .select("id, is_new, liked, listings!inner(*)")
+    .eq("user_id", userId)
+    .is("listings.removed_at", null)
+    // TODO: Update order to last_seen_at by editing in hook
+    .order("created_at", { ascending: false })
+    .overrideTypes<UserListing[]>();
 }
