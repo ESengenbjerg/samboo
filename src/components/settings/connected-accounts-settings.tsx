@@ -54,14 +54,14 @@ export default function ConnectedAccountsSettings() {
                 open={true}
                 onOpenChange={() => setDialogOpen(false)}
                 title={"Är du säker?"}
-                description={
-                  "Om du tar bort det kopplade kontot kan du inte längre se personens listor eller er gemensamma lista. Vill du verkligen radera det kopplade kontot?"
-                }
+                description={"Om du tar bort det kopplade kontot kan du inte längre se personens listor eller er gemensamma lista. Vill du verkligen radera det kopplade kontot?"}
                 actionLabel={"Bekräfta radering"}
                 // TODO: Implement correct funtion from Supabase
                 onAction={() => setDevIsDeleted(true)}
                 cancelLabel={"Avbryt"}
-                onCancel={() => setDialogOpen(false)}
+                onCancel={() => setDialogOpen(false)} 
+                // TODO: Update to correct state
+                isLoading={false}
               />
             )}
 

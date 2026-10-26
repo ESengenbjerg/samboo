@@ -2,7 +2,7 @@ import { Icon } from "@/components/ui/icon";
 import { signOut } from "@/services/auth";
 import { Image } from "expo-image";
 import { Link, router } from "expo-router";
-import { Bell, UserCircle2 } from "lucide-react-native";
+import { Bell, LogOut } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -40,10 +40,18 @@ export default function Header() {
       </Link>
 
       <View className="flex-row gap-2">
+        <Pressable
+          onPress={() => router.push("/(tabs)/notifications")}
+          hitSlop={12}
+          role="button"
+          aria-label="Notiser"
+        >
+          <Icon as={Bell} size={24} />
+        </Pressable>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Pressable hitSlop={12} role="button" aria-label="Din profil">
-              <Icon as={UserCircle2} size={24} />
+              <Icon as={LogOut} size={24} />
             </Pressable>
           </DropdownMenuTrigger>
           <DropdownMenuContent insets={contentInsets} align="end">
@@ -58,15 +66,6 @@ export default function Header() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-
-        <Pressable
-          onPress={() => router.push("/(tabs)/notifications")}
-          hitSlop={12}
-          role="button"
-          aria-label="Notiser"
-        >
-          <Icon as={Bell} size={24} />
-        </Pressable>
       </View>
     </View>
   );
