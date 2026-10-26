@@ -19,6 +19,13 @@ export default function SearchScreen() {
 
   const [view, setView] = useState<"column" | "grid">("column");
 
+  function goToObject(listingId: string) {
+    router.push({
+      pathname: "/search/object/[id]",
+      params: { id: listingId },
+    });
+  }
+
   return (
     <View className="flex-1 px-8 bg-background gap-8">
       <View className="flex-row justify-between">
@@ -55,7 +62,9 @@ export default function SearchScreen() {
       </View>
 
       {loading && <Text>Laddar...</Text>}
-      {!loading && listings.length === 0 && <Text>Kunde inte hämta objekt.</Text>}
+      {!loading && listings.length === 0 && (
+        <Text>Kunde inte hämta objekt.</Text>
+      )}
 
       {/* Present properties based in column or grid based on user choice */}
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -65,7 +74,7 @@ export default function SearchScreen() {
           {/* Map through properties */}
           {listings.map((listing) => (
             <ObjectCard
-              key={`${listing.agency}-${listing.external_id}`}
+              key={`${listing.id}`}
               address={listing.ld_json.streetAddress ?? ""}
               area={listing.area ?? ""}
               municipiality={listing.municipality ?? ""}
@@ -73,9 +82,7 @@ export default function SearchScreen() {
               livingArea={listing.living_area ?? 0}
               rooms={listing.rooms ?? 0}
               imageUrl={listing.ld_json.image ?? ""}
-              onPress={() =>
-                router.push(`/(tabs)/search/object/${listing.external_id}`)
-              }
+              onPress={() => goToObject(listing.id.toString())}
               size={view === "grid" ? "small" : "default"}
             />
           ))}
