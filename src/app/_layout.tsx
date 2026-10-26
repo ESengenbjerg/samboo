@@ -53,6 +53,10 @@ export default function RootLayout() {
     if (isReady) SplashScreen.hideAsync();
   }, [isReady]);
 
+  // Explicit targets: without them the redirect lands on the bare group URL, e.g. "/(auth)", which doesn't match a route
+  const homeHref = isLoggedIn && !isOnboarded ? "/(onboarding)/profile" : "/(tabs)/search";
+  const loginHref = "/(auth)/login";
+
   if (!isReady) return null;
 
   if (profile?.failed) {
@@ -81,13 +85,19 @@ export default function RootLayout() {
 
       {/* Redirects user to correct view */}
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Protected guard={!isLoggedIn}>
+        <Stack.Protected guard={!isLoggedIn} redirectTo={homeHref}>
           <Stack.Screen name="(auth)" />
         </Stack.Protected>
-        <Stack.Protected guard={isLoggedIn && !isOnboarded}>
+        <Stack.Protected
+            guard={isLoggedIn && !isOnboarded}
+            redirectTo={isLoggedIn ? homeHref : loginHref}
+          >
           <Stack.Screen name="(onboarding)" />
         </Stack.Protected>
-        <Stack.Protected guard={isLoggedIn && isOnboarded}>
+        <Stack.Protected
+            guard={isLoggedIn && isOnboarded}
+            redirectTo={isLoggedIn ? homeHref : loginHref}
+          >
           <Stack.Screen
             name="(tabs)"
             options={{ headerShown: true, header: () => <Header /> }}

@@ -42,7 +42,7 @@ export default function ConnectAccountForm() {
       // When everything is saved, onboarding is complete and user is moved to /search
       completeOnboarding();
     } catch (e) {
-      console.log("Onboarding error: " + e);
+      console.log("Onboarding error:", e);
       setError("Något gick fel, försök igen.");
     } finally {
       setIsLoading(false);
