@@ -6,7 +6,7 @@ Both files are documentation only and never change the database. To update them 
 ## Overview
 
 ```
-auth.users ──1:1──> profiles ──N:1──> groups
+auth.users ──1:1──> profiles ──N:1──> groups ──1:N──> showings ──N:1──> listings
                       │  (group_id, ON DELETE SET NULL)
                       │
                       ├──1:1──> search_params
@@ -31,6 +31,7 @@ Every relation from `profiles` is `ON DELETE CASCADE`, except `group_id`, which 
 | `user_listings` | Matches between users and listings | Unique on (`user_id`, `listing_id`). `is_new` (default true), `liked` (default false) |
 | `user_tags` | The user's own tags | Unique on (`user_id`, `tag_name`). `tag_name` is 1–100 characters |
 | `listing_tags` | A tag applied to a matched listing | Unique on (`user_tag_id`, `user_listing_id`) |
+| `showings` | Showings a group has planned, entered by hand (not an official booking: the real booking is made at the agency) | Owned by the group: `group_id` → `groups` (cascade), so it is deleted when the group is dissolved, but not when a member leaves or is removed. `group_id` is filled in by the database (column default `my_group_id()`), never sent by the app. `listing_id` → `listings` (cascade). Unique on (`group_id`, `listing_id`): one showing per listing and group. `showing_date` (date), `start_time` (optional), `note` (max 500 characters). Old rows are deleted by pg_cron 30 days after the date |
 | `scrape_issues` | Failures and suspicious results from the scraper | At most one open issue per (`agency`, `kind`). RLS on with no policies, so only service_role can reach it |
 | `search_params_log` | Every insert/update of a user's search, written by `limit_search_params_changes()` | Max 5 changes per user per 24 hours. Rows deleted after 90 days. Cascade on profile delete. No grants and no policies: service_role only |
 | `api_rate_limit` | Write requests per user and minute, used by `check_request()` | Primary key (`user_id`, `minute`). No foreign key on purpose. No grants and no policies: only the functions and service_role touch it |
@@ -50,6 +51,7 @@ RLS is enabled on every table. All policies apply to the `authenticated` role, a
 | `user_listings` | Mine and my group members' | Update own |
 | `listings` | Listings matched to me or to someone in my group | None (the scraper uses service_role) |
 | `user_tags` | Own | Create, update, delete own |
+| `showings` | My group's | Create (the listing must be visible to me), update (date, time, note) and delete, for any member of the group |
 | `listing_tags` | Own | Create and delete own (both the tag and the listing must be mine) |
 | `scrape_issues` | None | None |
 
@@ -75,7 +77,7 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 
 - **`authenticated` and service_role:** `accept_invite`, `decline_invite`, `in_my_group`, `is_active_user`, `leave_group`, `remove_group_member`, `like_listing`, `my_group_id`, `my_pending_invites`, `shared_likes`, `shares_group_with`, `delete_my_account`, `cancel_invite`.
 - **`anon`, `authenticated`, service_role and `authenticator`:** `check_request` only. PostgREST runs it before every request as the requesting role, so revoking it would break every request.
-- **service_role only:** `dissolve_group_if_alone`, `handle_deleted_profile`, `handle_new_user`, `limit_invites_per_pair`, `limit_search_params_changes`, `match_user_listings`, `orphan_avatar_objects`, `purge_old_invites`, `purge_rate_limit_counters`, `purge_removed_listings`, `purge_search_params_log`, `rls_auto_enable`, `search_params_match_trigger`.
+- **service_role only:** `dissolve_group_if_alone`, `handle_deleted_profile`, `handle_new_user`, `limit_invites_per_pair`, `limit_search_params_changes`, `match_user_listings`, `orphan_avatar_objects`, `purge_old_invites`, `purge_old_showings`, `purge_rate_limit_counters`, `purge_removed_listings`, `purge_search_params_log`, `rls_auto_enable`, `search_params_match_trigger`.
 
 ## Functions
 
@@ -105,6 +107,7 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 | `purge_rate_limit_counters()` | security definer | Deletes counters older than one hour. Run by pg_cron |
 | `purge_removed_listings()` | security definer | Deletes listings that have been removed for more than 14 days. Run by pg_cron |
 | `purge_old_invites()` | security definer | Deletes pending invites older than 90 days, and accepted/declined/cancelled invites one year after `responded_at`. One year because all invites count towards the 20 per pair limit. Run by pg_cron |
+| `purge_old_showings()` | security definer | Deletes showings whose date passed more than 30 days ago. Run by pg_cron |
 | `purge_search_params_log()` | security definer | Deletes `search_params_log` rows older than 90 days. Run by pg_cron |
 | `rls_auto_enable()` | event trigger function (`ensure_rls`) | Enables RLS on new tables in `public` |
 
@@ -136,6 +139,7 @@ Cleanup runs inside the database and no longer depends on the scraper (GitHub Ac
 | `purge-rate-limit-counters` | hourly, minute 5 | `purge_rate_limit_counters()` |
 | `purge-old-invites` | daily 03:30 | `purge_old_invites()` |
 | `purge-search-params-log` | daily 03:45 | `purge_search_params_log()` |
+| `purge-old-showings` | daily 03:50 | `purge_old_showings()` |
 | `purge-cron-history` | daily 04:00 | deletes `cron.job_run_details` older than 7 days |
 
 Check results with `select * from cron.job_run_details order by start_time desc limit 20;`.
@@ -157,6 +161,7 @@ A user leaves a group in three ways, and all of them end in the same rule, `diss
 - **No roles.** Any member can remove any other member. This covers an invite to the wrong person who will not leave. If a malicious member removes others, the others can leave and form a new group (there is no lasting damage, only an invite).
 - **Dissolving:** if at most 1 member remains, the group is deleted and the last member gets `group_id = null`. A group of 2 therefore ends when one removes the other.
 - **The shared list** (`shared_likes()`) and `user_listings` are not touched. The list is computed from the current members, so it recalculates by itself in all three cases.
+- **Showings** belong to the group (`showings.group_id`). When a member leaves or is removed, the group's showings stay and the member stops seeing them. When the group is dissolved, its showings are deleted with it. A new member sees all of the group's showings.
 - **Invites:** removal does not touch invites. The same limits as for leaving apply: at most one pending invite per sender and recipient, and at most 20 invites in total per pair (`limit_invites_per_pair()`). A removed user can be invited again.
 - **Notification:** the removed user is not notified yet. There is no `notifications` table; it is a possible later issue. The app shows the missing group the next time it reads the profile.
 - **Simultaneous changes:** `leave_group()`, `remove_group_member()` and `accept_invite()` lock the group row (and `accept_invite()` also the two profile rows) and check their conditions again after the lock, so they run one at a time. Two operations on crossing rows can in rare cases deadlock; Postgres then aborts one with an error and the data stays consistent.
