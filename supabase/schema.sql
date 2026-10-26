@@ -318,6 +318,7 @@ AS $function$
 $function$;
 
 -- A group has at most 10 members (MAX_GROUP_MEMBERS). The group row is locked while counting, so two simultaneous accepts cannot both take the last place.
+-- Both profile rows are locked first (in id order) and the invite is read again after the lock, so a double tap or two crossing accepts cannot create two groups. A pending invite in the opposite direction between the same two users is cancelled.
 CREATE OR REPLACE FUNCTION public.accept_invite(invite_id bigint)
  RETURNS void
  LANGUAGE plpgsql
@@ -325,30 +326,44 @@ CREATE OR REPLACE FUNCTION public.accept_invite(invite_id bigint)
  SET search_path TO ''
 AS $function$
 declare
+  me uuid := auth.uid();
+  my_email text := lower(auth.jwt() ->> 'email');
   inv public.invites;
+  v_from uuid;
+  v_from_email text;
+  my_g bigint;
   g bigint;
 begin
   if not public.is_active_user() then
     raise exception 'Ditt konto är inte aktivt';
   end if;
 
-  select * into inv from public.invites
-  where id = invite_id
-    and status = 'pending'
-    and lower(to_email) = lower(auth.jwt() ->> 'email');
-
+  select from_user_id into v_from from public.invites
+  where id = invite_id and status = 'pending' and lower(to_email) = my_email;
   if not found then
     raise exception 'Inbjudan finns inte eller är inte din';
   end if;
 
-  if public.my_group_id() is not null then
+  -- Lock both profile rows in a fixed order (id), so crossing accepts cannot lock each other up.
+  perform 1 from public.profiles where id in (me, v_from) order by id for update;
+
+  -- After the lock: read again and check again. A double tap or a crossing accept no longer finds the invite.
+  select * into inv from public.invites
+  where id = invite_id and status = 'pending' and lower(to_email) = my_email
+  for update;
+  if not found then
+    raise exception 'Inbjudan finns inte eller är inte din';
+  end if;
+
+  select group_id into my_g from public.profiles where id = me;
+  if my_g is not null then
     raise exception 'Du är redan med i en grupp. Lämna den först.';
   end if;
 
-  select group_id into g from public.profiles where id = inv.from_user_id;
+  select group_id into g from public.profiles where id = v_from;
   if g is null then
     insert into public.groups default values returning id into g;
-    update public.profiles set group_id = g where id = inv.from_user_id;
+    update public.profiles set group_id = g where id = v_from;
   else
     perform 1 from public.groups where id = g for update;
     if (select count(*) from public.profiles where group_id = g) >= 10 then
@@ -356,8 +371,16 @@ begin
     end if;
   end if;
 
-  update public.profiles set group_id = g where id = auth.uid();
+  update public.profiles set group_id = g where id = me;
   update public.invites set status = 'accepted', responded_at = now() where id = invite_id;
+
+  -- A pending invite from me to the sender is now pointless: close it.
+  select email into v_from_email from auth.users where id = v_from;
+  update public.invites
+  set status = 'cancelled', responded_at = now()
+  where from_user_id = me
+    and lower(to_email) = lower(v_from_email)
+    and status = 'pending';
 end;
 $function$;
 
@@ -426,6 +449,25 @@ AS $function$
   order by i.created_at desc;
 $function$;
 
+-- Shared group rule: dissolves the group if at most 1 member is left. Used by leave_group(), remove_group_member() and handle_deleted_profile(). Callers lock the group row first.
+CREATE OR REPLACE FUNCTION public.dissolve_group_if_alone(g bigint)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  kvar int;
+begin
+  select count(*) into kvar from public.profiles where group_id = g;
+  if kvar <= 1 then
+    update public.profiles set group_id = null where group_id = g;
+    delete from public.groups where id = g;
+  end if;
+end;
+$function$;
+
+-- The group row is locked, then my membership is checked again, so simultaneous leaves/removals are handled one at a time.
 CREATE OR REPLACE FUNCTION public.leave_group()
  RETURNS void
  LANGUAGE plpgsql
@@ -434,19 +476,64 @@ CREATE OR REPLACE FUNCTION public.leave_group()
 AS $function$
 declare
   g bigint := public.my_group_id();
-  kvar int;
+  cur bigint;
 begin
   if g is null then
     raise exception 'Du är inte med i någon grupp';
   end if;
 
-  update public.profiles set group_id = null where id = auth.uid();
+  perform 1 from public.groups where id = g for update;
 
-  select count(*) into kvar from public.profiles where group_id = g;
-  if kvar <= 1 then
-    update public.profiles set group_id = null where group_id = g;
-    delete from public.groups where id = g;
+  select group_id into cur from public.profiles where id = auth.uid();
+  if cur is distinct from g then
+    raise exception 'Du är inte med i någon grupp';
   end if;
+
+  update public.profiles set group_id = null where id = auth.uid();
+  perform public.dissolve_group_if_alone(g);
+end;
+$function$;
+
+-- Any member can remove any other member of the same group (no roles). Same cascade as leave_group().
+CREATE OR REPLACE FUNCTION public.remove_group_member(target uuid)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  g bigint;
+  cur bigint;
+  target_group bigint;
+begin
+  if not public.is_active_user() then
+    raise exception 'Ditt konto är inte aktivt';
+  end if;
+
+  if target is null or target = auth.uid() then
+    raise exception 'Använd "Lämna grupp" för att lämna din egen grupp';
+  end if;
+
+  g := public.my_group_id();
+  if g is null then
+    raise exception 'Du är inte med i någon grupp';
+  end if;
+
+  perform 1 from public.groups where id = g for update;
+
+  -- After the lock: check again, someone may have changed the group in the meantime.
+  select group_id into cur from public.profiles where id = auth.uid();
+  if cur is distinct from g then
+    raise exception 'Du är inte med i någon grupp';
+  end if;
+
+  select group_id into target_group from public.profiles where id = target;
+  if target_group is distinct from g then
+    raise exception 'Personen är inte med i din grupp';
+  end if;
+
+  update public.profiles set group_id = null where id = target;
+  perform public.dissolve_group_if_alone(g);
 end;
 $function$;
 
@@ -596,25 +683,20 @@ begin
 end;
 $function$;
 
--- Account deletion, part 1: dissolves the group if at most 1 member remains after a profile has been deleted (same rule as leave_group()).
+-- Account deletion, part 1: dissolves the group if at most 1 member remains after a profile has been deleted (same rule as leave_group(), via dissolve_group_if_alone()).
 CREATE OR REPLACE FUNCTION public.handle_deleted_profile()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO ''
 AS $function$
-declare
-  kvar int;
 begin
   if old.group_id is null then
     return old;
   end if;
 
-  select count(*) into kvar from public.profiles where group_id = old.group_id;
-  if kvar <= 1 then
-    update public.profiles set group_id = null where group_id = old.group_id;
-    delete from public.groups where id = old.group_id;
-  end if;
+  perform 1 from public.groups where id = old.group_id for update;
+  perform public.dissolve_group_if_alone(old.group_id);
   return old;
 end;
 $function$;
@@ -1023,6 +1105,7 @@ grant execute on function
   public.in_my_group(uuid),
   public.is_active_user(),
   public.leave_group(),
+  public.remove_group_member(uuid),
   public.like_listing(bigint),
   public.my_group_id(),
   public.my_pending_invites(),
@@ -1034,6 +1117,7 @@ to authenticated, service_role;
 
 -- service_role only (scraper, triggers, maintenance)
 grant execute on function
+  public.dissolve_group_if_alone(bigint),
   public.handle_deleted_profile(),
   public.handle_new_user(),
   public.limit_invites_per_pair(),
