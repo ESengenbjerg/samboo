@@ -23,7 +23,7 @@ Every relation from `profiles` is `ON DELETE CASCADE`, except `group_id`, which 
 
 | Table | Purpose | Key rules |
 |---|---|---|
-| `profiles` | One row per user, created by the `on_auth_user_created` trigger | `id` → `auth.users` (cascade). `group_id` → `groups` (set null). `is_active` is used by RLS. `name` is 1–100 characters. `avatar_url` (nullable) is the profile image as a URL: https only, max 2048 characters. Updatable by the user |
+| `profiles` | One row per user, created by the `on_auth_user_created` trigger | `id` → `auth.users` (cascade). `group_id` → `groups` (set null). `is_active` is used by RLS. `name` is 1–100 characters. `avatar_path` (nullable) is the path of the profile image in the `avatars` bucket, `<user id>/<name>.<jpg|jpeg|png|webp>`, max 200 characters. It must start with the user's own id; it is not checked that the file exists. The app builds the URL with `getPublicUrl()`. Updatable by the user |
 | `groups` | A group (only an id and a timestamp) | Removed by `dissolve_group_if_alone()` when at most 1 member remains (after leaving, removal or account deletion) |
 | `invites` | Invitation to a group by email | `status` ∈ pending/accepted/declined/cancelled (cancelled = withdrawn by the sender; hidden from the recipient, kept so it still counts towards the 20 per pair limit). `responded_at` is set when the invite leaves pending. Invites are cleaned up by pg_cron (see below). `from_user_id` → `profiles` (cascade). `to_email` is free text, max 254 characters. At most one pending invite per sender and recipient (unique index) and at most 20 invites in total per pair (trigger). Both rules are per direction |
 | `search_params` | The user's search profile | `user_id` is unique (at most one per user). Price and room ranges must satisfy min ≤ max. `property_types` may only contain known types. At most 10 municipalities and 20 areas per search. Optional filters (null = no limit): `min_rooms`, `max_monthly_fee`, `min_living_area`. `include_new_construction` (default true, null counts as true) hides new builds only when false |
@@ -75,7 +75,7 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 
 - **`authenticated` and service_role:** `accept_invite`, `decline_invite`, `in_my_group`, `is_active_user`, `leave_group`, `remove_group_member`, `like_listing`, `my_group_id`, `my_pending_invites`, `shared_likes`, `shares_group_with`, `delete_my_account`, `cancel_invite`.
 - **`anon`, `authenticated`, service_role and `authenticator`:** `check_request` only. PostgREST runs it before every request as the requesting role, so revoking it would break every request.
-- **service_role only:** `dissolve_group_if_alone`, `handle_deleted_profile`, `handle_new_user`, `limit_invites_per_pair`, `limit_search_params_changes`, `match_user_listings`, `purge_old_invites`, `purge_rate_limit_counters`, `purge_removed_listings`, `purge_search_params_log`, `rls_auto_enable`, `search_params_match_trigger`.
+- **service_role only:** `dissolve_group_if_alone`, `handle_deleted_profile`, `handle_new_user`, `limit_invites_per_pair`, `limit_search_params_changes`, `match_user_listings`, `orphan_avatar_objects`, `purge_old_invites`, `purge_rate_limit_counters`, `purge_removed_listings`, `purge_search_params_log`, `rls_auto_enable`, `search_params_match_trigger`.
 
 ## Functions
 
@@ -101,6 +101,7 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 | `search_params_match_trigger()` | trigger, security definer | Runs `match_user_listings` for the user when their search profile changes |
 | `check_request()` | pre-request function, security definer | Runs before every Data API request (`pgrst.db_pre_request`). Allows a signed-in user at most 100 write requests (POST/PUT/PATCH/DELETE, including RPC) per 5 minutes and otherwise answers HTTP 429. Skips reads, `service_role` and `anon` |
 | `limit_search_params_changes()` | trigger, security definer | Before insert/update of the search columns: rejects the change if the user has already made 5 in the last 24 hours (`Du har ändrat din sökning för många gånger. Försök igen senare`), otherwise logs it in `search_params_log`. service_role and the SQL Editor are skipped. Unchanged updates do not count |
+| `orphan_avatar_objects(min_age)` | security definer | Lists files in the `avatars` bucket (older than `min_age`, default 1 hour) that no `profiles.avatar_path` points to. Called by `scripts/avatars/purgeOrphanAvatars.ts` (service_role), which deletes the files through the Storage API |
 | `purge_rate_limit_counters()` | security definer | Deletes counters older than one hour. Run by pg_cron |
 | `purge_removed_listings()` | security definer | Deletes listings that have been removed for more than 14 days. Run by pg_cron |
 | `purge_old_invites()` | security definer | Deletes pending invites older than 90 days, and accepted/declined/cancelled invites one year after `responded_at`. One year because all invites count towards the 20 per pair limit. Run by pg_cron |
@@ -119,7 +120,7 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 
 ## Other Supabase features
 
-No storage buckets, custom schemas, Vault secrets, Realtime-published tables or Edge Functions exist. (Edge Functions live outside the database; none were found under Edge Functions in Studio.)
+One storage bucket exists (`avatars`, see "Profile images" below). No custom schemas, Vault secrets, Realtime-published tables or Edge Functions exist. (Edge Functions live outside the database; none were found under Edge Functions in Studio.)
 
 ### Default privileges
 
@@ -161,6 +162,25 @@ A user leaves a group in three ways, and all of them end in the same rule, `diss
 - **Simultaneous changes:** `leave_group()`, `remove_group_member()` and `accept_invite()` lock the group row (and `accept_invite()` also the two profile rows) and check their conditions again after the lock, so they run one at a time. Two operations on crossing rows can in rare cases deadlock; Postgres then aborts one with an error and the data stays consistent.
 - An inactive user (`is_active = false`) cannot remove members.
 
+## Profile images (Storage)
+
+Bucket `avatars`, **public**: anyone with an image URL can open it without signing in. The app should tell the user this when they upload. The file itself lives in Supabase Storage; the database only holds the path in `profiles.avatar_path`.
+
+| Rule | Where it is enforced |
+|---|---|
+| At most 2 MB per file, only `image/jpeg`, `image/png`, `image/webp` (HEIC is not allowed) | The bucket (`file_size_limit`, `allowed_mime_types`) |
+| Path is `<own user id>/<name>.<jpg, jpeg, png or webp>`, one folder level | Policy `avatars_insert_own` and `profiles_avatar_path_check` |
+| Upload only for active users, only into the own folder, at most 5 files in the folder | `avatars_insert_own` (abuse guard) |
+| Delete only own files, active users only | `avatars_delete_own` |
+| Listing through the API only for own files | `avatars_select_own` |
+| No overwrite: every upload gets a new name, so there is no UPDATE policy and `upsert` must not be used | No policy |
+
+- **One image per user.** `profiles.avatar_path` points to the current image. The app deletes the previous file after saving the new path (best effort). Anything left over is removed by the purge below, so in the end only one file per user remains.
+- **Why a new name per upload:** a replaced image under the same URL can be shown from the CDN or app cache. A new name avoids that without cache busting.
+- **Purge:** `orphan_avatar_objects()` finds files older than 1 hour that no profile points to (replaced images, abandoned uploads, images of deleted accounts). `scripts/avatars/purgeOrphanAvatars.ts` deletes them through the Storage API, run by the GitHub workflow `purge-avatars.yml` (manual run; the schedule is commented out until the secrets exist and the workflow is on the default branch). Files are never deleted with SQL on `storage.objects`: that leaves the file in the bucket.
+- **Delay:** after an account deletion the image can remain until the next purge run, i.e. up to a day once scheduled.
+- **Later: private bucket.** Because the table stores a path and not a URL, the bucket can be made private and the app can fetch signed URLs instead, without changing the data.
+
 ## What happens when a user deletes their account
 
 The app calls `delete_my_account()`, which deletes the row in `auth.users`. This is permanent, with no grace period. Then:
@@ -169,6 +189,7 @@ The app calls `delete_my_account()`, which deletes the row in `auth.users`. This
 - **Groups:** the `on_profile_deleted` trigger applies the shared group rule (see "Group membership"). With at most 1 left, the group is dissolved. With 2 or more left, the group stays and the user just disappears from it.
 - **The shared list** (`shared_likes()`) is computed from the members' likes, so it recalculates on its own. The deleted user's likes disappear with their `user_listings`.
 - **Left behind:** `invites` sent *to* the user's email (`to_email`). Known gap, to be handled in a later GDPR issue.
+- **Profile image:** the file in the `avatars` bucket is not removed by the deletion (a trigger cannot delete files). It becomes an orphan and is removed by `purgeOrphanAvatars.ts` (see "Profile images").
 - `listings` is unaffected (shared data).
 - An already-issued JWT stays valid until it expires, but `is_active_user()` returns `false` once the profile is gone, so RLS blocks everything.
 

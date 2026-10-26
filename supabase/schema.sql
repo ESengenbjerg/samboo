@@ -12,7 +12,8 @@
 --   * pg_cron job state (the jobs themselves are listed in the pg_cron section at the end of this file)
 --   * Role settings: authenticator has pgrst.db_pre_request = 'public.check_request' (see the note at the end of this file)
 --   * Realtime publications (no tables are published)
---   * Storage buckets, custom schemas and Vault secrets (none exist)
+--   * Custom schemas and Vault secrets (none exist)
+--   * The files themselves in Storage. Only the bucket and its policies are described, in the Storage section below. Deleting avatar files is done by scripts/avatars/purgeOrphanAvatars.ts, not by SQL
 -- 
 
 -- ---------------------------------------------------------------------
@@ -40,12 +41,14 @@ create table public.profiles (
   created_at               timestamptz not null default now(),
   onboarding_completed_at  timestamptz,
   -- Profile image, stored as a URL (https only)
-  avatar_url               text,
+  -- Path of the profile image inside the 'avatars' bucket: '<user id>/<name>.<jpg|jpeg|png|webp>'. The app builds the public URL with getPublicUrl()
+  avatar_path              text,
   constraint profiles_pkey primary key (id),
   constraint profiles_id_fkey       foreign key (id)       references auth.users (id) on delete cascade,
   constraint profiles_group_id_fkey foreign key (group_id) references public.groups (id) on delete set null,
   constraint profiles_name_length check (char_length(name) between 1 and 100),
-  constraint profiles_avatar_url_check check (avatar_url is null or (char_length(avatar_url) <= 2048 and avatar_url ~ '^https://'))
+  -- The path must start with the user's own id and point to a plain image file. It is not checked that the file exists
+  constraint profiles_avatar_path_check check (avatar_path is null or (char_length(avatar_path) <= 200 and avatar_path ~ ('^' || id::text || '/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$')))
 );
 
 create table public.invites (
@@ -818,6 +821,22 @@ AS $function$
   select count(*)::int from deleted;
 $function$;
 
+-- Files in the avatars bucket that no profile points to (replaced images, abandoned uploads, deleted accounts).
+-- min_age protects an upload that has not yet been saved in the profile. Called by scripts/avatars/purgeOrphanAvatars.ts (service_role),
+-- which deletes the files through the Storage API. Files must NOT be deleted with SQL on storage.objects: that orphans the file in the bucket.
+CREATE OR REPLACE FUNCTION public.orphan_avatar_objects(min_age interval DEFAULT interval '1 hour')
+ RETURNS TABLE(object_name text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+  select o.name
+  from storage.objects o
+  where o.bucket_id = 'avatars'
+    and o.created_at < now() - min_age
+    and not exists (select 1 from public.profiles p where p.avatar_path = o.name)
+$function$;
+
 -- Runs before EVERY Data API request (registered as pgrst.db_pre_request, see the note at the end of this file).
 -- Limits a signed-in user to 100 write requests (POST/PUT/PATCH/DELETE, including RPC) per 5 minutes.
 -- Reads cannot be counted: GET and HEAD run in a read-only transaction.
@@ -1069,6 +1088,53 @@ create policy user_tags_delete on public.user_tags
 
 
 -- ---------------------------------------------------------------------
+-- Storage: profile images (bucket 'avatars')
+-- ---------------------------------------------------------------------
+-- PUBLIC bucket: anyone with the URL can open an image, without signing in (RLS is not used for reads by URL). Uploading and deleting always need the policies below.
+-- Server side limits: 2 MB per file, only jpeg/png/webp. The app should resize to about 512 px and save as JPEG before uploading (HEIC is not allowed).
+-- Path: '<user id>/<random name>.<ext>', a new name for every upload (no upsert, so there is no UPDATE policy). profiles.avatar_path points to the current one.
+-- The policies on storage.objects can be created in the SQL Editor; if that is refused, create them under Storage > Policies in the Dashboard.
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('avatars', 'avatars', true, 2097152, array['image/jpeg', 'image/png', 'image/webp'])
+on conflict (id) do update
+  set public = excluded.public,
+      file_size_limit = excluded.file_size_limit,
+      allowed_mime_types = excluded.allowed_mime_types;
+
+-- Upload: own folder only, active users only, at most 5 files in the folder (abuse guard; the purge script trims it to 1).
+create policy avatars_insert_own on storage.objects
+  for insert to authenticated
+  with check (
+    bucket_id = 'avatars'
+    and (storage.foldername(name))[1] = (select auth.uid())::text
+    and name ~ '^[^/]+/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$'
+    and public.is_active_user()
+    and (
+      select count(*) from storage.objects o
+      where o.bucket_id = 'avatars'
+        and (storage.foldername(o.name))[1] = (select auth.uid())::text
+    ) < 5
+  );
+
+-- Listing through the API (and the count above). Opening an image by its public URL does not go through this.
+create policy avatars_select_own on storage.objects
+  for select to authenticated
+  using (
+    bucket_id = 'avatars'
+    and (storage.foldername(name))[1] = (select auth.uid())::text
+  );
+
+create policy avatars_delete_own on storage.objects
+  for delete to authenticated
+  using (
+    bucket_id = 'avatars'
+    and (storage.foldername(name))[1] = (select auth.uid())::text
+    and public.is_active_user()
+  );
+
+
+-- ---------------------------------------------------------------------
 -- Grants (role authenticated; anon has none)
 -- ---------------------------------------------------------------------
 
@@ -1087,7 +1153,7 @@ grant select, insert, update, delete on public.user_tags     to authenticated;
 
 -- Column level. Direct writes are limited to these columns; everything else (e.g. profiles.is_active, profiles.group_id) can only change via functions or service_role.
 grant insert (from_user_id, to_email) on public.invites       to authenticated;
-grant update (name, onboarding_completed_at, avatar_url) on public.profiles to authenticated;
+grant update (name, onboarding_completed_at, avatar_path) on public.profiles to authenticated;
 grant update (is_new, liked)          on public.user_listings to authenticated;
 
 
@@ -1123,6 +1189,7 @@ grant execute on function
   public.limit_invites_per_pair(),
   public.match_user_listings(uuid),
   public.limit_search_params_changes(),
+  public.orphan_avatar_objects(interval),
   public.purge_old_invites(),
   public.purge_rate_limit_counters(),
   public.purge_removed_listings(),
