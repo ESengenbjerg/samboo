@@ -1,7 +1,7 @@
 import { useProfile } from "@/hooks/useProfile";
 import { useSession } from "@/hooks/useSession";
 import { updateProfileName } from "@/services/profiles";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 import FormError from "../form-error";
 import FormMessage from "../form-message";
@@ -25,7 +25,7 @@ export default function ProfileSettingsForm() {
   const [newName, setNewName] = useState("");
 
   const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>("");
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Returns true if new name is typed in input
@@ -35,9 +35,12 @@ export default function ProfileSettingsForm() {
 
   // TODO: Add support for update image
 
-  console.log("DB NAME: " + profile?.name);
-  console.log("NEW NAME: " + newName);
-  console.log("NAME IS CHANGED: " + nameIsChanged);
+  useEffect(() => {
+    if (profile?.name) {
+      setSavedName(profile.name);
+      setNewName(profile.name);
+    }
+  }, [profile]);
 
   async function onSubmit() {
     if (!userId || !nameIsChanged) return;
@@ -75,6 +78,7 @@ export default function ProfileSettingsForm() {
             placeholder="Namn"
             returnKeyType="next"
             submitBehavior="submit"
+            maxLength={100}
             value={newName}
             onChangeText={setNewName}
             onSubmitEditing={onSubmit}
@@ -97,8 +101,8 @@ export default function ProfileSettingsForm() {
           </Button> */}
         </View>
 
-        {errorMessage && <FormError>{errorMessage}</FormError>}
-        {successMessage && <FormMessage>{successMessage}</FormMessage>}
+        {!!errorMessage && <FormError>{errorMessage}</FormError>}
+        {!!successMessage && <FormMessage>{successMessage}</FormMessage>}
 
         <Button
           onPress={onSubmit}
