@@ -16,15 +16,15 @@ export function useListings() {
         setLoading(false);
         return;
       }
-      
+
       // Get correct listings feed based on userId
       const { data, error } = await getActiveListings(auth.user.id);
-        if (error) console.error("Failed to load listings: ", error);
-        else setListings(data.map((row) => row.listings));
-        setLoading(false);
-      }
-      load();
-    }, []);
+      if (error) console.error("Failed to load listings: ", error);
+      else setListings(data.map((row) => row.listings));
+      setLoading(false);
+    }
+    load();
+  }, []);
 
   return { listings, loading };
 }
