@@ -1,15 +1,21 @@
+import { SaveShowingDialog } from "@/components/modals/save-showing-dialog";
 import ObjectInfo from "@/components/object-page/object-info";
 import { OBJECT_INFO_OPTIONS } from "@/components/object-page/object-info-config";
 import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
+import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
 import { useListing } from "@/hooks/useListing";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
-import { ScrollView, View } from "react-native";
+import { Plus } from "lucide-react-native";
+import { useState } from "react";
+import { Linking, ScrollView, View } from "react-native";
 
 export default function SearchObjectScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { userListing, isLoading } = useListing(id);
+  const [showingDialogOpen, setShowingDialogOpen] = useState(false);
 
   if (isLoading)
     return (
@@ -69,13 +75,51 @@ export default function SearchObjectScreen() {
             )}
           </View>
 
+          <Separator />
+
           {/* --- OBJECT INFO --- */}
-          <View className="gap-2">
+          <View className="gap-6">
             <Text variant="h4">Om bostaden</Text>
-            {OBJECT_INFO_OPTIONS.map((o) => (
-              <ObjectInfo key={o} type={o} value={listing[o]} />
-            ))}
+            <View className="gap-2">
+              {OBJECT_INFO_OPTIONS.map((o) => (
+                <ObjectInfo key={o} type={o} value={listing[o]} />
+              ))}
+            </View>
+            <Button
+              onPress={() => Linking.openURL(listing.url)}
+              className="w-52 mt-4"
+            >
+              <Text>Läs mer hos mäklaren</Text>
+            </Button>
           </View>
+          <Separator />
+
+          {/* --- SCHEDULE SHOWING --- */}
+          <View className="gap-6">
+            <View>
+              <Text variant="h4">Har du bokat visning?</Text>
+              <Text>
+                Lägg in din bokade visning i er gemensamma visningslista.
+              </Text>
+            </View>
+            <Button
+              variant="outline"
+              onPress={() => setShowingDialogOpen(true)}
+              className="w-52"
+            >
+              <Text>Spara visning i lista</Text>
+              <Icon as={Plus} size={18} />
+            </Button>
+          </View>
+
+          {/* --- SCHEDULE DIALOG --- */}
+          {showingDialogOpen && (
+            <SaveShowingDialog
+              open={true}
+              onOpenChange={() => setShowingDialogOpen(false)}
+              onSave={() => setShowingDialogOpen(false)}
+            />
+          )}
         </View>
       </ScrollView>
     </View>
