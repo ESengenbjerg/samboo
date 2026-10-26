@@ -1,7 +1,7 @@
 import { useProfile } from "@/hooks/useProfile";
 import { useSession } from "@/hooks/useSession";
 import { updateProfileName } from "@/services/profiles";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 import FormError from "../form-error";
 import FormMessage from "../form-message";
@@ -35,9 +35,12 @@ export default function ProfileSettingsForm() {
 
   // TODO: Add support for update image
 
-  console.log("DB NAME: " + profile?.name);
-  console.log("NEW NAME: " + newName);
-  console.log("NAME IS CHANGED: " + nameIsChanged);
+  useEffect(() => {
+    if (profile?.name) {
+      setSavedName(profile.name);
+      setNewName(profile.name);
+    }
+  }, [profile]);
 
   async function onSubmit() {
     if (!userId || !nameIsChanged) return;
