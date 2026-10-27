@@ -1,7 +1,7 @@
 import { ConnectedAccounts } from "@/hooks/useConnectedAccounts";
 import { GroupMember } from "@/types/connected-accounts";
 import { Image } from "expo-image";
-import { Trash } from "lucide-react-native";
+import { LogOut, Trash } from "lucide-react-native";
 import { useState } from "react";
 import { View } from "react-native";
 import FormError from "../form-error";
@@ -86,12 +86,13 @@ export default function ConnectedAccountsSettings({
           ))}
 
           <Button
-            variant="secondary"
+            variant="outline"
             onPress={() => setLeaveDialogOpen(true)}
             disabled={isSubmitting}
             className="self-start mt-2"
           >
             <Text>Lämna gruppen</Text>
+            <Icon as={LogOut}></Icon>
           </Button>
         </View>
       )}
