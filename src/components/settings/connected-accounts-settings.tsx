@@ -68,7 +68,7 @@ export default function ConnectedAccountsSettings({
                 ) : (
                   <View className="size-4 rounded-full bg-muted" />
                 )}
-                <Text>{m.name}</Text>
+                <Text className="max-w-44">{m.name}</Text>
               </View>
 
               {/* Remove text and trash icon */}

@@ -78,7 +78,6 @@ export function SendInviteDialog({
               }}
               disabled={isLoading}
             >
-              {/* TODO: Update text based on loading state */}
               <Text>{isLoading ? "Skickar inbjudan" : "Skicka inbjudan"}</Text>
             </Button>
           </View>
