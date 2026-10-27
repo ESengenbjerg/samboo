@@ -1,0 +1,44 @@
+name: Purge orphan avatars
+
+# Deletes avatar files in Storage that no profile points to (see scripts/avatars/purgeOrphanAvatars.ts).
+# NOTE! The secrets must exist in GitHub Action Secrets before the first run.
+# THEREFORE! The schedule is commented out until the secrets are in place and the workflow is on the default branch.
+
+on:
+  # schedule:
+  #   # Once a day. GitHub cron is always UTC. Off the hour on purpose, GitHub delays jobs queued at :00
+  #   - cron: "37 2 * * *"
+
+  workflow_dispatch: # Manual run from the Actions tab
+
+# Never run two purges at once
+concurrency:
+  group: purge-avatars
+  cancel-in-progress: false
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24 # Runs .ts files natively
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck backend
+        run: npx tsc --noEmit -p scripts/tsconfig.json
+
+      # The script calls process.loadEnvFile(".env"), which throws if the file is missing.
+      # An empty file is fine: variables already in the environment are not overwritten.
+      - run: touch .env
+
+      - name: Purge orphan avatars
+        run: node scripts/avatars/purgeOrphanAvatars.ts
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
