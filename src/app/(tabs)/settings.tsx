@@ -1,13 +1,19 @@
 import ConnectedAccountsSettings from "@/components/settings/connected-accounts-settings";
 import DeleteAccount from "@/components/settings/delete-account-settings";
 import FilterSettings from "@/components/settings/filter-settings";
+import ConnectAccountsSettings from "@/components/settings/invited-accounts-settings copy";
 import ProfileSettingsForm from "@/components/settings/profile-settings-form";
 import SettingsMenu from "@/components/settings/settings-menu";
 import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
 import { SETTING_OPTIONS } from "@/constants/setting-options";
 import { useRef } from "react";
-import { LayoutChangeEvent, ScrollView, type ScrollViewInstance, View } from "react-native";
+import {
+  LayoutChangeEvent,
+  ScrollView,
+  type ScrollViewInstance,
+  View,
+} from "react-native";
 
 export default function SettingsScreen() {
   const scrollRef = useRef<ScrollViewInstance>(null);
@@ -43,6 +49,11 @@ export default function SettingsScreen() {
         <Separator />
         <View onLayout={trackSection("kopplade konton")}>
           <ConnectedAccountsSettings />
+        </View>
+
+        <Separator />
+        <View onLayout={trackSection("bjud in konto")}>
+          <ConnectAccountsSettings />
         </View>
 
         <Separator />
