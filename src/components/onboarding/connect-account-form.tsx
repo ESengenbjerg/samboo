@@ -1,5 +1,5 @@
 import { getCurrentUser } from "@/services/auth";
-import { createInvite } from "@/services/invites";
+import { createInvite, inviteErrorMessage } from "@/services/invites";
 import { saveOnboarding } from "@/services/onboarding";
 import { useOnboardingStore } from "@/stores/onboarding";
 import { useState } from "react";
@@ -67,8 +67,8 @@ export default function ConnectAccountForm() {
     setInvitationDialogOpen(false);
 
     if (inviteError) {
-      console.log("Invite error: " + inviteError);
-      setError("Kunde inte skicka inbjudan, försök igen.");
+      console.log("Invite error:", inviteError);
+      setError(inviteErrorMessage(inviteError));
       setIsLoading(false);
       return;
     }

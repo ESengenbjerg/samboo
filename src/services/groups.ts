@@ -15,7 +15,13 @@ function avatarUrl(path: string | null) {
 
 // The other members of my group (connected accounts). Empty if I am not in a group
 export async function getGroupMembers(userId: string) {
-  const { data: groupId, error: groupError } = await supabase.rpc("my_group_id");
+  // GET: the function is read-only (STABLE). A POST would make check_request() try to write
+  // the rate limit counter inside a read-only transaction, which fails
+  const { data: groupId, error: groupError } = await supabase.rpc(
+    "my_group_id",
+    undefined,
+    { get: true },
+  );
   if (groupError) return { data: null, error: groupError };
   if (groupId === null) return { data: [] as GroupMember[], error: null };
 

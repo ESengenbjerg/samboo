@@ -1,83 +1,127 @@
+import { ConnectedAccounts } from "@/hooks/useConnectedAccounts";
+import { GroupMember } from "@/types/connected-accounts";
 import { Image } from "expo-image";
 import { Trash } from "lucide-react-native";
 import { useState } from "react";
 import { View } from "react-native";
+import FormError from "../form-error";
 import { ConfirmDialog } from "../modals/confirm-dialog";
 import { Button } from "../ui/button";
 import { Icon } from "../ui/icon";
 import { Text } from "../ui/text";
 
-type ConnectedAccount = {
-  name: string;
-  avatar: string;
-};
+export default function ConnectedAccountsSettings({
+  accounts,
+}: {
+  accounts: ConnectedAccounts;
+}) {
+  const {
+    members,
+    isInGroup,
+    isLoading,
+    error,
+    isSubmitting,
+    actionError,
+    removeMember,
+    leaveGroup,
+  } = accounts;
+  // The member to remove, null = dialog closed
+  const [memberToRemove, setMemberToRemove] = useState<GroupMember | null>(
+    null,
+  );
+  const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
 
-// TODO: Replace with correct info from Supabase
-const DEV_CONNECTED_ACCOUNTS: ConnectedAccount[] = [
-  {
-    name: "Emilie",
-    avatar:
-      "https://i.pinimg.com/474x/50/2e/18/502e187b24c2755b5d62968ac4f6cc4b.jpg",
-  },
-  {
-    name: "Maria",
-    avatar: "https://www.kalaskungen.com/pub_images/original/SRFS9162.jpg",
-  },
-];
-
-export default function ConnectedAccountsSettings() {
-  const [dialogOpen, setDialogOpen] = useState(false);
-  // TODO: Delete when correct funtion from Supabase is implemented
-  const [devIsDeleted, setDevIsDeleted] = useState(false);
-
-  function onDelete() {
-    // TODO: Function that removes connected account
+  async function onRemoveMember() {
+    if (!memberToRemove) return;
+    await removeMember(memberToRemove.id);
+    setMemberToRemove(null);
   }
+
+  async function onLeaveGroup() {
+    await leaveGroup();
+    setLeaveDialogOpen(false);
+  }
+
   return (
-    <View>
+    <View className="flex-1 gap-4">
       <Text variant="h2">Kopplade konton</Text>
-      <View className="gap-2">
-        {DEV_CONNECTED_ACCOUNTS.map((c) => (
-          <View key={c.name} className="flex-row justify-between items-center">
-            {/* Avatar and name */}
-            <View className="flex-row items-center gap-3">
-              <Image
-                source={c.avatar}
-                style={{ width: 16, height: 16, borderRadius: 8 }}
-                contentFit="cover"
-              />
-              <Text>{c.name}</Text>
+
+      {error && <FormError>{error}</FormError>}
+      {actionError && <FormError>{actionError}</FormError>}
+
+      {isLoading ? (
+        <Text>Laddar...</Text>
+      ) : !isInGroup ? (
+        <Text>Du har inga kopplade konton ännu.</Text>
+      ) : (
+        <View className="gap-2">
+          {members.map((m) => (
+            <View key={m.id} className="flex-row justify-between items-center">
+              {/* Avatar and name */}
+              <View className="flex-row items-center gap-3">
+                {m.avatarUrl ? (
+                  <Image
+                    source={m.avatarUrl}
+                    style={{ width: 16, height: 16, borderRadius: 8 }}
+                    contentFit="cover"
+                  />
+                ) : (
+                  <View className="size-4 rounded-full bg-muted" />
+                )}
+                <Text>{m.name}</Text>
+              </View>
+
+              {/* Remove text and trash icon */}
+              <Button
+                variant="destructive"
+                aria-label={`Ta bort ${m.name}`}
+                onPress={() => setMemberToRemove(m)}
+                disabled={isSubmitting}
+                className="px-2 items-center"
+              >
+                <Text>Ta bort</Text>
+                <Icon as={Trash} size={20} className="size-5" />
+              </Button>
             </View>
+          ))}
 
-            {dialogOpen && (
-              <ConfirmDialog
-                open={true}
-                onOpenChange={() => setDialogOpen(false)}
-                title={"Är du säker?"}
-                description={"Om du tar bort det kopplade kontot kan du inte längre se personens listor eller er gemensamma lista. Vill du verkligen radera det kopplade kontot?"}
-                actionLabel={"Bekräfta radering"}
-                // TODO: Implement correct funtion from Supabase
-                onAction={() => setDevIsDeleted(true)}
-                cancelLabel={"Avbryt"}
-                onCancel={() => setDialogOpen(false)} 
-                // TODO: Update to correct state
-                isLoading={false}
-              />
-            )}
+          <Button
+            variant="secondary"
+            onPress={() => setLeaveDialogOpen(true)}
+            disabled={isSubmitting}
+            className="self-start mt-2"
+          >
+            <Text>Lämna gruppen</Text>
+          </Button>
+        </View>
+      )}
 
-            {/* Remove text and trash icon */}
-            <Button
-              variant="destructive"
-              aria-label="Radera kopplat konto"
-              onPress={() => setDialogOpen(true)}
-              className="px-2 items-center"
-            >
-              <Text>Ta bort</Text>
-              <Icon as={Trash} size={20} className="size-5" />
-            </Button>
-          </View>
-        ))}
-      </View>
+      {/* One dialog for all members, outside the list */}
+      <ConfirmDialog
+        open={memberToRemove !== null}
+        onOpenChange={(open) => !open && setMemberToRemove(null)}
+        title={"Är du säker?"}
+        description={`Om du tar bort ${memberToRemove?.name ?? "kontot"} kan ni inte längre se varandras listor eller er gemensamma lista.`}
+        actionLabel={"Bekräfta radering"}
+        onAction={onRemoveMember}
+        cancelLabel={"Avbryt"}
+        onCancel={() => setMemberToRemove(null)}
+        isLoading={isSubmitting}
+      />
+
+      <ConfirmDialog
+        open={leaveDialogOpen}
+        onOpenChange={setLeaveDialogOpen}
+        title={"Lämna gruppen?"}
+        description={
+          "Du kommer inte längre kunna se de andras listor eller er gemensamma lista."
+        }
+        actionLabel={"Lämna gruppen"}
+        onAction={onLeaveGroup}
+        cancelLabel={"Avbryt"}
+        onCancel={() => setLeaveDialogOpen(false)}
+        isLoading={isSubmitting}
+      />
     </View>
   );
 }

@@ -26,7 +26,10 @@ export function getSentInvites(userId: string) {
 // Pending invites addressed to my e-mail, with the sender's name and e-mail.
 // Uses a function because the recipient cannot read the sender's profile
 export async function getReceivedInvites() {
-  const { data, error } = await supabase.rpc("my_pending_invites");
+  // GET: read-only function, see getGroupMembers() in groups.ts
+  const { data, error } = await supabase.rpc("my_pending_invites", undefined, {
+    get: true,
+  });
   return { data: data as ReceivedInvite[] | null, error };
 }
 

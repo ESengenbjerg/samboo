@@ -202,3 +202,5 @@ export function useConnectedAccounts(userId: string | undefined) {
     leaveGroup,
   };
 }
+
+export type ConnectedAccounts = ReturnType<typeof useConnectedAccounts>;

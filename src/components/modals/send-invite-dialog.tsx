@@ -1,5 +1,7 @@
+import FormError from "@/components/form-error";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { useState } from "react";
 import { View } from "react-native";
 import {
   Dialog,
@@ -10,23 +12,31 @@ import {
 } from "../ui/dialog";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { Textarea } from "../ui/textarea";
-import { useState } from "react";
 
 type SendInviteDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAction: (email: string) => void;
+  onAction: (email: string) => void | Promise<unknown>;
+  isLoading?: boolean;
+  error?: string | null;
 };
 
 export function SendInviteDialog({
   open,
   onOpenChange,
   onAction,
+  isLoading,
+  error,
 }: SendInviteDialogProps) {
   const [email, setEmail] = useState("");
+
+  function handleOpenChange(open: boolean) {
+    if (!open) setEmail("");
+    onOpenChange(open);
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Skicka inbjudan</DialogTitle>
@@ -46,24 +56,30 @@ export function SendInviteDialog({
               returnKeyType="next"
               submitBehavior="submit"
               textContentType="emailAddress"
-              // editable={!isLoading}
+              editable={!isLoading}
             />
           </View>
-          <View className="gap-2">
+          {/* <View className="gap-2">
             <Label htmlFor="invite-message">Lägg till en hälsning</Label>
             <Textarea
               id="invite-message"
               placeholder="Hej! Jag vill bjuda in dig att se mina listor..."
               className="h-24"
             />
-          </View>
+          </View> */}
         </View>
 
         <DialogFooter>
           <View className="flex-1 gap-4">
-            <Button onPress={() => onAction(email.trim())}>
+            {error && <FormError>{error}</FormError>}
+            <Button
+              onPress={() => {
+                onAction(email.trim());
+              }}
+              disabled={isLoading}
+            >
               {/* TODO: Update text based on loading state */}
-              <Text>Skicka inbjudan</Text>
+              <Text>{isLoading ? "Skickar inbjudan" : "Skicka inbjudan"}</Text>
             </Button>
           </View>
         </DialogFooter>
