@@ -697,6 +697,25 @@ begin
 end;
 $function$;
 
+-- A group has at most 50 showings (MAX_GROUP_SHOWINGS). The group row is locked while counting, so simultaneous inserts from several members cannot go past the limit.
+CREATE OR REPLACE FUNCTION public.limit_showings_per_group()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+begin
+  perform 1 from public.groups where id = new.group_id for update;
+  if (
+    select count(*) from public.showings
+    where group_id = new.group_id
+  ) >= 50 then
+    raise exception 'Gruppen har redan max antal visningar (50)';
+  end if;
+  return new;
+end;
+$function$;
+
 CREATE OR REPLACE FUNCTION public.search_params_match_trigger()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -983,6 +1002,10 @@ CREATE TRIGGER invites_limit_per_pair
   BEFORE INSERT ON public.invites
   FOR EACH ROW EXECUTE FUNCTION public.limit_invites_per_pair();
 
+CREATE TRIGGER showings_limit_per_group
+  BEFORE INSERT ON public.showings
+  FOR EACH ROW EXECUTE FUNCTION public.limit_showings_per_group();
+
 CREATE TRIGGER on_profile_deleted
   AFTER DELETE ON public.profiles
   FOR EACH ROW EXECUTE FUNCTION public.handle_deleted_profile();
@@ -1253,6 +1276,7 @@ grant execute on function
   public.limit_invites_per_pair(),
   public.match_user_listings(uuid),
   public.limit_search_params_changes(),
+  public.limit_showings_per_group(),
   public.orphan_avatar_objects(interval),
   public.purge_old_invites(),
   public.purge_old_showings(),

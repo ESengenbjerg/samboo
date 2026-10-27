@@ -31,7 +31,7 @@ Every relation from `profiles` is `ON DELETE CASCADE`, except `group_id`, which 
 | `user_listings` | Matches between users and listings | Unique on (`user_id`, `listing_id`). `is_new` (default true), `liked` (default false) |
 | `user_tags` | The user's own tags | Unique on (`user_id`, `tag_name`). `tag_name` is 1–100 characters |
 | `listing_tags` | A tag applied to a matched listing | Unique on (`user_tag_id`, `user_listing_id`) |
-| `showings` | Showings a group has planned, entered by hand (not an official booking: the real booking is made at the agency) | Owned by the group: `group_id` → `groups` (cascade), so it is deleted when the group is dissolved, but not when a member leaves or is removed. `group_id` is filled in by the database (column default `my_group_id()`), never sent by the app. `listing_id` → `listings` (cascade). Unique on (`group_id`, `listing_id`): one showing per listing and group. `showing_date` (date), `start_time` (optional), `note` (max 500 characters). Old rows are deleted by pg_cron 30 days after the date |
+| `showings` | Showings a group has planned, entered by hand (not an official booking: the real booking is made at the agency) | Owned by the group: `group_id` → `groups` (cascade), so it is deleted when the group is dissolved, but not when a member leaves or is removed. `group_id` is filled in by the database (column default `my_group_id()`), never sent by the app. `listing_id` → `listings` (cascade). Unique on (`group_id`, `listing_id`): one showing per listing and group. `showing_date` (date), `start_time` (optional), `note` (max 500 characters). At most 50 per group (`limit_showings_per_group()`). Old rows are deleted by pg_cron 30 days after the date |
 | `scrape_issues` | Failures and suspicious results from the scraper | At most one open issue per (`agency`, `kind`). RLS on with no policies, so only service_role can reach it |
 | `search_params_log` | Every insert/update of a user's search, written by `limit_search_params_changes()` | Max 5 changes per user per 24 hours. Rows deleted after 90 days. Cascade on profile delete. No grants and no policies: service_role only |
 | `api_rate_limit` | Write requests per user and minute, used by `check_request()` | Primary key (`user_id`, `minute`). No foreign key on purpose. No grants and no policies: only the functions and service_role touch it |
@@ -77,7 +77,7 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 
 - **`authenticated` and service_role:** `accept_invite`, `decline_invite`, `in_my_group`, `is_active_user`, `leave_group`, `remove_group_member`, `like_listing`, `my_group_id`, `my_pending_invites`, `shared_likes`, `shares_group_with`, `delete_my_account`, `cancel_invite`.
 - **`anon`, `authenticated`, service_role and `authenticator`:** `check_request` only. PostgREST runs it before every request as the requesting role, so revoking it would break every request.
-- **service_role only:** `dissolve_group_if_alone`, `handle_deleted_profile`, `handle_new_user`, `limit_invites_per_pair`, `limit_search_params_changes`, `match_user_listings`, `orphan_avatar_objects`, `purge_old_invites`, `purge_old_showings`, `purge_rate_limit_counters`, `purge_removed_listings`, `purge_search_params_log`, `rls_auto_enable`, `search_params_match_trigger`.
+- **service_role only:** `dissolve_group_if_alone`, `handle_deleted_profile`, `handle_new_user`, `limit_invites_per_pair`, `limit_search_params_changes`, `limit_showings_per_group`, `match_user_listings`, `orphan_avatar_objects`, `purge_old_invites`, `purge_old_showings`, `purge_rate_limit_counters`, `purge_removed_listings`, `purge_search_params_log`, `rls_auto_enable`, `search_params_match_trigger`.
 
 ## Functions
 
@@ -100,6 +100,7 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 | `shared_likes()` | RPC | **The shared list** ("Gemensam-listan"): listings that *every* member of the group has liked |
 | `match_user_listings(user_id?)` | security invoker | Matches search profile(s) against `listings` (a search with no municipality and no area matches nothing), inserts new rows and deletes rows that no longer match (except liked, tagged and removed listings) |
 | `limit_invites_per_pair()` | trigger, security definer | Rejects a new invite if the sender has already sent 20 invites (any status) to the same e-mail. Error: `Du har skickat för många inbjudningar till den här personen` |
+| `limit_showings_per_group()` | trigger, security definer | Rejects a new showing if the group already has 50. The group row is locked while counting, so simultaneous inserts cannot go past the limit. Error: `Gruppen har redan max antal visningar (50)` |
 | `search_params_match_trigger()` | trigger, security definer | Runs `match_user_listings` for the user when their search profile changes |
 | `check_request()` | pre-request function, security definer | Runs before every Data API request (`pgrst.db_pre_request`). Allows a signed-in user at most 100 write requests (POST/PUT/PATCH/DELETE, including RPC) per 5 minutes and otherwise answers HTTP 429. Skips reads, `service_role` and `anon` |
 | `limit_search_params_changes()` | trigger, security definer | Before insert/update of the search columns: rejects the change if the user has already made 5 in the last 24 hours (`Du har ändrat din sökning för många gånger. Försök igen senare`), otherwise logs it in `search_params_log`. service_role and the SQL Editor are skipped. Unchanged updates do not count |
@@ -117,6 +118,7 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 |---|---|---|---|
 | `on_auth_user_created` | `auth.users` | after insert | `handle_new_user()` |
 | `invites_limit_per_pair` | `invites` | before insert | `limit_invites_per_pair()` |
+| `showings_limit_per_group` | `showings` | before insert | `limit_showings_per_group()` |
 | `on_profile_deleted` | `profiles` | after delete | `handle_deleted_profile()` |
 | `search_params_limit_changes` | `search_params` | before insert, or update of a search column | `limit_search_params_changes()` |
 | `search_params_match` | `search_params` | after insert, or update of a search column | `search_params_match_trigger()` |
