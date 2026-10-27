@@ -1,6 +1,7 @@
 import { buttonTextVariants, buttonVariants } from "@/components/ui/button";
 import { Text, TextClassContext } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
+import * as AlertDialogPrimitive from "@rn-primitives/alert-dialog";
 import { VariantProps } from "class-variance-authority";
 import {
   AlertDialog,
@@ -10,8 +11,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../ui/alert-dialog";
-import * as AlertDialogPrimitive from '@rn-primitives/alert-dialog';
-import { isLoading } from "expo-font";
 
 type ConfirmDialogProps = {
   open: boolean;
@@ -19,7 +18,7 @@ type ConfirmDialogProps = {
   title: string;
   description: string;
   actionLabel: string;
-  onAction: () => void;
+  onAction: () => void | Promise<unknown>;
   cancelLabel: string;
   onCancel: () => void;
   isLoading: boolean;
@@ -58,7 +57,6 @@ function AlertDialogCancel({
   );
 }
 
-
 export function ConfirmDialog({
   open,
   onOpenChange,
@@ -79,23 +77,15 @@ export function ConfirmDialog({
             <AlertDialogDescription>{description}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row">
-
             <AlertDialogAction
               variant="destructive"
               onPress={onAction}
               disabled={isLoading}
             >
-              <Text>
-                {actionLabel}
-              </Text>
+              <Text>{actionLabel}</Text>
             </AlertDialogAction>
-            <AlertDialogCancel
-              variant="default"
-              onPress={onCancel}
-            >
-              <Text>
-                {cancelLabel}
-              </Text>
+            <AlertDialogCancel variant="default" onPress={onCancel}>
+              <Text>{cancelLabel}</Text>
             </AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -1,15 +1,37 @@
 import ConnectedAccountsSettings from "@/components/settings/connected-accounts-settings";
 import DeleteAccount from "@/components/settings/delete-account-settings";
 import FilterSettings from "@/components/settings/filter-settings";
+import ConnectAccountsSettings from "@/components/settings/invited-accounts-settings";
 import ProfileSettingsForm from "@/components/settings/profile-settings-form";
+import ReceivedInvitesSettings from "@/components/settings/received-invites-settings";
 import SettingsMenu from "@/components/settings/settings-menu";
 import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
 import { SETTING_OPTIONS } from "@/constants/setting-options";
-import { useRef } from "react";
-import { LayoutChangeEvent, ScrollView, type ScrollViewInstance, View } from "react-native";
+import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
+import { useSession } from "@/hooks/useSession";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useRef } from "react";
+import {
+  LayoutChangeEvent,
+  ScrollView,
+  type ScrollViewInstance,
+  View,
+} from "react-native";
 
 export default function SettingsScreen() {
+  const { session } = useSession();
+  const accounts = useConnectedAccounts(session?.user.id);
+
+  // Reload connected accounts every time the tab is opened.
+  // Catches changes Realtime cannot send, e.g. another member leaving the group
+  const { refresh } = accounts;
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh]),
+  );
+
   const scrollRef = useRef<ScrollViewInstance>(null);
   // Y-position for each section, saved without triggering rerender
   const sectionY = useRef<Record<string, number>>({});
@@ -42,7 +64,17 @@ export default function SettingsScreen() {
 
         <Separator />
         <View onLayout={trackSection("kopplade konton")}>
-          <ConnectedAccountsSettings />
+          <ConnectedAccountsSettings accounts={accounts} />
+        </View>
+
+        <Separator />
+        <View onLayout={trackSection("mottagna inbjudningar")}>
+          <ReceivedInvitesSettings accounts={accounts} />
+        </View>
+
+        <Separator />
+        <View onLayout={trackSection("bjud in konto")}>
+          <ConnectAccountsSettings accounts={accounts} />
         </View>
 
         <Separator />
