@@ -1114,6 +1114,15 @@ create policy listings_select_matched on public.listings
     where ul.listing_id = listings.id and shares_group_with(ul.user_id)
   ));
 
+-- listings (those my group has a showing for). Policies are combined with OR, so this adds to listings_select_matched.
+-- Needed because a showing can outlive the match: if the member whose search params matched the listing leaves the group or changes their search, nobody else may have it in user_listings.
+create policy listings_select_showings on public.listings
+  for select to authenticated
+  using (is_active_user() and exists (
+    select 1 from public.showings s
+    where s.listing_id = listings.id and s.group_id = (select my_group_id())
+  ));
+
 -- profiles
 create policy profiles_select on public.profiles
   for select to authenticated

@@ -49,7 +49,7 @@ RLS is enabled on every table. All policies apply to the `authenticated` role, a
 | `invites` | Ones I sent (all statuses, so a declined invite is visible to the sender), or addressed to my email (not cancelled) | Create own (not to my own email) |
 | `search_params` | Own | Create, update, delete own |
 | `user_listings` | Mine and my group members' | Update own |
-| `listings` | Listings matched to me or to someone in my group | None (the scraper uses service_role) |
+| `listings` | Listings matched to me or to someone in my group, and listings my group has a showing for | None (the scraper uses service_role) |
 | `user_tags` | Own | Create, update, delete own |
 | `showings` | My group's | Create (the listing must be visible to me), update (date, time, note) and delete, for any member of the group |
 | `listing_tags` | Own | Create and delete own (both the tag and the listing must be mine) |
