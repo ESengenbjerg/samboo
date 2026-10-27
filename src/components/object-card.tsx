@@ -53,6 +53,7 @@ type ObjectCardProps = VariantProps<typeof objectCardVariants> & {
 export function ObjectCard({
   address,
   area,
+  municipality,
   price,
   livingArea,
   rooms,

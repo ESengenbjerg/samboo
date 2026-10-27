@@ -17,15 +17,15 @@ export function applyClientFilter(
 
     if (
       filter.maxMonthlyFee !== undefined &&
-      listing.ld_json.monthlyFee !== undefined &&
-      listing.ld_json.monthlyFee > filter.maxMonthlyFee
+      listing.monthly_fee != null &&
+      listing.monthly_fee > filter.maxMonthlyFee
     )
       return false;
 
     if (
       filter.minLivingArea !== undefined &&
-      listing.ld_json.livingArea &&
-      listing.ld_json.livingArea < filter.minLivingArea
+      listing.living_area &&
+      listing.living_area < filter.minLivingArea
     )
       return false;
 
