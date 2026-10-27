@@ -62,9 +62,7 @@ export default function SearchScreen() {
       </View>
 
       {loading && <Text>Laddar...</Text>}
-      {!loading && listings.length === 0 && (
-        <Text>Kunde inte hämta objekt.</Text>
-      )}
+      {!loading && listings.length === 0 && <Text>Inga objekt hittades.</Text>}
 
       {/* Present properties based in column or grid based on user choice */}
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -74,10 +72,10 @@ export default function SearchScreen() {
           {/* Map through properties */}
           {listings.map((listing) => (
             <ObjectCard
-              key={`${listing.id}`}
+              key={listing.id}
               address={listing.ld_json.streetAddress ?? ""}
               area={listing.area ?? ""}
-              municipiality={listing.municipality ?? ""}
+              municipality={listing.municipality ?? ""}
               price={listing.price ?? 0}
               livingArea={listing.living_area ?? 0}
               rooms={listing.rooms ?? 0}

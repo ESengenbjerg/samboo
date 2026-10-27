@@ -21,7 +21,6 @@ export default function CardAndDialogComponents() {
         key={1}
           open={dialogOpen}
           onOpenChange={() => setDialogOpen(false)}
-          dates={["3/10", "4/10"]}
           onSave={() => setDialogOpen(false)}
         ></SaveShowingDialog>
       </View>
