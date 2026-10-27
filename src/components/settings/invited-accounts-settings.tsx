@@ -1,6 +1,6 @@
 import { ConnectedAccounts } from "@/hooks/useConnectedAccounts";
 import { SentInvite } from "@/types/connected-accounts";
-import { Trash } from "lucide-react-native";
+import { X } from "lucide-react-native";
 import { useState } from "react";
 import { View } from "react-native";
 import { ConfirmDialog } from "../modals/confirm-dialog";
@@ -43,8 +43,8 @@ export default function ConnectAccountsSettings({
   }
 
   return (
-    <View className="flex-1 gap-8">
-      <View className="flex-1 mt-6 gap-6">
+    <View className="gap-6">
+      <View className="gap-6">
         <View>
           <Text variant="h2">Bjud in konto</Text>
           <Text>
@@ -75,7 +75,7 @@ export default function ConnectAccountsSettings({
           <View key={i.id} className="flex-row justify-between items-center">
             {/* Avatar and name */}
             <View className="justify-start">
-              <Text>{i.to_email}</Text>
+              <Text variant="bold">{i.to_email}</Text>
               <Text>Väntar på svar</Text>
             </View>
 
@@ -86,8 +86,8 @@ export default function ConnectAccountsSettings({
               onPress={() => setInviteToCancel(i)}
               className="px-2 items-center"
             >
-              <Text>Avbryt inbjudan</Text>
-              <Icon as={Trash} size={20} className="size-5" />
+              <Text>Avbryt</Text>
+              <Icon as={X} size={20} className="size-5" />
             </Button>
           </View>
         ))}

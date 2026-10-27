@@ -2,6 +2,7 @@ import {
   getGroupMembers,
   leaveGroup as leaveGroupRpc,
   removeGroupMember as removeGroupMemberRpc,
+  subscribeToConnectedAccounts,
 } from "@/services/groups";
 import {
   acceptInvite as acceptInviteRpc,
@@ -81,6 +82,12 @@ export function useConnectedAccounts(userId: string | undefined) {
   }, [userId, refreshCount]);
 
   const refresh = useCallback(() => setRefreshCount((c) => c + 1), []);
+
+  // Reload when something changes on another account's device
+  useEffect(() => {
+    if (!userId) return;
+    return subscribeToConnectedAccounts(userId, refresh);
+  }, [userId, refresh]);
 
   // Never expose data that belongs to a previous user
   const current = userId && data?.userId === userId ? data : null;

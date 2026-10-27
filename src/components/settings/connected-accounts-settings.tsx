@@ -43,7 +43,7 @@ export default function ConnectedAccountsSettings({
   }
 
   return (
-    <View className="flex-1 gap-4">
+    <View className="gap-4">
       <Text variant="h2">Kopplade konton</Text>
 
       {error && <FormError>{error}</FormError>}

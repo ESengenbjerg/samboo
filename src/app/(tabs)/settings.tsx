@@ -10,7 +10,8 @@ import { Text } from "@/components/ui/text";
 import { SETTING_OPTIONS } from "@/constants/setting-options";
 import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
 import { useSession } from "@/hooks/useSession";
-import { useRef } from "react";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useRef } from "react";
 import {
   LayoutChangeEvent,
   ScrollView,
@@ -21,6 +22,15 @@ import {
 export default function SettingsScreen() {
   const { session } = useSession();
   const accounts = useConnectedAccounts(session?.user.id);
+
+  // Reload connected accounts every time the tab is opened.
+  // Catches changes Realtime cannot send, e.g. another member leaving the group
+  const { refresh } = accounts;
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh]),
+  );
 
   const scrollRef = useRef<ScrollViewInstance>(null);
   // Y-position for each section, saved without triggering rerender

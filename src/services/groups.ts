@@ -42,6 +42,34 @@ export async function getGroupMembers(userId: string) {
   return { data: members, error: null };
 }
 
+// Calls onChange when an invite or a profile I can read changes, e.g. when someone
+// accepts or declines my invite, invites me, or joins my group.
+// Realtime only sends rows that RLS lets me read, so no filter is needed.
+// Requires invites and profiles to be in the supabase_realtime publication.
+// Returns a function that stops listening
+export function subscribeToConnectedAccounts(
+  userId: string,
+  onChange: () => void,
+) {
+  const channel = supabase
+    .channel(`connected-accounts:${userId}`)
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "invites" },
+      onChange,
+    )
+    .on(
+      "postgres_changes",
+      { event: "UPDATE", schema: "public", table: "profiles" },
+      onChange,
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+
 // Leaves my group. If only one member remains, the database dissolves the group
 export function leaveGroup() {
   return supabase.rpc("leave_group");
