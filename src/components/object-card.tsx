@@ -40,6 +40,7 @@ const imageWrapperVariants = cva("w-full", {
 type ObjectCardProps = VariantProps<typeof objectCardVariants> & {
   address: string;
   area: string;
+  municipality: string;
   price: number | null;
   livingArea: number | null;
   rooms: number | null;
@@ -106,7 +107,9 @@ export function ObjectCard({
             <CardHeader className="flex-1 flex-row overflow-hidden justify-between">
               <View className="flex-1">
                 <CardTitle>{address}</CardTitle>
-                <CardDescription>{area}</CardDescription>
+                <CardDescription>
+                  {[area, municipality].filter(Boolean).join(", ")}
+                </CardDescription>
               </View>
 
               {saveButton}
