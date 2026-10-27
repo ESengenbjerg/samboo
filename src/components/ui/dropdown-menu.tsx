@@ -116,7 +116,7 @@ function DropdownMenuContent({
             <TextClassContext.Provider value="text-popover-foreground">
               <DropdownMenuPrimitive.Content
                 className={cn(
-                  'bg-popover border-border min-w-[8rem] overflow-hidden rounded-md border p-1 shadow-lg shadow-black/5',
+                  'bg-popover border-border min-w-[8rem] overflow-hidden rounded-md border shadow-lg shadow-black/5',
                   Platform.select({
                     web: cn(
                       'animate-in fade-in-0 zoom-in-95 max-h-(--radix-context-menu-content-available-height) origin-(--radix-context-menu-content-transform-origin) z-50 cursor-default',
@@ -154,10 +154,10 @@ function DropdownMenuItem({
       )}>
       <DropdownMenuPrimitive.Item
         className={cn(
-          'active:bg-accent group relative flex flex-row items-center gap-2 rounded-sm px-2 py-2 sm:py-1.5',
+          'group relative flex flex-row items-center gap-2 rounded-sm h-11 px-2 py-2 sm:py-1.5',
           Platform.select({
             web: cn(
-              'focus:bg-accent focus:text-accent-foreground cursor-default outline-none data-[disabled]:pointer-events-none',
+              'focus:bg-muted focus:text-accent-foreground cursor-default outline-none data-[disabled]:pointer-events-none',
               variant === 'destructive' && 'focus:bg-destructive/10 dark:focus:bg-destructive/20'
             ),
           }),

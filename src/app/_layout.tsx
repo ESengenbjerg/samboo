@@ -1,10 +1,8 @@
 import "../global.css";
 
 import { PortalHost } from "@rn-primitives/portal";
-import { Stack, ThemeProvider } from "expo-router";
-import { useColorScheme } from "nativewind";
+import { Stack } from "expo-router";
 
-import { NAV_THEME } from "@/lib/theme";
 import { useEffect } from "react";
 
 import Header from "@/components/header";
@@ -35,7 +33,9 @@ export default function RootLayout() {
     MomoTrustSans_500Medium,
     MomoTrustSans_700Bold,
   });
-  const { colorScheme } = useColorScheme();
+
+  // TODO: Add colorScheme if implementation of light/dark mode is relevant (on could)
+  // const { colorScheme } = useColorScheme();
 
   const { session, isSessionLoaded } = useSession();
   const userId = session?.user.id;
@@ -53,45 +53,59 @@ export default function RootLayout() {
     if (isReady) SplashScreen.hideAsync();
   }, [isReady]);
 
+  // Explicit targets: without them the redirect lands on the bare group URL, e.g. "/(auth)", which doesn't match a route
+  const homeHref = isLoggedIn && !isOnboarded ? "/(onboarding)/profile" : "/(tabs)/search";
+  const loginHref = "/(auth)/login";
+
   if (!isReady) return null;
 
   if (profile?.failed) {
     return (
-      <ThemeProvider value={NAV_THEME[colorScheme ?? "light"]}>
-        <View className="flex-1 items-center justify-center gap-4 bg-background px-8">
-          <Text>Kunde inte hämta din profil.</Text>
-          {/* "Försök igen" (Try again) refetches the profile */}
-          <Button onPress={retryProfile}>
-            <Text>Försök igen</Text>
-          </Button>
-          <Button variant="link" onPress={() => signOut()}>
-            <Text>Logga ut</Text>
-          </Button>
-        </View>
-      </ThemeProvider>
+      // TODO: Add ThemeProvider if implementation of light/dark mode is relevant (on could)
+      // <ThemeProvider value={NAV_THEME[colorScheme ?? "light"]}>
+
+      <View className="flex-1 items-center justify-center gap-4 bg-background px-8">
+        <Text>Kunde inte hämta din profil.</Text>
+        {/* "Försök igen" (Try again) refetches the profile */}
+        <Button onPress={retryProfile}>
+          <Text>Försök igen</Text>
+        </Button>
+        <Button variant="link" onPress={() => signOut()}>
+          <Text>Logga ut</Text>
+        </Button>
+      </View>
+      // </ThemeProvider>
     );
   }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider value={NAV_THEME[colorScheme ?? "light"]}>
-        {/* Redirects user to correct view */}
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Protected guard={!isLoggedIn}>
-            <Stack.Screen name="(auth)" />
-          </Stack.Protected>
-          <Stack.Protected guard={isLoggedIn && !isOnboarded}>
-            <Stack.Screen name="(onboarding)" />
-          </Stack.Protected>
-          <Stack.Protected guard={isLoggedIn && isOnboarded}>
-            <Stack.Screen
-              name="(tabs)"
-              options={{ headerShown: true, header: () => <Header /> }}
-            />
-          </Stack.Protected>
-        </Stack>
-        <PortalHost />
-      </ThemeProvider>
+      {/* TODO: Add ThemeProvider if implementation of light/dark mode is relevant (on could) */}
+      {/* <ThemeProvider value={NAV_THEME[colorScheme ?? "light"]}> */}
+
+      {/* Redirects user to correct view */}
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Protected guard={!isLoggedIn} redirectTo={homeHref}>
+          <Stack.Screen name="(auth)" />
+        </Stack.Protected>
+        <Stack.Protected
+            guard={isLoggedIn && !isOnboarded}
+            redirectTo={isLoggedIn ? homeHref : loginHref}
+          >
+          <Stack.Screen name="(onboarding)" />
+        </Stack.Protected>
+        <Stack.Protected
+            guard={isLoggedIn && isOnboarded}
+            redirectTo={isLoggedIn ? homeHref : loginHref}
+          >
+          <Stack.Screen
+            name="(tabs)"
+            options={{ headerShown: true, header: () => <Header /> }}
+          />
+        </Stack.Protected>
+      </Stack>
+      <PortalHost />
+      {/* </ThemeProvider> */}
     </GestureHandlerRootView>
   );
 }

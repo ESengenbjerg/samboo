@@ -6,13 +6,13 @@ import { Text } from "@/components/ui/text";
 import { resendSignUpCode, signIn } from "@/services/auth";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
-import { type TextInput, View } from "react-native";
+import { type TextInputInstance, View } from "react-native";
 
 export function SignInForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const passwordInputRef = useRef<TextInput>(null);
+  const passwordInputRef = useRef<TextInputInstance>(null);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

@@ -23,15 +23,15 @@ export default function ProfileForm() {
     setError(null);
 
     if (!profileName && !profileImage) {
-      setError("Lägg till visningsnamn och profilbild");
+      setError("Lägg till visningsnamn och profilbild.");
       return;
     }
     if (!profileName) {
-      setError("Lägg till ett visningsnamn");
+      setError("Lägg till ett visningsnamn.");
       return;
     }
     if (!profileImage) {
-      setError("Lägg till en profilbild");
+      setError("Lägg till en profilbild.");
       return;
     }
 
