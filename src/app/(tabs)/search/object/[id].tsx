@@ -26,8 +26,11 @@ export default function SearchObjectScreen() {
 
   if (!userListing)
     return (
-      <View className="flex-1 px-8 py-6 gap-6 bg-background">
+      <View className="flex-1 px-8 py-6 gap-6 bg-background justify-center items-center ">
         <Text>Kunde inte hitta objekt.</Text>
+        <Button className="w-36" onPress={() => router.back()}>
+          <Text>Tillbaka</Text>
+        </Button>
       </View>
     );
 
