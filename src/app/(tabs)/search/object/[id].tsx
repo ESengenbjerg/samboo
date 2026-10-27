@@ -48,7 +48,7 @@ export default function SearchObjectScreen() {
           source={
             listing.ld_json.image
               ? { uri: listing.ld_json.image }
-              : require("@/assets/images/img.jpg")
+              : require("@/assets/images/no-image.jpg")
           }
           style={{ width: "100%", height: 320 }}
           contentFit="cover"
@@ -95,6 +95,7 @@ export default function SearchObjectScreen() {
           <Separator />
 
           {/* --- SCHEDULE SHOWING --- */}
+          {/* TODO: Implement functionality */}
           <View className="gap-6">
             <View>
               <Text variant="h4">Har du bokat visning?</Text>
