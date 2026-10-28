@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import { MemberUserListing, UserListing } from "@/types/listing";
+import { Listing, MemberUserListing, UserListing } from "@/types/listing";
 
 // TODO: Remove policy from listings table that give anon permission to read
 export function getActiveListings(userId: string) {
@@ -45,6 +45,18 @@ export function getLikedListingsForUsers(userIds: string[]) {
     .is("listings.removed_at", null)
     .order("created_at", { ascending: false })
     .overrideTypes<MemberUserListing[]>();
+}
+
+// The shared list ("Gemensam lista"): listings that every member of my group has liked.
+// Calculated by the database on every call. Empty if I am not in a group
+export async function getSharedLikedListings() {
+  const { data, error } = await supabase
+    // GET: the function is read-only (STABLE), see getGroupMembers() in groups.ts
+    .rpc("shared_likes", undefined, { get: true })
+    // shared_likes() does not skip listings that have disappeared from the agency's site
+    .is("removed_at", null)
+    .order("created_at", { ascending: false });
+  return { data: data as Listing[] | null, error };
 }
 
 // listingId is listings.id (= user_listings.listing_id).
