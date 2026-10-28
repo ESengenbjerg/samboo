@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import { UserListing } from "@/types/listing";
+import { MemberUserListing, UserListing } from "@/types/listing";
 
 // TODO: Remove policy from listings table that give anon permission to read
 export function getActiveListings(userId: string) {
@@ -31,6 +31,20 @@ export function getLikedListings(userId: string) {
       .order("created_at", { ascending: false })
       .overrideTypes<UserListing[]>()
   );
+}
+
+// Liked listings of several users at once, e.g. the members of my group.
+// RLS lets me read user_listings for everyone in my group. user_id tells whose row it is
+export function getLikedListingsForUsers(userIds: string[]) {
+  return supabase
+    .from("user_listings")
+    // !inner removes deleted listings, see getLikedListings()
+    .select("id, user_id, is_new, liked, listings!inner(*)")
+    .in("user_id", userIds)
+    .eq("liked", true)
+    .is("listings.removed_at", null)
+    .order("created_at", { ascending: false })
+    .overrideTypes<MemberUserListing[]>();
 }
 
 // listingId is listings.id (= user_listings.listing_id).
