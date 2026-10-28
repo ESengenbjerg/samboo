@@ -520,7 +520,8 @@ begin
   select count(*) into kvar from public.profiles where group_id = g;
   if kvar <= 1 then
     if kvar = 1 then
-      select id into kvar_id from public.profiles where group_id = g;
+      -- Locks the remaining member's profile so a personal showing inserted at the same moment cannot collide with the transfer (showings_user_listing_unique)
+      select id into kvar_id from public.profiles where group_id = g for update;
       update public.showings set user_id = kvar_id, group_id = null where group_id = g;
     end if;
     update public.profiles set group_id = null where group_id = g;
