@@ -350,8 +350,9 @@ $function$;
 
 -- A group has at most 10 members (MAX_GROUP_MEMBERS). The group row is locked while counting, so two simultaneous accepts cannot both take the last place.
 -- Both profile rows are locked first (in id order) and the invite is read again after the lock, so a double tap or two crossing accepts cannot create two groups. A pending invite in the opposite direction between the same two users is cancelled.
+-- Returns a jsonb list of my own showings that did not follow into the group because the group already had one for the same listing (see move_personal_showings()). The sender's showings cannot be dropped: either the sender has no group (the new group is empty) or already has one (and then has no personal showings).
 CREATE OR REPLACE FUNCTION public.accept_invite(invite_id bigint)
- RETURNS void
+ RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO ''
@@ -364,6 +365,7 @@ declare
   v_from_email text;
   my_g bigint;
   g bigint;
+  skipped jsonb;
 begin
   if not public.is_active_user() then
     raise exception 'Ditt konto är inte aktivt';
@@ -406,7 +408,7 @@ begin
 
   -- Own showings of the sender (new group) and of me move into the group.
   perform public.move_personal_showings(v_from, g);
-  perform public.move_personal_showings(me, g);
+  skipped := public.move_personal_showings(me, g);
 
   update public.invites set status = 'accepted', responded_at = now() where id = invite_id;
 
@@ -417,6 +419,8 @@ begin
   where from_user_id = me
     and lower(to_email) = lower(v_from_email)
     and status = 'pending';
+
+  return skipped;
 end;
 $function$;
 
@@ -486,14 +490,33 @@ AS $function$
 $function$;
 
 -- Moves a user's own showings into a group (used by accept_invite()). The group's showing wins if both have the same listing; the user's duplicate is deleted.
+-- Returns a jsonb list of the user's showings that did not follow (address, url, showing_date, start_time), so the app can tell the user.
 -- An update, not an insert, so the 50 limit is not applied (see limit_showings_per_group()).
 CREATE OR REPLACE FUNCTION public.move_personal_showings(p_user uuid, p_group bigint)
- RETURNS void
+ RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO ''
 AS $function$
+declare
+  skipped jsonb;
 begin
+  -- Collected before anything is changed
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'address',      coalesce(l.ld_json ->> 'streetAddress', l.area, l.municipality),
+           'url',          l.url,
+           'showing_date', s.showing_date,
+           'start_time',   s.start_time
+         ) order by s.showing_date, s.start_time), '[]'::jsonb)
+  into skipped
+  from public.showings s
+  join public.listings l on l.id = s.listing_id
+  where s.user_id = p_user
+    and exists (
+      select 1 from public.showings g
+      where g.group_id = p_group and g.listing_id = s.listing_id
+    );
+
   update public.showings s
   set group_id = p_group, user_id = null
   where s.user_id = p_user
@@ -503,6 +526,8 @@ begin
     );
 
   delete from public.showings where user_id = p_user;
+
+  return skipped;
 end;
 $function$;
 
