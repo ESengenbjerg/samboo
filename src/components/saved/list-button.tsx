@@ -28,12 +28,19 @@ export default function ListButton({
 
   return (
     <Pressable onPress={() => onPress()}>
-      <Card className="p-0">
+      <Card className="p-0 border-none">
         <View className="flex-row justify-between">
-          <View className="w-[40%] rounded-l inset-0">
+          <View className="w-[40%]">
             <Image
-              source={firstObjectImage ? { uri: firstObjectImage} : fallbackImage}
-              style={{ width: "100%", height: "100%" }}
+              source={
+                firstObjectImage ? { uri: firstObjectImage } : fallbackImage
+              }
+              style={{
+                width: "100%",
+                height: "100%",
+                borderTopLeftRadius: "5px",
+                borderBottomLeftRadius: "5px",
+              }}
               contentFit="cover"
             />
           </View>
