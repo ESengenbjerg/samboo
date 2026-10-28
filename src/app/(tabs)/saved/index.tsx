@@ -32,7 +32,7 @@ export default function SavedScreen() {
         {sharedError && <Text>{sharedError}</Text>}
 
         {/*  Shared list */}
-        {!isLoadingShared && !error && sharedListings.length !== 0 && (
+        {!isLoadingShared && !sharedError && sharedListings.length !== 0 && (
           <ListButton
             title={"Gemensam"}
             listId={"shared"}
@@ -58,13 +58,13 @@ export default function SavedScreen() {
         {groupError && <Text>{groupError}</Text>}
 
         {/* Group members lists */}
-        {!isLoadingGroup && !error && memberLists.length !== 0 && (
+        {!isLoadingGroup && !groupError && memberLists.length !== 0 && (
           <>
             {memberLists.map((l) => (
               <ListButton
                 key={l.member.id}
                 title={l.member.name}
-                listId={l.member.name}
+                listId={l.member.id}
                 numberOfSavedObjects={l.listings.length}
                 firstObjectImage={l.listings[0]?.ld_json.image}
               />

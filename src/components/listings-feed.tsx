@@ -41,7 +41,7 @@ export default function ListingsFeed({
   }
 
   return (
-    <View className="flex-1 px-6 bg-background gap-8">
+    <View className="flex-1 px-6 bg-background gap-8 ">
       <View className="flex-row justify-between">
         <Text variant="h1">{title}</Text>
         {/* TODO: Replace with correct component */}
@@ -83,7 +83,7 @@ export default function ListingsFeed({
       {/* Present properties based in column or grid based on user choice */}
       <ScrollView showsVerticalScrollIndicator={false}>
         <View
-          className={`${view === "grid" ? "flex-row gap-2 flex-wrap" : "gap-4"}`}
+          className={`${view === "grid" ? "flex-row gap-2 mb-4 flex-wrap" : "gap-4 mb-4"}`}
         >
           {/* Map through properties */}
           {listings.map((listing) => (
