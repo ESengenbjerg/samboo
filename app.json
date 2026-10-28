@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "samboo",
+    "slug": "samboo",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "samboo",
+    "userInterfaceStyle": "automatic",
+    "android": {
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-splash-screen",
+      "expo-font",
+      "expo-image"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

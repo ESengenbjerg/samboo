@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --light-green: 81 18% 58%;
+  --medium-green: 88 39% 26%;
+  --deep-green: 80 55% 18%;
+  --dark-green: 79 78% 13%;
+  --sand: 38 52% 81%;
+  --yellow: 40 82% 61%;
+  --orange: 38 100% 32%;
+  --red: 358 65% 50%;
+  --off-white: 27 39% 95%;
+  --light-greige: 25 15% 84%;
+  --dark-greige: 26 15% 58%;
+  --off-black: 0 0% 13%;
+}
+
+@layer base {
+  :root {
+    --background: var(--off-white);
+    --foreground: var(--dark-green);
+    --card: 0 0% 100%;
+    --card-foreground: var(--dark-green);
+    --popover: 0 0% 100%;
+    --popover-foreground: var(--dark-green);
+    --primary: var(--yellow);
+    --primary-foreground: var(--off-black);
+    --secondary: var(--dark-green);
+    --secondary-foreground: var(--off-white);
+    --muted: var(--sand);
+    --muted-foreground: var(--medium-green);
+    --accent: var(--dark-greige);
+    --accent-foreground: var(--off-white);
+    --destructive: var(--red);
+    --destructive-foreground: var(--off-white);
+    --border: var(--light-greige);
+    --input: var(--off-white);
+    --ring: var(--medium-green);
+    --radius: 0.35rem;
+  }
+
+  .dark:root {
+    --background: var(--dark-green);
+    --foreground: var(--off-white);
+    --card: var(--deep-green);
+    --card-foreground: var(--off-white);
+    --popover: var(--deep-green);
+    --popover-foreground: var(--off-white);
+    --primary: var(--yellow);
+    --primary-foreground: var(--dark-green);
+    --secondary: var(--sand);
+    --secondary-foreground: var(--dark-green);
+    --muted: var(--medium-green);
+    --muted-foreground: var(--light-green);
+    --accent: var(--medium-green);
+    --accent-foreground: var(--off-white);
+    --destructive: var(--red);
+    --destructive-foreground: var(--off-white);
+    --border: var(--medium-green);
+    --input: var(--deep-green);
+    --ring: var(--yellow);
+  }
+}
