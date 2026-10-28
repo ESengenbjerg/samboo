@@ -63,7 +63,11 @@ export default function SavedScreen() {
             {memberLists.map((l) => (
               <ListButton
                 key={l.member.id}
-                title={l.member.name}
+                title={
+                  l.member.name.endsWith("s")
+                    ? l.member.name
+                    : `${l.member.name}s`
+                }
                 listId={l.member.id}
                 numberOfSavedObjects={l.listings.length}
                 firstObjectImage={l.listings[0]?.ld_json.image}

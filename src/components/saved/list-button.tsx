@@ -8,7 +8,7 @@ const fallbackImage = require("@/assets/images/no-image.jpg");
 
 type ListButtonProps = {
   title: string;
-  listId: string;
+  listId: number | string;
   numberOfSavedObjects: number;
   firstObjectImage: string | undefined;
 };
@@ -22,7 +22,7 @@ export default function ListButton({
   function onPress() {
     router.push({
       pathname: "/saved/[listId]",
-      params: { listId },
+      params: { listId, title: `${title} lista` },
     });
   }
 
