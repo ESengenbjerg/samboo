@@ -14,7 +14,9 @@ function isValidDate(date: string) {
   const [year, month, day] = date.split("-").map(Number);
   const d = new Date(year, month - 1, day);
   return (
-    d.getFullYear() === year && d.getMonth() === month - 1 && d.getDate() === day
+    d.getFullYear() === year &&
+    d.getMonth() === month - 1 &&
+    d.getDate() === day
   );
 }
 
@@ -72,5 +74,7 @@ export function useSaveShowing() {
     [],
   );
 
-  return { saveShowing, isSaving, error };
+  const clearError = useCallback(() => setError(null), []);
+
+  return { saveShowing, isSaving, error, clearError };
 }

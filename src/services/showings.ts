@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { NewShowing, ShowingRow } from "@/types/showings";
+import { toIsoDate } from "@/utils/date-format";
 import type { PostgrestError } from "@supabase/supabase-js";
 
 // The listings_select_showings policy lets me read every listing I have a showing for.
@@ -9,10 +10,7 @@ const SHOWING_COLUMNS =
 
 // Today's date in local time as "2026-10-29", to compare with showings.showing_date
 function today() {
-  const d = new Date();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${month}-${day}`;
+  return toIsoDate(new Date());
 }
 
 // My showings from today and forward, soonest first.
