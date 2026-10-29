@@ -75,7 +75,7 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 
 `anon` can call none of them.
 
-- **`authenticated` and service_role:** `accept_invite`, `decline_invite`, `in_my_group`, `is_active_user`, `leave_group`, `remove_group_member`, `like_listing`, `my_group_id`, `my_pending_invites`, `shared_likes`, `shares_group_with`, `delete_my_account`, `cancel_invite`.
+- **`authenticated` and service_role:** `accept_invite`, `can_see_listing`, `decline_invite`, `in_my_group`, `is_active_user`, `leave_group`, `remove_group_member`, `like_listing`, `my_group_id`, `my_pending_invites`, `shared_likes`, `shares_group_with`, `delete_my_account`, `cancel_invite`.
 - **`anon`, `authenticated`, service_role and `authenticator`:** `check_request` only. PostgREST runs it before every request as the requesting role, so revoking it would break every request.
 - **service_role only:** `dissolve_group_if_alone`, `handle_deleted_profile`, `handle_new_user`, `limit_invites_per_pair`, `limit_search_params_changes`, `limit_showings_per_group`, `match_user_listings`, `move_personal_showings`, `orphan_avatar_objects`, `purge_old_invites`, `purge_old_showings`, `purge_rate_limit_counters`, `purge_removed_listings`, `purge_search_params_log`, `rls_auto_enable`, `search_params_match_trigger`.
 
@@ -94,9 +94,10 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 | `delete_my_account()` | RPC, security definer | Deletes the signed-in user from `auth.users`. Everything else follows via cascade and the `on_profile_deleted` trigger. Fails with `Not signed in` without a session |
 | `handle_deleted_profile()` | trigger, security definer | After a profile is deleted: if at most 1 member remains in its group, the group is dissolved (same rule as `leave_group()`, via `dissolve_group_if_alone()`) |
 | `leave_group()` | RPC, security definer | Leaves the group. Locks the group row and checks membership again, then applies the shared group rule (see "Group membership") |
-| `remove_group_member(target)` | RPC, security definer | Removes another member of my group (`group_id = null`), then applies the shared group rule. Any member can remove any other member. Requires an active account. Fails with `Använd "Lämna grupp" för att lämna din egen grupp` for myself, `Du är inte med i någon grupp` if I have no group, and `Personen är inte med i din grupp` if the target is in another group or does not exist |
+| `remove_group_member(target)` | RPC, security definer | Removes another member of my group (`group_id = null`), then applies the shared group rule. Any member can remove any other member. Requires an active account. Fails with `Använd "Lämna grupp" för att lämna din egen grupp` for myself, `Du är inte med i någon grupp` if I have no group, and `Personen är inte längre med i din grupp` if the target is in another group or does not exist |
 | `dissolve_group_if_alone(group_id)` | security definer | The shared group rule: if at most 1 member is left, that member gets `group_id = null`, the group's showings become theirs (`user_id`, `group_id = null`), and the group is deleted (with no member left, the showings go with it). Callers lock the group row first |
 | `like_listing(listing_id)` | RPC, security definer | Upserts into `user_listings` with `liked = true`. Only allowed for listings already visible to me (matched to me or to someone in my group) and for an active account |
+| `can_see_listing(listing_id)` | security definer, STABLE | True if the listing is visible to me: matched to me or someone in my group, or my group (or I) have a showing for it. Mirrors the two SELECT policies on `listings`. Used by the `showings` insert policy. It has to be a function: a policy on `showings` that reads `listings` directly triggers `listings_select_showings`, which reads `showings` again, and the insert fails with `infinite recursion detected in policy for relation "showings"` (42P17) |
 | `shared_likes()` | RPC | **The shared list** ("Gemensam-listan"): listings that *every* member of the group has liked |
 | `match_user_listings(user_id?)` | security invoker | Matches search profile(s) against `listings` (a search with no municipality and no area matches nothing), inserts new rows and deletes rows that no longer match (except liked, tagged and removed listings) |
 | `limit_invites_per_pair()` | trigger, security definer | Rejects a new invite if the sender has already sent 20 invites (any status) to the same e-mail. Error: `Du har skickat för många inbjudningar till den här personen` |
@@ -126,7 +127,15 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 
 ## Other Supabase features
 
-One storage bucket exists (`avatars`, see "Profile images" below). No custom schemas, Vault secrets, Realtime-published tables or Edge Functions exist. (Edge Functions live outside the database; none were found under Edge Functions in Studio.)
+One storage bucket exists (`avatars`, see "Profile images" below). No custom schemas, Vault secrets or Edge Functions exist. (Edge Functions live outside the database; none were found under Edge Functions in Studio.)
+
+### Realtime
+
+`invites` and `profiles` are in the `supabase_realtime` publication, so the app can subscribe to their changes and the other account updates immediately (e.g. the inviter sees an accept/decline right away). Realtime only delivers rows the user can read under RLS, so no extra filtering is done client-side. Lists are also refreshed every time the settings tab is focused.
+
+### Calling read-only functions (`{ get: true }`)
+
+`my_group_id()` and `my_pending_invites()` are STABLE, so PostgREST runs them in a read-only transaction. Called with POST (the `supabase.rpc` default), `check_request()` tries to insert into `api_rate_limit` and the call fails with 405 / 25006 "cannot execute INSERT in a read-only transaction". They must be called with `{ get: true }`, which `check_request()` skips. Any future STABLE function called from the app needs `{ get: true }` as well.
 
 ### Default privileges
 
