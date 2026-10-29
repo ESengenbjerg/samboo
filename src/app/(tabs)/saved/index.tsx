@@ -1,6 +1,4 @@
 import ListButton from "@/components/saved/list-button";
-import ScheduledShowing from "@/components/saved/scheduled-showing";
-import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { MY_LIST_ID, SHARED_LIST_ID } from "@/constants/saved-lists";
 import { useGroupLikedListings } from "@/hooks/useGroupLikedListings";
@@ -74,25 +72,6 @@ export default function SavedScreen() {
                 firstObjectImage={l.listings[0]?.ld_json.image}
               />
             ))}
-        </View>
-
-        <View className="flex-row items-end justify-between">
-          <Text variant="h2" className="mt-4">
-            Bokade visningar
-          </Text>
-          <Button variant="link">
-            <Text>Tidigare visningar</Text>
-          </Button>
-        </View>
-        {/* TODO: Replace hardcoded values with correct data */}
-        <View>
-          <ScheduledShowing
-            id={10}
-            address={"Jordhyttegatan 25"}
-            municipality={"Göteborg"}
-            area={"Sandarna"}
-            startsAt={new Date("2026-10-29T11:00:00")}
-          />
         </View>
       </View>
     </ScrollView>

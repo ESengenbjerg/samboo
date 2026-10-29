@@ -20,7 +20,6 @@ import {
   ReceivedInvite,
   SentInvite,
 } from "@/types/connected-accounts";
-import { SkippedShowing } from "@/types/showings";
 import type { PostgrestError } from "@supabase/supabase-js";
 import { useCallback, useEffect, useState } from "react";
 
@@ -42,8 +41,6 @@ export function useConnectedAccounts(userId: string | undefined) {
   const [refreshCount, setRefreshCount] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-  // My showings that did not follow into the group when I accepted an invite
-  const [skippedShowings, setSkippedShowings] = useState<SkippedShowing[]>([]);
 
   useEffect(() => {
     if (!userId) return;
@@ -153,11 +150,7 @@ export function useConnectedAccounts(userId: string | undefined) {
         );
         return false;
       }
-      return run(async () => {
-        const result = await acceptInviteRpc(inviteId);
-        setSkippedShowings(result.data ?? []);
-        return result;
-      }, "Accept invite");
+      return run(() => acceptInviteRpc(inviteId), "Accept invite");
     },
     [isInGroup, run],
   );
@@ -187,7 +180,6 @@ export function useConnectedAccounts(userId: string | undefined) {
   );
 
   const clearActionError = useCallback(() => setActionError(null), []);
-  const clearSkippedShowings = useCallback(() => setSkippedShowings([]), []);
 
   // Invites from someone already in my group can no longer be accepted, so hide them
   const memberIds = new Set(members.map((m) => m.id));
@@ -209,8 +201,6 @@ export function useConnectedAccounts(userId: string | undefined) {
     isSubmitting,
     actionError,
     clearActionError,
-    skippedShowings,
-    clearSkippedShowings,
     sendInvite,
     acceptInvite,
     declineInvite,
