@@ -29,7 +29,7 @@ export default function SavedListScreen() {
     <>
       <Button
         variant="link"
-        onPress={() => router.push("/(tabs)/saved")}
+        onPress={() => router.back()}
         className="px-6 justify-start bg-background"
       >
         <Text>Tillbaka</Text>

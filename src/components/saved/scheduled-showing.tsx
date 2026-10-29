@@ -36,6 +36,7 @@ export default function ScheduledShowing(showings: ScheduledShowings) {
           </View>
           <View className="flex-row gap-2 items-center">
             <Icon as={Map}></Icon>
+            {/* TODO: Add encodeURIComponent and make sure link works correctly */}
             <Link
               href={`https://www.google.com/maps/place/${showings.address}+${showings.area}+${showings.municipality}`}
             >

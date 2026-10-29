@@ -69,11 +69,14 @@ export default function ListingsFeed({
             </SelectContent>
           </Select>
         </View>
-        <Button variant="link" className="pb-0">
-          <Link href="/(tabs)/update-filter">
-            <Text>Uppdatera bevakning</Text>
-          </Link>
-        </Button>
+
+        {path.includes("search") && (
+          <Button variant="link" className="pb-0 px-0">
+            <Link href="/(tabs)/update-filter">
+              <Text>Uppdatera bevakning</Text>
+            </Link>
+          </Button>
+        )}
       </View>
 
       {isLoading && <Text>Laddar...</Text>}

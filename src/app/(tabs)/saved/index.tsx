@@ -67,7 +67,9 @@ export default function SavedScreen() {
                 <ListButton
                   key={l.member.id}
                   title={
-                    l.member.name.endsWith("s")
+                    l.member.name.endsWith("s") ||
+                    l.member.name.endsWith("x") ||
+                    l.member.name.endsWith("z")
                       ? l.member.name
                       : `${l.member.name}s`
                   }
