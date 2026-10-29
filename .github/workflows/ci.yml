@@ -1,0 +1,13 @@
+name: CI
+
+# Project structure:
+# Continous integration to develop branch
+# Continous delivery to main branch (manually)
+
+# This CI file aims to check on PRs and merge to develop and main branches.
+# Concurrency is added for more effective flow (i.e a PR is opened and CI starts, then you make a small change in code, commits and push, another CI is queued to start. Instead of first CI finishing before the second could start, the first will be aborted)
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
