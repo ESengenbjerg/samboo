@@ -2,8 +2,8 @@ import { supabase } from "@/lib/supabase";
 import { NewShowing, ShowingRow } from "@/types/showings";
 import type { PostgrestError } from "@supabase/supabase-js";
 
-// !inner skips showings whose listing I can no longer read (e.g. it was only matched to
-// a member who has left the group). Without !inner listings is null and the app crashes
+// The listings_select_showings policy lets me read every listing I have a showing for.
+// !inner is a safety net: without it listings could be null and the app would crash
 const SHOWING_COLUMNS =
   "id, listing_id, showing_date, start_time, note, listings!inner(municipality, area, ld_json)";
 
@@ -15,8 +15,8 @@ function today() {
   return `${d.getFullYear()}-${month}-${day}`;
 }
 
-// My group's showings from today and forward, soonest first.
-// RLS only returns my group's rows. Empty if I am not in a group
+// My showings from today and forward, soonest first.
+// RLS returns my group's showings, or my own if I am not in a group
 export function getUpcomingShowings() {
   return supabase
     .from("showings")
@@ -27,7 +27,7 @@ export function getUpcomingShowings() {
     .overrideTypes<ShowingRow[]>();
 }
 
-// My group's showings before today, latest first.
+// My showings (group's or own, see getUpcomingShowings()) before today, latest first.
 // The database deletes showings 30 days after their date
 export function getPastShowings() {
   return supabase
@@ -39,7 +39,8 @@ export function getPastShowings() {
     .overrideTypes<ShowingRow[]>();
 }
 
-// group_id is not sent: the database fills it in from my group (column default my_group_id())
+// The owner is not sent: the database sets group_id to my group, or user_id to me if
+// I am not in a group (column defaults). At most 50 showings per owner
 export function createShowing(showing: NewShowing) {
   return supabase.from("showings").insert({
     listing_id: showing.listingId,
@@ -52,13 +53,17 @@ export function createShowing(showing: NewShowing) {
 // Turns a database error from saving a showing into a message for the user
 export function showingErrorMessage(error: PostgrestError) {
   switch (error.code) {
-    // showings_group_listing_unique: the group already has a showing for this listing
+    // raise exception in limit_showings_per_group(): max 50 showings.
+    // The message is already written in Swedish
+    case "P0001":
+      return error.message;
+    // showings_group_listing_unique / showings_user_listing_unique:
+    // there is already a showing for this listing
     case "23505":
       return "Det finns redan en sparad visning för den här bostaden.";
-    // showings_insert policy / group_id not null: I am not in a group
+    // showings_insert policy: the listing is not visible to me (or my account is not active)
     case "42501":
-    case "23502":
-      return "Du behöver vara kopplad till ett annat konto för att spara visningar.";
+      return "Du kan inte spara en visning för den här bostaden.";
     // showings_note_length
     case "23514":
       return "Anteckningen får vara max 500 tecken.";

@@ -21,7 +21,7 @@ export default function ScheduleShowingSection({
     <View className="gap-6">
       <View>
         <Text variant="h4">Har du bokat visning?</Text>
-        <Text>Lägg in din bokade visning i er gemensamma visningslista.</Text>
+        <Text>Lägg till visningen i visningslistan.</Text>
       </View>
       <Button
         variant="outline"

@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { ReceivedInvite, SentInvite } from "@/types/connected-accounts";
+import { SkippedShowing } from "@/types/showings";
 import type { PostgrestError } from "@supabase/supabase-js";
 
 // The database compares e-mails case-insensitively, but store them clean anyway
@@ -34,9 +35,14 @@ export async function getReceivedInvites() {
 }
 
 // Joins the sender's group. Fails if I am already in a group or the group is full.
-// A pending invite from me to the sender is cancelled by the database
-export function acceptInvite(inviteId: number) {
-  return supabase.rpc("accept_invite", { invite_id: inviteId });
+// A pending invite from me to the sender is cancelled by the database.
+// My own showings and the sender's move into the group. data is my showings that did not
+// follow because the group already had one for the same listing (empty if none)
+export async function acceptInvite(inviteId: number) {
+  const { data, error } = await supabase.rpc("accept_invite", {
+    invite_id: inviteId,
+  });
+  return { data: data as SkippedShowing[] | null, error };
 }
 
 export function declineInvite(inviteId: number) {

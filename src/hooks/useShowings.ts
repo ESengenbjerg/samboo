@@ -24,7 +24,7 @@ function toScheduledShowing(row: ShowingRow): ScheduledShowings {
   };
 }
 
-// My group's showings, upcoming (default) or past. Empty if I am not in a group.
+// My showings, upcoming (default) or past: my group's, or my own if I am not in a group.
 // Pass undefined until the session is loaded
 export function useShowings(
   userId: string | undefined,
