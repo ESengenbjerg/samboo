@@ -1,11 +1,15 @@
 name: CI
 
 # Project structure:
-# Continous integration to develop branch
-# Continous delivery to main branch (manually)
+# Continuous integration to develop branch
+# Continuous delivery to main branch (manually)
 
 # This CI file aims to check on PRs and merge to develop and main branches.
 # Concurrency is added for more effective flow (i.e a PR is opened and CI starts, then you make a small change in code, commits and push, another CI is queued to start. Instead of first CI finishing before the second could start, the first will be aborted)
+
+# 'npx js-yaml' is helpful during development of this file
+# uses: - runs an existing action
+# run: - runs a Terminal command
 
 on:
   pull_request:
@@ -18,3 +22,17 @@ permissions:
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
