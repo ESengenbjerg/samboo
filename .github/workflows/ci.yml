@@ -43,7 +43,7 @@ jobs:
 
       - run: npm run typecheck
 
-      #   Lint is disabled until the existing react-hooks errors are fixed
-      #- run: npm run lint
+      # Lint is disabled until the existing react-hooks errors are fixed
+      # - run: npm run lint
 
       - run: npm run build:web
