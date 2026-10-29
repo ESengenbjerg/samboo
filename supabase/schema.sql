@@ -11,7 +11,7 @@
 --   * Event triggers managed by Supabase itself (pgrst_*, graphql, pg_cron / pg_net access)
 --   * pg_cron job state (the jobs themselves are listed in the pg_cron section at the end of this file)
 --   * Role settings: authenticator has pgrst.db_pre_request = 'public.check_request' (see the note at the end of this file)
---   * Realtime publications (no tables are published)
+--   * Realtime publications (invites and profiles are published, see the Realtime section at the end of this file)
 --   * Custom schemas and Vault secrets (none exist)
 --   * The files themselves in Storage. Only the bucket and its policies are described, in the Storage section below. Deleting avatar files is done by scripts/avatars/purgeOrphanAvatars.ts, not by SQL
 -- 
@@ -348,6 +348,28 @@ AS $function$
     );
 $function$;
 
+-- Can I see this listing? Mirrors the two SELECT policies on listings (matched to me or my group, or I/my group have a showing for it).
+-- Used by showings_insert. It must be a security definer function: a policy on showings that reads listings directly would make Postgres
+-- evaluate listings_select_showings, which reads showings again, and the insert fails with "infinite recursion detected in policy" (42P17).
+CREATE OR REPLACE FUNCTION public.can_see_listing(p_listing_id bigint)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+  select public.is_active_user() and (
+    exists (
+      select 1 from public.user_listings ul
+      where ul.listing_id = p_listing_id and public.shares_group_with(ul.user_id)
+    )
+    or exists (
+      select 1 from public.showings s
+      where s.listing_id = p_listing_id
+        and (s.group_id = public.my_group_id() or s.user_id = auth.uid())
+    )
+  );
+$function$;
+
 -- A group has at most 10 members (MAX_GROUP_MEMBERS). The group row is locked while counting, so two simultaneous accepts cannot both take the last place.
 -- Both profile rows are locked first (in id order) and the invite is read again after the lock, so a double tap or two crossing accepts cannot create two groups. A pending invite in the opposite direction between the same two users is cancelled.
 -- Returns a jsonb list of my own showings that did not follow into the group because the group already had one for the same listing (see move_personal_showings()). The sender's showings cannot be dropped: either the sender has no group (the new group is empty) or already has one (and then has no personal showings).
@@ -617,7 +639,7 @@ begin
 
   select group_id into target_group from public.profiles where id = target;
   if target_group is distinct from g then
-    raise exception 'Personen är inte med i din grupp';
+    raise exception 'Personen är inte längre med i din grupp';
   end if;
 
   update public.profiles set group_id = null where id = target;
@@ -1158,13 +1180,13 @@ create policy showings_select on public.showings
     group_id = (select my_group_id()) or user_id = (select auth.uid())
   ));
 
--- The listing must be one I am allowed to see
+-- The listing must be one I am allowed to see (via can_see_listing(), not a direct read of listings: that would recurse, see the function)
 create policy showings_insert on public.showings
   for insert to authenticated
   with check (
     is_active_user()
     and (group_id = (select my_group_id()) or user_id = (select auth.uid()))
-    and exists (select 1 from public.listings l where l.id = showings.listing_id)
+    and can_see_listing(listing_id)
   );
 
 create policy showings_update on public.showings
@@ -1334,6 +1356,7 @@ revoke execute on all functions in schema public from public, anon, authenticate
 -- Callable by signed-in users (RPC / used inside RLS policies)
 grant execute on function
   public.accept_invite(bigint),
+  public.can_see_listing(bigint),
   public.decline_invite(bigint),
   public.in_my_group(uuid),
   public.is_active_user(),
@@ -1383,6 +1406,16 @@ to anon, authenticated, service_role, authenticator;
 -- Remove again (e.g. if requests start failing):
 --   alter role authenticator reset pgrst.db_pre_request;
 --   notify pgrst, 'reload config';
+
+
+-- ---------------------------------------------------------------------
+-- Realtime (publication membership, not part of the tables themselves)
+-- ---------------------------------------------------------------------
+-- The app subscribes to changes on invites and profiles so the other account updates immediately
+-- (e.g. the inviter sees an accept/decline right away). Realtime only delivers rows the user can read under RLS.
+-- Remove again: alter publication supabase_realtime drop table public.invites, public.profiles;
+
+alter publication supabase_realtime add table public.invites, public.profiles;
 
 
 -- ---------------------------------------------------------------------
