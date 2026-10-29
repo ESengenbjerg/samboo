@@ -126,7 +126,15 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 
 ## Other Supabase features
 
-One storage bucket exists (`avatars`, see "Profile images" below). No custom schemas, Vault secrets, Realtime-published tables or Edge Functions exist. (Edge Functions live outside the database; none were found under Edge Functions in Studio.)
+One storage bucket exists (`avatars`, see "Profile images" below). No custom schemas, Vault secrets or Edge Functions exist. (Edge Functions live outside the database; none were found under Edge Functions in Studio.)
+
+### Realtime
+
+`invites` and `profiles` are in the `supabase_realtime` publication, so the app can subscribe to their changes and the other account updates immediately (e.g. the inviter sees an accept/decline right away). Realtime only delivers rows the user can read under RLS, so no extra filtering is done client-side. Lists are also refreshed every time the settings tab is focused.
+
+### Calling read-only functions (`{ get: true }`)
+
+`my_group_id()` and `my_pending_invites()` are STABLE, so PostgREST runs them in a read-only transaction. Called with POST (the `supabase.rpc` default), `check_request()` tries to insert into `api_rate_limit` and the call fails with 405 / 25006 "cannot execute INSERT in a read-only transaction". They must be called with `{ get: true }`, which `check_request()` skips. Any future STABLE function called from the app needs `{ get: true }` as well.
 
 ### Default privileges
 

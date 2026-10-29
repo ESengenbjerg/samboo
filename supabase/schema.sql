@@ -11,7 +11,7 @@
 --   * Event triggers managed by Supabase itself (pgrst_*, graphql, pg_cron / pg_net access)
 --   * pg_cron job state (the jobs themselves are listed in the pg_cron section at the end of this file)
 --   * Role settings: authenticator has pgrst.db_pre_request = 'public.check_request' (see the note at the end of this file)
---   * Realtime publications (no tables are published)
+--   * Realtime publications (invites and profiles are published, see the Realtime section at the end of this file)
 --   * Custom schemas and Vault secrets (none exist)
 --   * The files themselves in Storage. Only the bucket and its policies are described, in the Storage section below. Deleting avatar files is done by scripts/avatars/purgeOrphanAvatars.ts, not by SQL
 -- 
@@ -1383,6 +1383,16 @@ to anon, authenticated, service_role, authenticator;
 -- Remove again (e.g. if requests start failing):
 --   alter role authenticator reset pgrst.db_pre_request;
 --   notify pgrst, 'reload config';
+
+
+-- ---------------------------------------------------------------------
+-- Realtime (publication membership, not part of the tables themselves)
+-- ---------------------------------------------------------------------
+-- The app subscribes to changes on invites and profiles so the other account updates immediately
+-- (e.g. the inviter sees an accept/decline right away). Realtime only delivers rows the user can read under RLS.
+-- Remove again: alter publication supabase_realtime drop table public.invites, public.profiles;
+
+alter publication supabase_realtime add table public.invites, public.profiles;
 
 
 -- ---------------------------------------------------------------------
