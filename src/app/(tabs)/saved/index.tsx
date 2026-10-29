@@ -88,6 +88,7 @@ export default function SavedScreen() {
             <Text>Tidigare visningar</Text>
           </Button>
         </View>
+        {/* TODO: Replace hardcoded values with correct data */}
         <View>
           <ScheduledShowing
             id={10}
@@ -96,7 +97,6 @@ export default function SavedScreen() {
             area={"Sandarna"}
             startsAt={new Date("2026-10-29T11:00:00")}
           />
-          {/* <ScheduledShowing /> */}
         </View>
       </View>
     </ScrollView>
