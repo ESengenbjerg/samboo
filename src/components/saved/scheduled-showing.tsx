@@ -1,5 +1,6 @@
 import { ScheduledShowings } from "@/types/showings";
 import { capitalize } from "@/utils/capitalize-string";
+import { googleMapsUrl } from "@/utils/google-maps-url";
 import { Link } from "expo-router";
 import { Clock, Map } from "lucide-react-native";
 import { View } from "react-native";
@@ -36,9 +37,12 @@ export default function ScheduledShowing(showings: ScheduledShowings) {
           </View>
           <View className="flex-row gap-2 items-center">
             <Icon as={Map}></Icon>
-            {/* TODO: Add encodeURIComponent and make sure link works correctly */}
             <Link
-              href={`https://www.google.com/maps/place/${showings.address}+${showings.area}+${showings.municipality}`}
+              href={googleMapsUrl(
+                showings.address,
+                showings.area,
+                showings.municipality,
+              )}
             >
               <Text>Hitta hit</Text>
             </Link>

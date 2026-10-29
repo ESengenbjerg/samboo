@@ -2,6 +2,7 @@ import ListButton from "@/components/saved/list-button";
 import ScheduledShowing from "@/components/saved/scheduled-showing";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { MY_LIST_ID, SHARED_LIST_ID } from "@/constants/saved-lists";
 import { useGroupLikedListings } from "@/hooks/useGroupLikedListings";
 import { useLikedListings } from "@/hooks/useLikedListings";
 import { useSession } from "@/hooks/useSession";
@@ -39,7 +40,7 @@ export default function SavedScreen() {
           {!isLoadingShared && !sharedError && sharedListings.length !== 0 && (
             <ListButton
               title={"Gemensam"}
-              listId={"shared"}
+              listId={SHARED_LIST_ID}
               numberOfSavedObjects={sharedListings.length}
               firstObjectImage={sharedListings[0]?.ld_json.image}
             />
@@ -52,7 +53,7 @@ export default function SavedScreen() {
           {!isLoading && !error && (
             <ListButton
               title={"Min"}
-              listId={"mine"}
+              listId={MY_LIST_ID}
               numberOfSavedObjects={listings.length}
               firstObjectImage={listings[0]?.ld_json.image}
             />

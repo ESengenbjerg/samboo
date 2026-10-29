@@ -1,15 +1,13 @@
-import { SaveShowingDialog } from "@/components/modals/save-showing-dialog";
 import ObjectInfo from "@/components/object-page/object-info";
 import { OBJECT_INFO_OPTIONS } from "@/components/object-page/object-info-config";
+import ScheduleShowingSection from "@/components/object-page/schedule-showing-section";
 import { Button } from "@/components/ui/button";
-import { Icon } from "@/components/ui/icon";
 import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
 import { Listing } from "@/types/listing";
+import { formatPrice } from "@/utils/format-price";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import { Plus } from "lucide-react-native";
-import { useState } from "react";
 import { Linking, ScrollView, View } from "react-native";
 
 type ObjectPageProps = {
@@ -21,8 +19,6 @@ export default function ObjectPageScreen({
   listing,
   isLoading,
 }: ObjectPageProps) {
-  const [showingDialogOpen, setShowingDialogOpen] = useState(false);
-
   if (isLoading)
     return (
       <View className="flex-1 px-8 py-6 gap-6 bg-background">
@@ -78,14 +74,10 @@ export default function ObjectPageScreen({
 
             {/* --- PRICE --- */}
             {listing.price != null && (
-              <Text variant="bold">
-                {listing.price.toLocaleString("sv-SE")} kr
-              </Text>
+              <Text variant="bold">{formatPrice(listing.price)}</Text>
             )}
           </View>
-
           <Separator />
-
           {/* --- OBJECT INFO --- */}
           <View className="gap-6">
             <Text variant="h4">Om bostaden</Text>
@@ -102,34 +94,8 @@ export default function ObjectPageScreen({
             </Button>
           </View>
           <Separator />
-
           {/* --- SCHEDULE SHOWING --- */}
-          {/* TODO: Implement functionality */}
-          <View className="gap-6">
-            <View>
-              <Text variant="h4">Har du bokat visning?</Text>
-              <Text>
-                Lägg in din bokade visning i er gemensamma visningslista.
-              </Text>
-            </View>
-            <Button
-              variant="outline"
-              onPress={() => setShowingDialogOpen(true)}
-              className="w-52"
-            >
-              <Text>Spara visning i lista</Text>
-              <Icon as={Plus} size={18} />
-            </Button>
-          </View>
-
-          {/* --- SCHEDULE DIALOG --- */}
-          {showingDialogOpen && (
-            <SaveShowingDialog
-              open={true}
-              onOpenChange={() => setShowingDialogOpen(false)}
-              onSave={() => setShowingDialogOpen(false)}
-            />
-          )}
+          <ScheduleShowingSection listingId={listing.id} />{" "}
         </View>
       </ScrollView>
     </View>

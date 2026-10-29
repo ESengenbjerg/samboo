@@ -1,9 +1,8 @@
 import ListingsFeed from "@/components/listings-feed";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { useLikedListings } from "@/hooks/useLikedListings";
+import { useSavedList } from "@/hooks/useSavedList";
 import { useSession } from "@/hooks/useSession";
-import { useSharedLikedListings } from "@/hooks/useSharedLikedListings";
 import { router, useLocalSearchParams } from "expo-router";
 
 export default function SavedListScreen() {
@@ -12,18 +11,7 @@ export default function SavedListScreen() {
     title?: string;
   }>();
   const { session } = useSession();
-  const userId = session?.user.id;
-
-  // "Mine" = my list, otherwise listId = group members id
-  const likedUserId = listId === "mine" ? userId : listId;
-  const isShared = listId === "shared";
-
-  // Call hooks
-  const liked = useLikedListings(isShared ? undefined : likedUserId);
-  const shared = useSharedLikedListings(isShared ? userId : undefined);
-
-  // Use result from hooks
-  const { listings, isLoading, error } = isShared ? shared : liked;
+  const { listings, isLoading, error } = useSavedList(listId, session?.user.id);
 
   return (
     <>

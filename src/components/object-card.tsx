@@ -11,6 +11,7 @@ import { Pressable, View } from "react-native";
 
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
+import { formatPrice } from "@/utils/format-price";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Heart } from "lucide-react-native";
 import { useState } from "react";
@@ -120,7 +121,7 @@ export function ObjectCard({
               {!price ? (
                 <Text variant="small">Pris saknas</Text>
               ) : (
-                <Text variant="small">{price.toLocaleString("sv-SE")} kr</Text>
+                <Text variant="small">{formatPrice(price)}</Text>
               )}
 
               {/* -- LIVING AREA --- */}
@@ -152,9 +153,7 @@ export function ObjectCard({
                 {!price ? (
                   <Text variant="small">Pris saknas</Text>
                 ) : (
-                  <Text variant="small">
-                    {price.toLocaleString("sv-SE")} kr
-                  </Text>
+                  <Text variant="small">{formatPrice(price)}</Text>
                 )}
 
                 {saveButton}
