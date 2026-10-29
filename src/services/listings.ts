@@ -59,6 +59,19 @@ export async function getSharedLikedListings() {
   return { data: data as Listing[] | null, error };
 }
 
+// A single listing by listings.id, without the user_listings row.
+// RLS lets me read listings matched to me or to anyone in my group, so this works
+// for my own listings as well as a group member's
+export function getListingById(listingId: string) {
+  return supabase
+    .from("listings")
+    .select("*")
+    .eq("id", listingId)
+    .is("removed_at", null)
+    .maybeSingle()
+    .overrideTypes<Listing, { merge: false }>();
+}
+
 // listingId is listings.id (= user_listings.listing_id).
 // Filter on user_id too, since RLS also shows group members' rows and
 // .maybeSingle() fails if more than one row is returned.
