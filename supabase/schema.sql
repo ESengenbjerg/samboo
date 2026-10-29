@@ -348,6 +348,28 @@ AS $function$
     );
 $function$;
 
+-- Can I see this listing? Mirrors the two SELECT policies on listings (matched to me or my group, or I/my group have a showing for it).
+-- Used by showings_insert. It must be a security definer function: a policy on showings that reads listings directly would make Postgres
+-- evaluate listings_select_showings, which reads showings again, and the insert fails with "infinite recursion detected in policy" (42P17).
+CREATE OR REPLACE FUNCTION public.can_see_listing(p_listing_id bigint)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+  select public.is_active_user() and (
+    exists (
+      select 1 from public.user_listings ul
+      where ul.listing_id = p_listing_id and public.shares_group_with(ul.user_id)
+    )
+    or exists (
+      select 1 from public.showings s
+      where s.listing_id = p_listing_id
+        and (s.group_id = public.my_group_id() or s.user_id = auth.uid())
+    )
+  );
+$function$;
+
 -- A group has at most 10 members (MAX_GROUP_MEMBERS). The group row is locked while counting, so two simultaneous accepts cannot both take the last place.
 -- Both profile rows are locked first (in id order) and the invite is read again after the lock, so a double tap or two crossing accepts cannot create two groups. A pending invite in the opposite direction between the same two users is cancelled.
 -- Returns a jsonb list of my own showings that did not follow into the group because the group already had one for the same listing (see move_personal_showings()). The sender's showings cannot be dropped: either the sender has no group (the new group is empty) or already has one (and then has no personal showings).
@@ -1158,13 +1180,13 @@ create policy showings_select on public.showings
     group_id = (select my_group_id()) or user_id = (select auth.uid())
   ));
 
--- The listing must be one I am allowed to see
+-- The listing must be one I am allowed to see (via can_see_listing(), not a direct read of listings: that would recurse, see the function)
 create policy showings_insert on public.showings
   for insert to authenticated
   with check (
     is_active_user()
     and (group_id = (select my_group_id()) or user_id = (select auth.uid()))
-    and exists (select 1 from public.listings l where l.id = showings.listing_id)
+    and can_see_listing(listing_id)
   );
 
 create policy showings_update on public.showings
@@ -1334,6 +1356,7 @@ revoke execute on all functions in schema public from public, anon, authenticate
 -- Callable by signed-in users (RPC / used inside RLS policies)
 grant execute on function
   public.accept_invite(bigint),
+  public.can_see_listing(bigint),
   public.decline_invite(bigint),
   public.in_my_group(uuid),
   public.is_active_user(),
