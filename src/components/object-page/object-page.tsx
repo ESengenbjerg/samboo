@@ -95,7 +95,7 @@ export default function ObjectPageScreen({
           </View>
           <Separator />
           {/* --- SCHEDULE SHOWING --- */}
-          <ScheduleShowingSection listingId={listing.id} />{" "}
+          <ScheduleShowingSection listingId={listing.id} />
         </View>
       </ScrollView>
     </View>

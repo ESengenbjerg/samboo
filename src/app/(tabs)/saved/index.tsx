@@ -7,6 +7,7 @@ import { useGroupLikedListings } from "@/hooks/useGroupLikedListings";
 import { useLikedListings } from "@/hooks/useLikedListings";
 import { useSession } from "@/hooks/useSession";
 import { useSharedLikedListings } from "@/hooks/useSharedLikedListings";
+import { useShowings } from "@/hooks/useShowings";
 import { nameEndsWithS } from "@/utils/name-ends-with-s";
 import { ScrollView, View } from "react-native";
 
@@ -24,6 +25,12 @@ export default function SavedScreen() {
     isLoading: isLoadingShared,
     error: sharedError,
   } = useSharedLikedListings(userId);
+  const {
+    showings,
+    isLoading: showingsLoading,
+    error: showingError,
+  } = useShowings(userId, "upcoming");
+  const pastShowings = useShowings(userId, "past");
 
   if (!userId) return null;
 
@@ -86,13 +93,17 @@ export default function SavedScreen() {
         </View>
         {/* TODO: Replace hardcoded values with correct data */}
         <View>
-          <ScheduledShowing
-            id={10}
-            address={"Jordhyttegatan 25"}
-            municipality={"Göteborg"}
-            area={"Sandarna"}
-            startsAt={new Date("2026-10-29T11:00:00")}
-          />
+          {showings.length !== 0 &&
+            showings.map((s) => (
+              <ScheduledShowing
+                key={s.id}
+                id={s.id}
+                address={s.address}
+                municipality={s.municipality}
+                area={s.area}
+                startsAt={new Date(s.startsAt)}
+              />
+            ))}
         </View>
       </View>
     </ScrollView>
