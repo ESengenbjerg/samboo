@@ -11,3 +11,10 @@ on:
   pull_request:
   push:
     branches: [main, develop]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
