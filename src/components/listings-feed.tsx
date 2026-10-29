@@ -23,6 +23,7 @@ type ListingsProps = {
   path: BasePath;
   isLoading: boolean;
   error: string | null;
+  showUpdateFilter?: boolean;
 };
 
 export default function ListingsFeed({
@@ -31,6 +32,7 @@ export default function ListingsFeed({
   path,
   isLoading,
   error,
+  showUpdateFilter = false,
 }: ListingsProps) {
   const [view, setView] = useState<"column" | "grid">("column");
 
@@ -70,7 +72,7 @@ export default function ListingsFeed({
           </Select>
         </View>
 
-        {path.includes("search") && (
+        {showUpdateFilter && (
           <Button variant="link" className="pb-0 px-0">
             <Link href="/(tabs)/update-filter">
               <Text>Uppdatera bevakning</Text>

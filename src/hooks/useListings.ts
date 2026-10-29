@@ -1,30 +1,45 @@
-import { supabase } from "@/lib/supabase";
 import { getActiveListings } from "@/services/listings";
 import { Listing } from "@/types/listing";
 import { useEffect, useState } from "react";
 
-export function useListings() {
-  const [loading, setLoading] = useState(true);
-  const [listings, setListings] = useState<Listing[]>([]);
+type ListingsResult = {
+  userId: string;
+  listings: Listing[];
+  failed?: boolean;
+};
 
-  // Get data from Supabase on first run
+// The listings matched to the logged in user (the search feed). Pass undefined until the session is loaded
+export function useListings(userId: string | undefined) {
+  const [result, setResult] = useState<ListingsResult | null>(null);
+
   useEffect(() => {
-    async function load() {
-      // Get user from Supabase
-      const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) {
-        setLoading(false);
+    if (!userId) return;
+
+    // Ignore the response if the user changed or the component unmounted
+    let cancelled = false;
+
+    getActiveListings(userId).then(({ data, error }) => {
+      if (cancelled) return;
+      if (error) {
+        console.error("Failed to load listings: ", error);
+        setResult({ userId, listings: [], failed: true });
         return;
       }
+      setResult({ userId, listings: data.map((row) => row.listings) });
+    });
 
-      // Get correct listings feed based on userId
-      const { data, error } = await getActiveListings(auth.user.id);
-      if (error) console.error("Failed to load listings: ", error);
-      else setListings(data.map((row) => row.listings));
-      setLoading(false);
-    }
-    load();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
-  return { listings, loading };
+  // Never expose a result that belongs to a previous user
+  const current = userId && result?.userId === userId ? result : null;
+
+  return {
+    listings: current?.listings ?? [],
+    // Loading until we have a result for the current user
+    isLoading: !!userId && !current,
+    error: current?.failed ? "Kunde inte hämta bostäder." : null,
+  };
 }
