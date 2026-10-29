@@ -1,9 +1,10 @@
 import ListingsFeed from "@/components/listings-feed";
+import { Button } from "@/components/ui/button";
+import { Text } from "@/components/ui/text";
 import { useLikedListings } from "@/hooks/useLikedListings";
 import { useSession } from "@/hooks/useSession";
 import { useSharedLikedListings } from "@/hooks/useSharedLikedListings";
-import { useLocalSearchParams } from "expo-router";
-import { use } from "react";
+import { router, useLocalSearchParams } from "expo-router";
 
 export default function SavedListScreen() {
   const { listId, title } = useLocalSearchParams<{
@@ -25,12 +26,21 @@ export default function SavedListScreen() {
   const { listings, isLoading, error } = isShared ? shared : liked;
 
   return (
-    <ListingsFeed
-      title={title ?? "Lista"}
-      listings={listings}
-      isLoading={isLoading}
-      error={error}
-      path={"/saved/object/[id]"}
-    />
+    <>
+      <Button
+        variant="link"
+        onPress={() => router.push("/(tabs)/saved")}
+        className="px-6 justify-start bg-background"
+      >
+        <Text>Tillbaka</Text>
+      </Button>
+      <ListingsFeed
+        title={title ?? "Lista"}
+        listings={listings}
+        isLoading={isLoading}
+        error={error}
+        path={"/saved/object/[id]"}
+      />
+    </>
   );
 }
