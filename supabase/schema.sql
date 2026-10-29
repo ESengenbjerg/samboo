@@ -617,7 +617,7 @@ begin
 
   select group_id into target_group from public.profiles where id = target;
   if target_group is distinct from g then
-    raise exception 'Personen är inte med i din grupp';
+    raise exception 'Personen är inte längre med i din grupp';
   end if;
 
   update public.profiles set group_id = null where id = target;
