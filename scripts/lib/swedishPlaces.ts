@@ -1,5 +1,8 @@
 // Sweden's counties (län) and the municipalities (kommuner) in each, 290 in total.
-// Shared by every agency module that needs a county to build a search URL.
+//
+// BELONGS TO agency1 (scraper/agencies/agency1.ts): it needs the county of a municipality to build the site's search URLs
+// ("county/municipality"). That is a requirement of the agency's site, so it does not come from the database. Can move into scraper/ later.
+// NOT the list that is seeded into the database: that is places/data/swedishPlaces.ts.
 
 export const COUNTIES: Record<string, string[]> = {
   Stockholm: [
