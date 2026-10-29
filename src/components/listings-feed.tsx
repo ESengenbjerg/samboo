@@ -13,6 +13,7 @@ import { Listing } from "@/types/listing";
 import { Link, router } from "expo-router";
 import { useState } from "react";
 import { ScrollView, View } from "react-native";
+import FormError from "./form-error";
 
 type BasePath = "/saved/object/[id]" | "/search/object/[id]";
 
@@ -76,7 +77,9 @@ export default function ListingsFeed({
       </View>
 
       {isLoading && <Text>Laddar...</Text>}
-      {!isLoading && listings.length === 0 && (
+      {error && <FormError>{error}</FormError>}
+
+      {!isLoading && !error && listings.length === 0 && (
         <Text>Inga objekt hittades.</Text>
       )}
 
