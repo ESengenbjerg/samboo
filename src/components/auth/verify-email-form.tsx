@@ -51,7 +51,7 @@ export function VerifyEmailForm() {
         Verifiera e-post
       </Text>
       <Text className="text-center text-background">
-        Fyll i koden som skickats till din mail.
+        Fyll i koden som skickats till din mail. Glöm inte kolla i skräpposten.
       </Text>
       <View className="gap-1.5">
         <Label htmlFor="verify-code" className="text-background">
