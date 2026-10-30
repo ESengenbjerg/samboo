@@ -8,11 +8,12 @@ import { createJSONStorage, persist } from "zustand/middleware";
 // Leave onboarding states outside with partialize
 
 export type ScraperFilter = {
-  area: string;
+  municipality: string;
   propertyTypes: string[];
 };
 
 export type ClientFilter = {
+  area: string[];
   minRooms?: number;
   maxMonthlyFee?: number;
   minLivingArea?: number;

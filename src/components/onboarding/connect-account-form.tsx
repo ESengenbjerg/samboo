@@ -37,11 +37,11 @@ export default function ConnectAccountForm() {
       if (!user) throw new Error("Not signed in");
 
       // Fetch user input from previous onboarding steps
-      const { profileName, profileImage, scraperFilter } =
+      const { profileName, profileImage, scraperFilter, clientFilter } =
         useOnboardingStore.getState();
 
       // If onboarding is not completed, redirect to /profile to start from beginning
-      if (!scraperFilter) {
+      if (!scraperFilter || !clientFilter) {
         router.replace("/profile");
         return;
       }
@@ -57,7 +57,12 @@ export default function ConnectAccountForm() {
       }
 
       // Save search and profile name, marks onboarding as completed
-      await saveOnboarding(user.id, profileName, scraperFilter);
+      await saveOnboarding(
+        user.id,
+        profileName,
+        scraperFilter,
+        clientFilter,
+      );
 
       // When everything is saved, onboarding is complete and user is moved to /search
       completeOnboarding();

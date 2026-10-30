@@ -51,19 +51,20 @@ export default function CreateFilterForm() {
   );
 
   const hasHydrated = useOnboardingHydrated();
-
   useEffect(() => {
     // Wait until the store is hydrated, otherwise the saved values
     // are still null/default and would overwrite the form with empty values
     if (!hasHydrated) return;
 
-    // Sets area and propertyType to saved values
+    // Sets municipality and propertyType to saved values
     if (savedScrapeFilter) {
-      setArea(savedScrapeFilter.area);
+      setMunicipality(savedScrapeFilter.municipality);
       setPropertyType(savedScrapeFilter.propertyTypes);
     }
-    // Sets minRooms, maxMonthlyFee, minLivingArea, and showNewProduction to saved values
+    // Sets area and client filter values to saved values
     if (savedClientFilter) {
+      setArea(savedClientFilter.area[0] ?? "");
+
       setRooms(
         ROOM_OPTIONS.find(
           (o) => Number(o.value) === savedClientFilter.minRooms,
@@ -88,14 +89,14 @@ export default function CreateFilterForm() {
   function onSubmit() {
     setError(null);
 
-    if (!area && propertyType.length === 0) {
+    if (!municipality.trim() && propertyType.length === 0) {
       setError(
-        "Du måste lägga till minst ett område och bostadstyp för att spara.",
+        "Du måste lägga till minst en kommun och bostadstyp för att spara.",
       );
       return;
     }
-    if (!area) {
-      setError("Du måste lägga till minst ett område för att spara.");
+    if (!municipality.trim()) {
+      setError("Du måste lägga till minst en kommun för att spara.");
       return;
     }
     if (propertyType.length === 0) {
@@ -104,11 +105,12 @@ export default function CreateFilterForm() {
     }
 
     const scraperFilter: ScraperFilter = {
-      area: area.trim(),
+      municipality: municipality.trim(),
       propertyTypes: propertyType,
     };
 
     const clientFilter: ClientFilter = {
+      area: area.trim() ? [area.trim()] : [],
       minRooms: rooms ? Number(rooms.value) : undefined,
       maxMonthlyFee: monthlyFee ? Number(monthlyFee.value) : undefined,
       minLivingArea: livingArea ? Number(livingArea.value) : undefined,
@@ -125,9 +127,23 @@ export default function CreateFilterForm() {
 
       {/* TODO: Add field for municipality and remove free text input on area */}
 
+      {/* --- MUNICIPALITY --- */}
+      <View className="gap-1.5">
+        <Label htmlFor="create-municipality">Kommun*</Label>
+        <Input
+          id="create-municipality"
+          placeholder="Sök kommun..."
+          returnKeyType="next"
+          submitBehavior="submit"
+          value={municipality}
+          onChangeText={setMunicipality}
+          textContentType="addressCity"
+        />
+      </View>
+
       {/* --- AREA --- */}
       <View className="gap-1.5">
-        <Label htmlFor="create-area">Område*</Label>
+        <Label htmlFor="create-area">Område</Label>
         <Input
           id="create-area"
           placeholder="Sök område..."
@@ -154,7 +170,7 @@ export default function CreateFilterForm() {
             <ToggleGroupItem
               key={p.value}
               value={p.value}
-              aria-label={`Boendetyp ${p}`}
+              aria-label={`Boendetyp ${p.label}`}
               className="flex-none shrink-0"
             >
               <Text className="p-2">{capitalize(p.label)}</Text>
