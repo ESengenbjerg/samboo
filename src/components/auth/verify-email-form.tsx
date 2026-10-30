@@ -3,9 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
+import { useCountdown } from "@/hooks/useCountdown";
 import { resendSignUpCode, verifyEmailOtp } from "@/services/auth";
 import { router, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { type TextStyle, View } from "react-native";
 
 const RESEND_CODE_INTERVAL_SECONDS = 60;
@@ -13,15 +14,36 @@ const RESEND_CODE_INTERVAL_SECONDS = 60;
 const TABULAR_NUMBERS_STYLE: TextStyle = { fontVariant: ["tabular-nums"] };
 
 export function VerifyEmailForm() {
-  const { countdown, restartCountdown } = useCountdown(
-    RESEND_CODE_INTERVAL_SECONDS,
-  );
+  const { email, source } = useLocalSearchParams<{
+    email: string;
+    source?: "login" | "register";
+  }>();
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const { email } = useLocalSearchParams<{ email: string }>();
   const [code, setCode] = useState("");
+
+  // If user is redirected from /register - code is already sent and countdown starts right away
+  // If user if redirected from /login - no code has been sent, countdown starts after send
+  const { countdown, restartCountdown } = useCountdown(
+    RESEND_CODE_INTERVAL_SECONDS,
+    source !== "login",
+  );
+
+  // Send code when user is redirected from /login
+  const hasSentInitialCode = useRef(false);
+  useEffect(() => {
+    if (source !== "login" || hasSentInitialCode.current) return;
+    hasSentInitialCode.current = true;
+
+    resendSignUpCode(email).then(({ error }) => {
+      if (error) {
+        setError("Kunde inte skicka koden, försök igen.");
+      } else {
+        restartCountdown();
+      }
+    });
+  }, [source, email, restartCountdown]);
 
   async function onSubmit() {
     if (isLoading) return;
@@ -36,7 +58,7 @@ export function VerifyEmailForm() {
       } else if (error) {
         setError("Något gick fel, försök igen.");
       }
-      
+
       // If succeeded navigation will automatically redirect user to next step
     } catch {
       setError("Något gick fel, försök igen.");
@@ -51,7 +73,7 @@ export function VerifyEmailForm() {
         Verifiera e-post
       </Text>
       <Text className="text-center text-background">
-        Fyll i koden som skickats till din mail.
+        Fyll i koden som skickats till din mail. Glöm inte kolla i skräpposten.
       </Text>
       <View className="gap-1.5">
         <Label htmlFor="verify-code" className="text-background">
@@ -106,7 +128,9 @@ export function VerifyEmailForm() {
         </Button>
         <Button
           variant="link"
-          onPress={() => router.dismissTo("/register")}
+          onPress={() =>
+            router.dismissTo(source === "login" ? "/login" : "/register")
+          }
           disabled={isLoading}
         >
           <Text className="text-background">Tillbaka</Text>
@@ -114,43 +138,4 @@ export function VerifyEmailForm() {
       </View>
     </View>
   );
-}
-
-// Countdown for email
-function useCountdown(seconds = 30) {
-  const [countdown, setCountdown] = useState(seconds);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const stopCountdown = useCallback(() => {
-    if (intervalRef.current !== null) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  }, []);
-
-  const startInterval = useCallback(() => {
-    stopCountdown();
-    intervalRef.current = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          // Stop countdown and set state to 0 when countdown is finished
-          stopCountdown();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  }, [stopCountdown]);
-
-  const restartCountdown = useCallback(() => {
-    setCountdown(seconds);
-    startInterval();
-  }, [seconds, startInterval]);
-
-  useEffect(() => {
-    startInterval();
-    return stopCountdown;
-  }, [startInterval, stopCountdown]);
-
-  return { countdown, restartCountdown };
 }
