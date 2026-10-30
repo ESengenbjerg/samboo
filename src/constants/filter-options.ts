@@ -1,4 +1,5 @@
 import { SelectOption } from "@/types/select-option";
+import { formatPrice } from "@/utils/format-price";
 
 const range = (start: number, end: number, step = 1) =>
   Array.from(
@@ -17,8 +18,8 @@ export const MONTHLY_FEE_OPTIONS: SelectOption[] = [
   value: String(m),
   label:
     i === arr.length - 1
-      ? `${m.toLocaleString("sv-SE")} kr eller mer`
-      : `${m.toLocaleString("sv-SE")} kr`,
+      ? `${formatPrice(m)} eller mer`
+      : `${formatPrice(m)}`,
 }));
 
 export const LIVING_AREA_OPTIONS: SelectOption[] = range(20, 200, 10).map(

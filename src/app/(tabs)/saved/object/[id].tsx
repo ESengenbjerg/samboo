@@ -1,10 +1,10 @@
-import { View } from "react-native";
-import { Text } from "@/components/ui/text";
+import ObjectPageScreen from "@/components/object-page/object-page";
+import { useListingById } from "@/hooks/useListingById";
+import { useLocalSearchParams } from "expo-router";
 
 export default function SavedObjectScreen() {
-    return (
-        <View className="flex-1 items-center justify-center bg-background">
-            <Text>Objekt</Text>
-        </View>
-    )
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { listing, isLoading } = useListingById(id);
+
+  return <ObjectPageScreen listing={listing} isLoading={isLoading} />;
 }

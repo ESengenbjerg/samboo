@@ -27,7 +27,7 @@ export default function Header() {
   return (
     <View
       style={{ paddingTop: insets.top }}
-      className="flex-row justify-between items-center px-4 pb-8"
+      className="flex-row justify-between items-center px-4 pb-8 bg-background"
     >
       <Link href="/(tabs)/search" asChild>
         <Pressable role="link" aria-label="Start">
