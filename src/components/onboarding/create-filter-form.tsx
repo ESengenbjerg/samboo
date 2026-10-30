@@ -123,7 +123,10 @@ export default function CreateFilterForm() {
 
   return (
     <View className="flex-1 justify-center w-full px-8 gap-6">
-      <Text variant="h1">Skapa bevakning</Text>
+      <View className="gap-4">
+        <Text variant="h1">Skapa bevakning</Text>
+        <Text>Du kan uppdatera dina val via inställningar senare.</Text>
+      </View>
 
       {/* TODO: Add field for municipality and remove free text input on area */}
 
