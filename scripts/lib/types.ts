@@ -29,6 +29,9 @@ export type MappedListing = {
   property_type: PropertyType | null;
   municipality: string | null;
   area: string | null;
+  address: string | null;
+  image_url: string | null;
+  description: string | null;
   price: number | null;
   rooms: number | null;
   latitude: number | null;
