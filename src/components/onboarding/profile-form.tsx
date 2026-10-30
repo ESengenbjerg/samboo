@@ -5,19 +5,30 @@ import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
 import { useOnboardingStore } from "@/stores/onboarding";
 import { pickImage } from "@/utils/pick-image";
-import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
+import ProfileImage from "../profile-image";
 
 export default function ProfileForm() {
-  // TODO: setIsLoading will be used once Supabase implementation is complete
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [profileName, setProfileName] = useState("");
-  const [profileImage, setProfileImage] = useState("");
+  const [profileImage, setProfileImage] =
+    useState<ImagePicker.ImagePickerAsset | null>(null);
   const setProfile = useOnboardingStore((s) => s.setProfile);
+
+  async function selectImage() {
+    setIsLoading(true);
+    try {
+      const asset = await pickImage();
+      if (asset) setProfileImage(asset);
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   function onSubmit() {
     setError(null);
@@ -35,8 +46,10 @@ export default function ProfileForm() {
       return;
     }
 
-    setProfile(profileName, profileImage);
+    setProfile(profileName, profileImage.uri);
     router.push({ pathname: "/create-filter" });
+
+    console.log("Image: " + profileImage.uri);
   }
 
   return (
@@ -59,31 +72,23 @@ export default function ProfileForm() {
       <View className="gap-1.5">
         <Label htmlFor="profile-image">Profilbild</Label>
 
-        <Button
-          variant="outline"
-          onPress={() => pickImage(setProfileImage)}
-          disabled={isLoading}
-        >
+        <Button variant="outline" onPress={selectImage} disabled={isLoading}>
           <Text>{profileImage ? "Byt bild" : "Välj bild"}</Text>
         </Button>
       </View>
 
-      {profileImage && profileName ? (
-        <View className="items-center gap-2">
-          <Image
-            source={{ uri: profileImage }}
-            className="w-24 h-24 rounded-full self-center"
-          />
-          <Text variant="bold">{profileName}</Text>
-        </View>
-      ) : null}
+      <View className="self-center">
+        {profileImage && profileName ? (
+          <View className="items-center gap-2">
+            <ProfileImage uri={profileImage.uri}></ProfileImage>
+            <Text variant="bold">{profileName}</Text>
+          </View>
+        ) : null}
 
-      {profileImage && !profileName ? (
-        <Image
-          source={{ uri: profileImage }}
-          className="w-24 h-24 rounded-full self-center"
-        />
-      ) : null}
+        {profileImage && !profileName ? (
+          <ProfileImage uri={profileImage.uri}></ProfileImage>
+        ) : null}
+      </View>
 
       {error && <FormError>{error}</FormError>}
 

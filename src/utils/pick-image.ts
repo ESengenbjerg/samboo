@@ -1,6 +1,6 @@
 import * as ImagePicker from "expo-image-picker";
 
-export async function pickImage(setProfileImage: (uri: string) => void) {
+export async function pickImage() {
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ["images"],
     allowsEditing: true,
@@ -8,7 +8,7 @@ export async function pickImage(setProfileImage: (uri: string) => void) {
     quality: 0.8,
   });
 
-  if (!result.canceled) {
-    setProfileImage(result.assets[0].uri);
-  }
+  if (result.canceled) return null;
+
+  return result.assets[0];
 }

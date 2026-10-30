@@ -1,14 +1,15 @@
+import { useUpdateProfileAvatar } from "@/hooks/useUpdateProfileAvatar";
 import { getCurrentUser } from "@/services/auth";
 import { createInvite, inviteErrorMessage } from "@/services/invites";
 import { saveOnboarding } from "@/services/onboarding";
 import { useOnboardingStore } from "@/stores/onboarding";
+import { router } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 import FormError from "../form-error";
 import { SendInviteDialog } from "../modals/send-invite-dialog";
 import { Button } from "../ui/button";
 import { Text } from "../ui/text";
-import { router } from "expo-router";
 
 export default function ConnectAccountForm() {
   // TODO: setError will be used once Supabase implementation is complete
@@ -16,6 +17,14 @@ export default function ConnectAccountForm() {
   const [error, setError] = useState<string | null>(null);
   const [invitationDialogOpen, setInvitationDialogOpen] = useState(false);
   const completeOnboarding = useOnboardingStore((s) => s.completeOnboarding);
+  const {
+    updateAvatar,
+    isUpdating: isUpdatingAvatar,
+    error: avatarError,
+  } = useUpdateProfileAvatar();
+
+  const isBusy = isLoading || isUpdatingAvatar;
+  const displayError = error ?? avatarError;
 
   async function finish() {
     setError(null);
@@ -28,12 +37,23 @@ export default function ConnectAccountForm() {
       if (!user) throw new Error("Not signed in");
 
       // Fetch user input from previous onboarding steps
-      const { profileName, scraperFilter } = useOnboardingStore.getState();
+      const { profileName, profileImage, scraperFilter } =
+        useOnboardingStore.getState();
 
       // If onboarding is not completed, redirect to /profile to start from beginning
       if (!scraperFilter) {
         router.replace("/profile");
         return;
+      }
+
+      if (!profileImage) {
+        throw new Error("Profilbild saknas.");
+      }
+
+      const avatarPath = await updateAvatar(user.id, profileImage);
+
+      if (!avatarPath) {
+        throw new Error("Profilbilden kunde inte sparas");
       }
 
       // Save search and profile name, marks onboarding as completed
@@ -98,13 +118,13 @@ export default function ConnectAccountForm() {
         />
       )}
 
-      {error && <FormError>{error}</FormError>}
+      {displayError && <FormError>{displayError}</FormError>}
 
       <View className="gap-2 items-start">
         <Button
           variant="secondary"
           onPress={() => setInvitationDialogOpen(true)}
-          disabled={isLoading}
+          disabled={isBusy}
           className="px-10"
         >
           <Text>Bjud in konto</Text>
@@ -114,7 +134,7 @@ export default function ConnectAccountForm() {
           variant="link"
           className="p-0"
           onPress={onSkip}
-          disabled={isLoading}
+          disabled={isBusy}
         >
           <Text>Hoppa över</Text>
         </Button>
