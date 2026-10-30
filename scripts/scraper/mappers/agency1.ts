@@ -13,6 +13,7 @@ const PROPERTY_TYPES: Record<string, PropertyType> = {
   bostadsrätt: "lagenhet",
   bostadsrättslägenhet: "lagenhet",
   lägenhet: "lagenhet",
+  fritidshus: "fritidshus",
 };
 
 // The site writes every number as a string, and coordinates with a decimal comma. Parse to number and replace , with .
@@ -35,8 +36,25 @@ function toFee(text: string | null): number | null {
   return digits ? toPrice(Number(digits)) : null;
 }
 
-function toText(value: unknown): string | null {
-  return typeof value === "string" && value.trim() !== "" ? value.trim() : null;
+// Trimmed text, or null if it is not a string or empty. Too long text becomes null,
+// or is cut when truncate is set (a cut URL or address would be wrong, a cut description is fine)
+function toText(
+  value: unknown,
+  maxLength = Infinity,
+  truncate = false,
+): string | null {
+  if (typeof value !== "string") return null;
+  const text = value.trim();
+  if (text === "") return null;
+  if (text.length <= maxLength) return text;
+  return truncate ? text.slice(0, maxLength) : null;
+}
+
+// For smallint/bigint columns: only whole numbers within [min, max] pass,
+// since one value the database rejects fails the whole batch upsert
+function toInteger(value: unknown, min: number, max: number): number | null {
+  const n = toNumber(value);
+  return n !== null && Number.isInteger(n) && n >= min && n <= max ? n : null;
 }
 
 // Find property type by parsing
@@ -59,10 +77,17 @@ export type Agency1LdJson = {
   mainEntityOfPage?: string;
   product?: {
     mpn?: string;
+    image?: unknown[];
+    description?: unknown;
     offers?: { price?: unknown };
     isRelatedTo?: {
-      address?: { addressLocality?: string; addressRegion?: string };
+      address?: {
+        streetAddress?: string;
+        addressLocality?: string;
+        addressRegion?: string;
+      };
       numberOfRooms?: unknown;
+      floorLevel?: unknown;
       floorSize?: { value?: unknown };
       geo?: { latitude?: unknown; longitude?: unknown };
     };
@@ -87,9 +112,15 @@ export function mapListing(
   return {
     property_type: mapPropertyType(facts.listingType ?? data.category),
     municipality: toText(home?.address?.addressLocality),
+    address: toText(home?.address?.streetAddress, 300),
     area: toText(home?.address?.addressRegion),
     price: toPrice(data.product?.offers?.price),
     rooms: toNumber(home?.numberOfRooms),
+    image_url: toText(data.product?.image?.[0], 500),
+    description: toText(data.product?.description, 5000, true),
+    floor_level: toInteger(home?.floorLevel, -5, 100),
+    // Not in the ld+json, would have to come from the page (PageFacts)
+    plot_area: null,
     latitude: toNumber(home?.geo?.latitude),
     longitude: toNumber(home?.geo?.longitude),
     monthly_fee: toFee(facts.monthlyFee),
