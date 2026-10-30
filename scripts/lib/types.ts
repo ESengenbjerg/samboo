@@ -9,7 +9,13 @@ export type SearchParamsRow = {
 };
 
 // Our own property_type values (listings.property_type)
-export type PropertyType = "villa" | "radhus" | "tomt" | "lagenhet" | "other";
+export type PropertyType =
+  | "villa"
+  | "radhus"
+  | "tomt"
+  | "lagenhet"
+  | "fritidshus"
+  | "other";
 
 // One distinct search to be done on each agency's site
 export type ScopeItem = {
@@ -23,12 +29,18 @@ export type MappedListing = {
   property_type: PropertyType | null;
   municipality: string | null;
   area: string | null;
+  address: string | null;
+  image_url: string | null;
+  description: string | null;
   price: number | null;
   rooms: number | null;
+  floor_level: number | null;
   latitude: number | null;
   longitude: number | null;
   monthly_fee: number | null;
   living_area: number | null;
+  plot_area: number | null;
+  build_year: number | null;
   is_new_construction: boolean;
 };
 
