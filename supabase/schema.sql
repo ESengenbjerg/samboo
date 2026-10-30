@@ -93,6 +93,7 @@ create table public.listings (
   description    text,
   floor_level    smallint,
   plot_area      bigint,
+  build_year     smallint,
   constraint listings_pkey primary key (id),
   constraint listings_agency_external_id_key unique (agency, external_id),
   constraint listings_property_type_check check (
@@ -102,7 +103,8 @@ create table public.listings (
   constraint listings_image_url_length check (image_url is null or char_length(image_url) <= 500),
   constraint listings_description_length check (description is null or char_length(description) <= 5000),
   constraint listings_floor_level_check check (floor_level is null or floor_level between -5 and 100),
-  constraint listings_plot_area_check check (plot_area is null or plot_area >= 0)
+  constraint listings_plot_area_check check (plot_area is null or plot_area >= 0),
+  constraint listings_build_year_check check (build_year is null or build_year between 1000 and 2100)
 );
 
 -- Sweden's counties (län), 21 in total. Only used to group the municipalities (e.g. in the app's pickers): a search never stores a county.
