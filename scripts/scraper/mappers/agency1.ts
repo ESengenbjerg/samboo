@@ -50,6 +50,14 @@ function toText(
   return truncate ? text.slice(0, maxLength) : null;
 }
 
+// Like toText, but repeated whitespace (also non-breaking) becomes one space,
+// so "Partille  centrum" and "Partille centrum" are the same area when matching
+function toPlaceName(value: unknown): string | null {
+  return typeof value === "string"
+    ? toText(value.replace(/\s+/g, " "))
+    : null;
+}
+
 // For smallint/bigint columns: only whole numbers within [min, max] pass,
 // since one value the database rejects fails the whole batch upsert
 function toInteger(value: unknown, min: number, max: number): number | null {
@@ -125,7 +133,7 @@ export function mapListing(
     property_type: mapPropertyType(facts.listingType ?? data.category),
     municipality: toText(home?.address?.addressLocality),
     address: toText(home?.address?.streetAddress, 300),
-    area: toText(home?.address?.addressRegion),
+    area: toPlaceName(home?.address?.addressRegion),
     price: toPrice(data.product?.offers?.price),
     rooms: toNumber(home?.numberOfRooms),
     image_url: toText(data.product?.image?.[0], 500),
