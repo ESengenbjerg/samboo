@@ -57,6 +57,15 @@ function toInteger(value: unknown, min: number, max: number): number | null {
   return n !== null && Number.isInteger(n) && n >= min && n <= max ? n : null;
 }
 
+// "692 m2" or "1 200 m2" -> 692 / 1200. The site separates thousands with a (non-breaking) space.
+// Only square metres: anything else (e.g. hectares) becomes null rather than a wrong number
+function toArea(text: string | null): number | null {
+  const digits = text
+    ?.match(/^(\d[\d\s\u00a0]*)(?:,\d+)?\s*m/)?.[1]
+    ?.replace(/\D/g, "");
+  return digits ? toInteger(Number(digits), 0, Number.MAX_SAFE_INTEGER) : null;
+}
+
 // Find property type by parsing
 function mapPropertyType(type: unknown): PropertyType | null {
   const text = toText(type);
@@ -100,6 +109,8 @@ export type PageFacts = {
   listingType: string | null;
   // The "Månadsavgift:" line ("4 100 kr"), only on apartments
   monthlyFee: string | null;
+  // The "Tomtarea:" line ("692 m2"), only on houses
+  plotArea: string | null;
   // The new-build label on the search card
   isNewConstruction: boolean;
 };
@@ -119,8 +130,7 @@ export function mapListing(
     image_url: toText(data.product?.image?.[0], 500),
     description: toText(data.product?.description, 5000, true),
     floor_level: toInteger(home?.floorLevel, -5, 100),
-    // Not in the ld+json, would have to come from the page (PageFacts)
-    plot_area: null,
+    plot_area: toArea(facts.plotArea),
     latitude: toNumber(home?.geo?.latitude),
     longitude: toNumber(home?.geo?.longitude),
     monthly_fee: toFee(facts.monthlyFee),
