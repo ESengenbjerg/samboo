@@ -60,6 +60,9 @@ export default function ScheduledShowingInfo(showing: ScheduledShowing) {
         </View>
       </View>
 
+      {/* TODO: Add edit action for showing date, time and note. */}
+      {/* TODO: Add delete action with confirmation. */}
+
       {/* Note */}
       {showing.note?.trim() && (
         <View className="mb-4 mt-4">

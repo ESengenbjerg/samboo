@@ -1,32 +1,11 @@
 import { createShowing, showingErrorMessage } from "@/services/showings";
+import { ShowingValues } from "@/types/showings";
+import {
+  isShowingDateInPast,
+  isValidShowingDate,
+  normalizeShowingTime,
+} from "@/utils/showing-validation";
 import { useCallback, useState } from "react";
-
-// Same shape as SaveShowingDialog's onSave
-type ShowingValues = {
-  date: string;
-  time: string;
-  note: string;
-};
-
-// "2027-01-01", and a real date (not 2027-02-31)
-function isValidDate(date: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
-  const [year, month, day] = date.split("-").map(Number);
-  const d = new Date(year, month - 1, day);
-  return (
-    d.getFullYear() === year &&
-    d.getMonth() === month - 1 &&
-    d.getDate() === day
-  );
-}
-
-// "11.00", "11:00" or "11" -> "11:00". null if empty, undefined if invalid
-function normalizeTime(time: string) {
-  if (!time) return null;
-  const match = time.match(/^([01]?\d|2[0-3])(?:[.:]([0-5]\d))?$/);
-  if (!match) return undefined;
-  return `${match[1].padStart(2, "0")}:${match[2] ?? "00"}`;
-}
 
 export function useSaveShowing() {
   const [isSaving, setIsSaving] = useState(false);
@@ -38,12 +17,16 @@ export function useSaveShowing() {
       setError(null);
 
       const date = values.date.trim();
-      if (!isValidDate(date)) {
+      if (!isValidShowingDate(date)) {
         setError("Skriv datumet som ÅÅÅÅ-MM-DD, t.ex. 2027-01-01.");
         return false;
       }
+      if (isShowingDateInPast(date)) {
+        setError("Datumet kan inte ligga i det förflutna.");
+        return false;
+      }
 
-      const startTime = normalizeTime(values.time.trim());
+      const startTime = normalizeShowingTime(values.time.trim());
       if (startTime === null) {
         setError("Ange en starttid.");
         return false;

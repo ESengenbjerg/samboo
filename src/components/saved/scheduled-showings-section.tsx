@@ -17,9 +17,10 @@ export default function ScheduledShowingsSection({
     <View>
       <View className="flex-row items-end justify-between mb-4">
         <Text variant="h2">Bokade visningar</Text>
-        <Button variant="link">
+          {/* TODO: Add ealier showings */}
+        {/* <Button variant="link">
           <Text>Tidigare visningar</Text>
-        </Button>
+        </Button> */}
       </View>
 
       {isLoading && <Text>Laddar visningar...</Text>}

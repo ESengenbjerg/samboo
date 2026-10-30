@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import { NewShowing, ShowingRow } from "@/types/showings";
+import { NewShowing, ShowingRow, ShowingValues } from "@/types/showings";
 import { toIsoDate } from "@/utils/date-format";
 import type { PostgrestError } from "@supabase/supabase-js";
 
@@ -46,6 +46,21 @@ export function createShowing(showing: NewShowing) {
     start_time: showing.startTime,
     note: showing.note,
   });
+}
+
+export function updateShowing(id: number, showing: ShowingValues) {
+  return supabase
+    .from("showings")
+    .update({
+      showing_date: showing.date,
+      start_time: showing.time,
+      note: showing.note || null,
+    })
+    .eq("id", id);
+}
+
+export function deleteShowing(id: number) {
+  return supabase.from("showings").delete().eq("id", id);
 }
 
 // Turns a database error from saving a showing into a message for the user

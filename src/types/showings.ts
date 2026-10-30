@@ -33,6 +33,12 @@ export type NewShowing = {
   note: string | null;
 };
 
+export type ShowingValues = {
+  date: string;
+  time: string;
+  note: string;
+};
+
 // One of my own showings that did not follow into the group when I accepted an invite,
 // because the group already had a showing for the same listing. From accept_invite()
 export type SkippedShowing = {
