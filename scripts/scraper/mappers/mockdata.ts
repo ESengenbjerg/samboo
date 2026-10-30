@@ -12,14 +12,8 @@ const PROPERTY_TYPES: Record<string, PropertyType> = {
   tomt: "tomt",
   lagenhet: "lagenhet",
   lägenhet: "lagenhet",
+  fritidshus: "fritidshus",
 };
-
-// // Number(null) is 0, so check for null/empty first
-// function toNumber(value) {
-//   if (value === null || value === undefined || value === "") return null;
-//   const n = Number(value);
-//   return Number.isFinite(n) ? n : null;
-// }
 
 // Only real numbers pass. Strings, null, undefined, NaN and Infinity become null
 function toNumber(value: unknown): number | null {
@@ -30,6 +24,25 @@ function toNumber(value: unknown): number | null {
 function toPrice(value: unknown): number | null {
   const n = toNumber(value);
   return n !== null && n > 0 ? n : null;
+}
+
+// Trimmed text, or null if it is not a string or empty. Too long text becomes null, or is cut when truncate is set (a cut URL or address would be wrong, a cut description is fine)
+function toText(
+  value: unknown,
+  maxLength: number,
+  truncate = false,
+): string | null {
+  if (typeof value !== "string") return null;
+  const text = value.trim();
+  if (text === "") return null;
+  if (text.length <= maxLength) return text;
+  return truncate ? text.slice(0, maxLength) : null;
+}
+
+// For smallint/bigint columns: only whole numbers within [min, max] pass, since one value the database rejects fails the whole batch upsert
+function toInteger(value: unknown, min: number, max: number): number | null {
+  const n = toNumber(value);
+  return n !== null && Number.isInteger(n) && n >= min && n <= max ? n : null;
 }
 
 function mapPropertyType(category: unknown): PropertyType | null {
@@ -50,8 +63,16 @@ export type MockdataLdJson = {
   municipality?: string | null;
   district?: string | null;
   addressLocality?: string | null;
+  streetAddress?: unknown;
+  image?: unknown;
+  description?: unknown;
   price?: unknown;
   rooms?: unknown;
+  floorLevel?: unknown;
+  plotArea?: unknown;
+  newProduction?: unknown;
+  monthlyFee?: unknown;
+  livingArea?: unknown;
   geo?: { latitude?: unknown; longitude?: unknown };
 };
 
@@ -60,14 +81,18 @@ export function mapListing(data: MockdataLdJson): MappedListing {
     property_type: mapPropertyType(data.category),
     municipality: data.municipality ?? null,
     area: data.district ?? data.addressLocality ?? null,
+    address: toText(data.streetAddress, 300),
     price: toPrice(data.price),
     rooms: toNumber(data.rooms),
+    floor_level: toInteger(data.floorLevel, -5, 100),
+    plot_area: toInteger(data.plotArea, 0, Number.MAX_SAFE_INTEGER),
+    image_url: toText(data.image, 500),
+    description: toText(data.description, 5000, true),
     latitude: toNumber(data.geo?.latitude),
     longitude: toNumber(data.geo?.longitude),
-    // Mockdata has no such fields
-    monthly_fee: null,
-    living_area: null,
-    is_new_construction: false,
+    monthly_fee: toNumber(data.monthlyFee),
+    living_area: toNumber(data.livingArea),
+    is_new_construction: data.newProduction === true,
     // NOTE! toNumber always returns an actuall number or null. So if value is missing it will be null
   };
 }
