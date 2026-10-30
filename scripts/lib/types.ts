@@ -40,6 +40,7 @@ export type MappedListing = {
   monthly_fee: number | null;
   living_area: number | null;
   plot_area: number | null;
+  build_year: number | null;
   is_new_construction: boolean;
 };
 

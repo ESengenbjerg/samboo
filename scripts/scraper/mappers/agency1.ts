@@ -97,6 +97,7 @@ export type Agency1LdJson = {
       };
       numberOfRooms?: unknown;
       floorLevel?: unknown;
+      yearBuilt?: unknown;
       floorSize?: { value?: unknown };
       geo?: { latitude?: unknown; longitude?: unknown };
     };
@@ -135,6 +136,7 @@ export function mapListing(
     longitude: toNumber(home?.geo?.longitude),
     monthly_fee: toFee(facts.monthlyFee),
     living_area: toPrice(home?.floorSize?.value),
+    build_year: toInteger(home?.yearBuilt, 1000, 2100),
     is_new_construction: facts.isNewConstruction,
   };
 }

@@ -73,6 +73,7 @@ export type MockdataLdJson = {
   newProduction?: unknown;
   monthlyFee?: unknown;
   livingArea?: unknown;
+  buildYear: number | null;
   geo?: { latitude?: unknown; longitude?: unknown };
 };
 
@@ -92,6 +93,7 @@ export function mapListing(data: MockdataLdJson): MappedListing {
     longitude: toNumber(data.geo?.longitude),
     monthly_fee: toNumber(data.monthlyFee),
     living_area: toNumber(data.livingArea),
+    build_year: toNumber(data.buildYear),
     is_new_construction: data.newProduction === true,
     // NOTE! toNumber always returns an actuall number or null. So if value is missing it will be null
   };
