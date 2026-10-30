@@ -100,7 +100,7 @@ create table public.listings (
   ),
   constraint listings_address_length check (address is null or char_length(address) between 1 and 300),
   constraint listings_image_url_length check (image_url is null or char_length(image_url) <= 500),
-  constraint listings_description_length check (description is null or char_length(description) <= 1000),
+  constraint listings_description_length check (description is null or char_length(description) <= 5000),
   constraint listings_floor_level_check check (floor_level is null or floor_level between -5 and 100),
   constraint listings_plot_area_check check (plot_area is null or plot_area >= 0)
 );
