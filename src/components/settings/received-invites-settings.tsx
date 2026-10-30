@@ -9,13 +9,8 @@ export default function ReceivedInvitesSettings({
 }: {
   accounts: ConnectedAccounts;
 }) {
-  const {
-    receivedInvites,
-    acceptInvite,
-    declineInvite,
-    isSubmitting,
-    skippedShowings,
-  } = accounts;
+  const { receivedInvites, acceptInvite, declineInvite, isSubmitting } =
+    accounts;
   const [answeredInvite, setAnsweredInvite] = useState<
     "accepted" | "declined" | null
   >(null);
@@ -37,21 +32,6 @@ export default function ReceivedInvitesSettings({
       )}
 
       {answeredInvite === "accepted" && <Text>Inbjudan godkänd!</Text>}
-      {answeredInvite === "accepted" && skippedShowings.length > 0 && (
-        <View>
-          <Text>
-            Gruppen hade redan visningar för de här bostäderna, så dina
-            visningar för dem togs bort:
-          </Text>
-          {skippedShowings.map((s) => (
-            // TODO: Use same date/time logic as in showings list
-            <Text key={s.url} variant="bold">
-              {s.address ?? "Okänd adress"}, {s.showing_date}
-              {s.start_time ? ` kl. ${s.start_time.slice(0, 5)}` : ""}
-            </Text>
-          ))}
-        </View>
-      )}
       {answeredInvite === "declined" && <Text>Inbjudan nekad.</Text>}
 
       {receivedInvites.map((i) => (
