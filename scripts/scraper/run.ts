@@ -41,7 +41,34 @@ process.loadEnvFile(".env");
 const { supabaseAdmin } = await import("../lib/supabaseAdmin.ts");
 
 // Agencies are scraped one after another. ADD NEW AGENCIES HERE!!!
-const agencies: Agency[] = [mockdata, agency1];
+const allAgencies: Agency[] = [mockdata, agency1];
+
+// Optional flags for a limited test run. Without them everything runs as usual
+//   --agency=mockdata          only scrape this agency
+//   --municipality=Lerum       ignore the users' searches and scrape this municipality (all types). Can be repeated
+
+function flagValues(name: string): string[] {
+  const prefix = `--${name}=`;
+  return process.argv
+    .filter((arg) => arg.startsWith(prefix))
+    .map((arg) => arg.slice(prefix.length));
+}
+
+const [agencyFlag] = flagValues("agency");
+const agencies = agencyFlag
+  ? allAgencies.filter(
+      (a) => a.AGENCY.toLowerCase() === agencyFlag.toLowerCase(),
+    )
+  : allAgencies;
+
+if (agencies.length === 0) {
+  console.error(
+    `Unknown agency "${agencyFlag}". Available: ${allAgencies.map((a) => a.AGENCY).join(", ")}`,
+  );
+  process.exit(1);
+}
+
+const municipalityFlags = flagValues("municipality");
 
 // // node scripts/scraper/run.ts --dry-run  -> print scope and URLs, scrape nothing
 // const dryRun = process.argv.includes("--dry-run"); // For test
@@ -58,7 +85,10 @@ if (searchError) {
 }
 
 // ---------------------- BUILD SCOPE --------------------------
-const { items: scope, skipped } = buildScope(searchParams ?? []);
+const { items, skipped } = buildScope(searchParams ?? []);
+const scope = municipalityFlags.length
+  ? [{ municipalities: municipalityFlags.sort(), areas: [], propertyTypes: [] }]
+  : items;
 
 for (const userId of skipped) {
   console.warn(`Skipping search without a place (user ${userId})`);
