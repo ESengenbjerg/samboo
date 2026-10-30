@@ -34,10 +34,12 @@ export type MappedListing = {
   description: string | null;
   price: number | null;
   rooms: number | null;
+  floor_level: number | null;
   latitude: number | null;
   longitude: number | null;
   monthly_fee: number | null;
   living_area: number | null;
+  plot_area: number | null;
   is_new_construction: boolean;
 };
 
