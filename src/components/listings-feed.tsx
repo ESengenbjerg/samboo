@@ -10,12 +10,11 @@ import {
 } from "@/components/ui/select";
 import { Text } from "@/components/ui/text";
 import { Listing } from "@/types/listing";
-import { Link, router } from "expo-router";
+import { BasePath, goToObject } from "@/utils/go-to-object";
+import { Link } from "expo-router";
 import { useState } from "react";
 import { ScrollView, View } from "react-native";
 import FormError from "./form-error";
-
-type BasePath = "/saved/object/[id]" | "/search/object/[id]";
 
 type ListingsProps = {
   title: string;
@@ -35,13 +34,6 @@ export default function ListingsFeed({
   showUpdateFilter = false,
 }: ListingsProps) {
   const [view, setView] = useState<"column" | "grid">("column");
-
-  function goToObject(listingId: number, path: BasePath) {
-    router.push({
-      pathname: path,
-      params: { id: String(listingId) },
-    });
-  }
 
   return (
     <View className="flex-1 px-6 bg-background gap-8 ">
