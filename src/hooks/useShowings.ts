@@ -1,26 +1,28 @@
 import { getPastShowings, getUpcomingShowings } from "@/services/showings";
-import { ScheduledShowings, ShowingRow } from "@/types/showings";
+import { ScheduledShowing, ShowingRow } from "@/types/showings";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 
 type ShowingsResult = {
   key: string;
-  showings: ScheduledShowings[];
+  showings: ScheduledShowing[];
   failed?: boolean;
 };
 
 // showing_date ("2026-10-29") and start_time ("11:00:00" or null) are local time.
 // The Date is built from numbers, since parsing a string without time zone differs between engines
-function toScheduledShowing(row: ShowingRow): ScheduledShowings {
+function toScheduledShowing(row: ShowingRow): ScheduledShowing {
   const [year, month, day] = row.showing_date.split("-").map(Number);
   const [hour, minute] = (row.start_time ?? "00:00").split(":").map(Number);
 
   return {
     id: row.id,
+    listingId: row.listing_id,
     address: row.listings.ld_json.streetAddress ?? "Adress saknas",
     municipality: row.listings.municipality ?? "",
     area: row.listings.area ?? "",
     startsAt: new Date(year, month - 1, day, hour, minute),
+    note: row.note,
   };
 }
 

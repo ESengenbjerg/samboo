@@ -1,11 +1,13 @@
 import { Listing } from "@/types/listing";
 
-export type ScheduledShowings = {
+export type ScheduledShowing = {
   id: number;
+  listingId: number;
   address: string;
   municipality: string;
   area: string;
   startsAt: Date;
+  note: string | null;
 };
 
 // A row from showings joined with its listing

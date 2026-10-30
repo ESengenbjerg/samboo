@@ -50,10 +50,12 @@ export default function ScheduledShowingsSection({
               <View className="mb-4">
                 <ScheduledShowing
                   id={s.id}
+                  listingId={s.listingId}
                   address={s.address}
                   municipality={s.municipality}
                   area={s.area}
                   startsAt={s.startsAt}
+                  note={s.note}
                 />
               </View>
             </View>

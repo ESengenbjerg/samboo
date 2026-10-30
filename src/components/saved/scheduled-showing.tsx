@@ -1,47 +1,77 @@
-import { ScheduledShowings } from "@/types/showings";
-import { capitalize } from "@/utils/capitalize-string";
+import { ScheduledShowing } from "@/types/showings";
+import { goToObject } from "@/utils/go-to-object";
 import { googleMapsUrl } from "@/utils/google-maps-url";
 import { Link } from "expo-router";
-import { Clock, Map } from "lucide-react-native";
-import { View } from "react-native";
+import { Clock, Globe, House, Map, NotebookPen } from "lucide-react-native";
+import { Platform, View } from "react-native";
+import { Button } from "../ui/button";
 import { Icon } from "../ui/icon";
-import { Separator } from "../ui/separator";
 import { Text } from "../ui/text";
 
-export default function ScheduledShowing(showings: ScheduledShowings) {
-
-  const timeText = showings.startsAt.toLocaleTimeString("sv-SE", {
+export default function ScheduledShowingInfo(showing: ScheduledShowing) {
+  const timeText = showing.startsAt.toLocaleTimeString("sv-SE", {
     hour: "2-digit",
     minute: "2-digit",
   });
 
   return (
     <View className="gap-2">
-
       <View className="flex-row justify-between items-center">
+        {/* Address and area */}
         <View>
-          <Text variant="bold">{showings.address}</Text>
-          <Text>{showings.area}</Text>
+          <Button
+            variant="link"
+            onPress={() => goToObject(showing.listingId, "/saved/object/[id]")}
+            className="self-start min-h-0 px-0 py-0 justify-start"
+            style={Platform.select({
+              web: { marginLeft: -12 },
+              default: undefined,
+            })}
+          >
+            <Icon as={House} className="size-[18px]" />
+            <Text className="text-base" variant="bold">
+              {showing.address}
+            </Text>
+          </Button>
+          <View className="flex-row gap-2 items-center">
+            <Icon as={Globe} size={18} />
+            <Text>{showing.area}</Text>
+          </View>
         </View>
+
+        {/* Time and map */}
         <View>
           <View className="flex-row gap-2 items-center">
-            <Icon as={Clock}></Icon>
-            <Text variant="bold">{timeText}</Text>
+            <Icon as={Clock} size={18}></Icon>
+            <Text>{timeText}</Text>
           </View>
           <View className="flex-row gap-2 items-center">
-            <Icon as={Map}></Icon>
+            <Icon as={Map} size={18}></Icon>
             <Link
               href={googleMapsUrl(
-                showings.address,
-                showings.area,
-                showings.municipality,
+                showing.address,
+                showing.area,
+                showing.municipality,
               )}
             >
-              <Text>Hitta hit</Text>
+              <Text className="underline">Hitta hit</Text>
             </Link>
           </View>
         </View>
       </View>
+
+      {/* Note */}
+      {showing.note?.trim() && (
+        <View className="mb-4 mt-4">
+          <View className="flex-row items-center gap-2">
+            <Icon as={NotebookPen} size={18} />
+            <Text variant="bold" className="justify-start">
+              Anteckning
+            </Text>
+          </View>
+          <Text className="text-base">{showing.note}</Text>
+        </View>
+      )}
     </View>
   );
 }
