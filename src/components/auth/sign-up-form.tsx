@@ -45,7 +45,7 @@ export function SignUpForm() {
       if (data.session === null) {
         router.push({
           pathname: "/verify-email",
-          params: { email: email.trim() },
+          params: { email: email.trim(), source: "register" },
         });
       }
     } catch {

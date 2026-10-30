@@ -13,15 +13,36 @@ const RESEND_CODE_INTERVAL_SECONDS = 60;
 const TABULAR_NUMBERS_STYLE: TextStyle = { fontVariant: ["tabular-nums"] };
 
 export function VerifyEmailForm() {
-  const { countdown, restartCountdown } = useCountdown(
-    RESEND_CODE_INTERVAL_SECONDS,
-  );
+  const { email, source } = useLocalSearchParams<{
+    email: string;
+    source?: "login" | "register";
+  }>();
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const { email } = useLocalSearchParams<{ email: string }>();
   const [code, setCode] = useState("");
+
+  // If user is redirected from /register - code is already sent and countdown starts right away
+  // If user if redirected from /login - no code has been sent, countdown starts after send
+  const { countdown, restartCountdown } = useCountdown(
+    RESEND_CODE_INTERVAL_SECONDS,
+    source !== "login",
+  );
+
+  // Send code when user is redirected from /login
+  const hasSentInitialCode = useRef(false);
+  useEffect(() => {
+    if (source !== "login" || hasSentInitialCode.current) return;
+    hasSentInitialCode.current = true;
+
+    resendSignUpCode(email).then(({ error }) => {
+      if (error) {
+        setError("Kunde inte skicka koden, försök igen.");
+      } else {
+        restartCountdown();
+      }
+    });
+  }, [source, email, restartCountdown]);
 
   async function onSubmit() {
     if (isLoading) return;
@@ -36,7 +57,7 @@ export function VerifyEmailForm() {
       } else if (error) {
         setError("Något gick fel, försök igen.");
       }
-      
+
       // If succeeded navigation will automatically redirect user to next step
     } catch {
       setError("Något gick fel, försök igen.");
@@ -106,7 +127,9 @@ export function VerifyEmailForm() {
         </Button>
         <Button
           variant="link"
-          onPress={() => router.dismissTo("/register")}
+          onPress={() =>
+            router.dismissTo(source === "login" ? "/login" : "/register")
+          }
           disabled={isLoading}
         >
           <Text className="text-background">Tillbaka</Text>
@@ -117,8 +140,8 @@ export function VerifyEmailForm() {
 }
 
 // Countdown for email
-function useCountdown(seconds = 30) {
-  const [countdown, setCountdown] = useState(seconds);
+function useCountdown(seconds = 30, autoStart = true) {
+  const [countdown, setCountdown] = useState(autoStart ? seconds : 0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const stopCountdown = useCallback(() => {
@@ -148,9 +171,9 @@ function useCountdown(seconds = 30) {
   }, [seconds, startInterval]);
 
   useEffect(() => {
-    startInterval();
+    if (autoStart) startInterval();
     return stopCountdown;
-  }, [startInterval, stopCountdown]);
+  }, [autoStart, startInterval, stopCountdown]);
 
   return { countdown, restartCountdown };
 }
