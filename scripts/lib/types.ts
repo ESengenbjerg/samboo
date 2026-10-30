@@ -9,7 +9,13 @@ export type SearchParamsRow = {
 };
 
 // Our own property_type values (listings.property_type)
-export type PropertyType = "villa" | "radhus" | "tomt" | "lagenhet" | "other";
+export type PropertyType =
+  | "villa"
+  | "radhus"
+  | "tomt"
+  | "lagenhet"
+  | "fritidshus"
+  | "other";
 
 // One distinct search to be done on each agency's site
 export type ScopeItem = {
