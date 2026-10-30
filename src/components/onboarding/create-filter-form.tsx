@@ -8,6 +8,7 @@ import {
   PROPERTY_TYPES_OPTIONS,
   ROOM_OPTIONS,
 } from "@/constants/filter-options";
+import { useOnboardingHydrated } from "@/hooks/useOnboardingHydrated";
 import {
   ClientFilter,
   ScraperFilter,
@@ -30,6 +31,8 @@ export default function CreateFilterForm() {
 
   // Filter alternatives
   // Used to save user input before saving to scraperFilter and clientFilter
+  // TODO: Add municipality
+  const [municipality, setMunicipality] = useState("");
   const [area, setArea] = useState("");
   const [propertyType, setPropertyType] = useState<string[]>([]);
   const [rooms, setRooms] = useState<SelectOption>();
@@ -47,24 +50,7 @@ export default function CreateFilterForm() {
     (s) => s.informationInterval,
   );
 
-  // Tracks whether zustand's persist middleware has finished loading
-  // the saved state from AsyncStorage. Initialized with the current status,
-  // since hydration may already be complete on first render.
-  const [hasHydrated, setHasHydrated] = useState(
-    useOnboardingStore.persist.hasHydrated(),
-  );
-
-  useEffect(() => {
-    // Subscribe to the hydration-finished event so the component re-renders
-    // when AsyncStorage has been read (hydration is async and may finish late).
-    const unsub = useOnboardingStore.persist.onFinishHydration(() =>
-      setHasHydrated(true),
-    );
-    // Covers the case where hydration finished between the first render
-    // and this effect, so the event would never fire.
-    setHasHydrated(useOnboardingStore.persist.hasHydrated());
-    return unsub;
-  }, []);
+  const hasHydrated = useOnboardingHydrated();
 
   useEffect(() => {
     // Wait until the store is hydrated, otherwise the saved values
@@ -137,6 +123,8 @@ export default function CreateFilterForm() {
     <View className="flex-1 justify-center w-full px-8 gap-6">
       <Text variant="h1">Skapa bevakning</Text>
 
+      {/* TODO: Add field for municipality and remove free text input on area */}
+
       {/* --- AREA --- */}
       <View className="gap-1.5">
         <Label htmlFor="create-area">Område*</Label>
@@ -164,12 +152,12 @@ export default function CreateFilterForm() {
         >
           {PROPERTY_TYPES_OPTIONS.map((p) => (
             <ToggleGroupItem
-              key={p}
-              value={p}
+              key={p.value}
+              value={p.value}
               aria-label={`Boendetyp ${p}`}
               className="flex-none shrink-0"
             >
-              <Text className="p-2">{capitalize(p)}</Text>
+              <Text className="p-2">{capitalize(p.label)}</Text>
             </ToggleGroupItem>
           ))}
         </ToggleGroup>

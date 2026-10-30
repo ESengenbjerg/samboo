@@ -17,9 +17,7 @@ export const MONTHLY_FEE_OPTIONS: SelectOption[] = [
 ].map((m, i, arr) => ({
   value: String(m),
   label:
-    i === arr.length - 1
-      ? `${formatPrice(m)} eller mer`
-      : `${formatPrice(m)}`,
+    i === arr.length - 1 ? `${formatPrice(m)} eller mer` : `${formatPrice(m)}`,
 }));
 
 export const LIVING_AREA_OPTIONS: SelectOption[] = range(20, 200, 10).map(
@@ -29,11 +27,29 @@ export const LIVING_AREA_OPTIONS: SelectOption[] = range(20, 200, 10).map(
   }),
 );
 
-export const PROPERTY_TYPES_OPTIONS: string[] = [
+export const PROPERTY_TYPES = [
   "villa",
   "radhus",
   "lagenhet",
   "fritidshus",
   "tomt",
   "other",
-];
+] as const;
+
+export type PropertyType = (typeof PROPERTY_TYPES)[number];
+
+export const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
+  villa: "Villa",
+  radhus: "Radhus",
+  lagenhet: "Lägenhet",
+  fritidshus: "Fritidshus",
+  tomt: "Tomt",
+  other: "Övrigt",
+};
+
+export const PROPERTY_TYPES_OPTIONS: SelectOption[] = PROPERTY_TYPES.map(
+  (type) => ({
+    value: type,
+    label: PROPERTY_TYPE_LABELS[type],
+  }),
+);
