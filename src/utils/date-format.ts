@@ -34,6 +34,13 @@ export function startOfToday(): Date {
   return d;
 }
 
+// Default showing time when a new showing is created
+export function defaultShowingTime(): Date {
+  const d = new Date();
+  d.setHours(12, 0, 0, 0);
+  return d;
+}
+
 // "Torsdag 29 oktober"
 export function formatDateLabel(date: Date): string {
   return capitalize(

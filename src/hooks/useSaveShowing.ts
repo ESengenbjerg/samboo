@@ -44,6 +44,10 @@ export function useSaveShowing() {
       }
 
       const startTime = normalizeTime(values.time.trim());
+      if (startTime === null) {
+        setError("Ange en starttid.");
+        return false;
+      }
       if (startTime === undefined) {
         setError("Skriv tiden som TT.MM, t.ex. 11.00.");
         return false;

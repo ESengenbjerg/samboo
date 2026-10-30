@@ -9,11 +9,6 @@ import { Separator } from "../ui/separator";
 import { Text } from "../ui/text";
 
 export default function ScheduledShowing(showings: ScheduledShowings) {
-  const dateText = showings.startsAt.toLocaleDateString("sv-SE", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
 
   const timeText = showings.startsAt.toLocaleTimeString("sv-SE", {
     hour: "2-digit",
@@ -22,8 +17,6 @@ export default function ScheduledShowing(showings: ScheduledShowings) {
 
   return (
     <View className="gap-2">
-      <Text variant="bold">{capitalize(dateText)}</Text>
-      <Separator className="mb-4" />
 
       <View className="flex-row justify-between items-center">
         <View>

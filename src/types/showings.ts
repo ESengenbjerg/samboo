@@ -26,8 +26,8 @@ export type NewShowing = {
   listingId: number;
   // "2026-10-29"
   date: string;
-  // "11:00", null if no start time
-  startTime: string | null;
+  // "11:00"
+  startTime: string;
   note: string | null;
 };
 

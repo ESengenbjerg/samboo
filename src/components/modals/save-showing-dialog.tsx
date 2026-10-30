@@ -1,6 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { startOfToday, toIsoDate, toTimeString } from "@/utils/date-format";
+import {
+  defaultShowingTime,
+  startOfToday,
+  toIsoDate,
+  toTimeString,
+} from "@/utils/date-format";
 import { useState } from "react";
 import {
   Keyboard,
@@ -40,8 +45,7 @@ export function SaveShowingDialog({
 }: SaveShowingDialogProps) {
   // Starts on today, the user picks the real date
   const [date, setDate] = useState(startOfToday);
-  // null = no start time (it is optional)
-  const [time, setTime] = useState<Date | null>(null);
+  const [time, setTime] = useState(defaultShowingTime);
   const [note, setNote] = useState("");
   const { height } = useWindowDimensions();
 
@@ -87,7 +91,7 @@ export function SaveShowingDialog({
                 onPress={() =>
                   onSave({
                     date: toIsoDate(date),
-                    time: time ? toTimeString(time) : "",
+                    time: toTimeString(time),
                     note,
                   })
                 }

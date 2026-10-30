@@ -10,10 +10,9 @@ import { View } from "react-native";
 // Same props as showing-date-time-fields.tsx
 type ShowingDateTimeFieldsProps = {
   date: Date;
-  // null = no start time (it is optional)
-  time: Date | null;
+  time: Date;
   onDateChange: (date: Date) => void;
-  onTimeChange: (time: Date | null) => void;
+  onTimeChange: (time: Date) => void;
 };
 
 // Same look as components/ui/input.tsx
@@ -46,14 +45,15 @@ export default function ShowingDateTimeFields({
       </View>
 
       <View className="gap-2">
-        <Label>Starttid (valfri)</Label>
+        <Label>Starttid</Label>
         <input
           type="time"
           className={INPUT_CLASS}
-          value={time ? toTimeString(time) : ""}
-          onChange={(e) =>
-            onTimeChange(e.target.value ? parseTime(e.target.value) : null)
-          }
+          value={toTimeString(time)}
+          required
+          onChange={(e) => {
+            if (e.target.value) onTimeChange(parseTime(e.target.value));
+          }}
         />
       </View>
     </View>

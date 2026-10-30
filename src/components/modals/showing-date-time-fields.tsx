@@ -11,28 +11,18 @@ import DateTimePicker, {
 } from "@react-native-community/datetimepicker";
 import { useState } from "react";
 import { Platform, View } from "react-native";
-import { Icon } from "../ui/icon";
-import { Check } from "lucide-react-native";
 
 // Same props as showing-date-time-fields.web.tsx
 type ShowingDateTimeFieldsProps = {
   date: Date;
-  // null = no start time (it is optional)
-  time: Date | null;
+  time: Date;
   onDateChange: (date: Date) => void;
-  onTimeChange: (time: Date | null) => void;
+  onTimeChange: (time: Date) => void;
 };
 
 type PickerMode = "date" | "time";
 
-// Showings are usually around midday, so the time picker starts at 12:00
-function defaultTime() {
-  const d = new Date();
-  d.setHours(12, 0, 0, 0);
-  return d;
-}
-
-// Date and optional start time for a showing. Both are shown as buttons.
+// Date and required start time for a showing. Both are shown as buttons.
 // Android: the button opens the system dialog.
 // iOS: the button opens a wheel right below the field. The compact iOS picker can't be used:
 // its popover opens behind the dialog, which lives in its own window (FullWindowOverlay).
@@ -56,7 +46,7 @@ export default function ShowingDateTimeFields({
     if (!isIOS) {
       DateTimePickerAndroid.open({
         mode,
-        value: mode === "date" ? date : (time ?? defaultTime()),
+        value: mode === "date" ? date : time,
         is24Hour: true,
         minimumDate: mode === "date" ? startOfToday() : undefined,
         onValueChange: (_event, value) => onPickerChange(mode, value),
@@ -64,15 +54,8 @@ export default function ShowingDateTimeFields({
       return;
     }
 
-    // The wheel needs a value to show, so adding a start time sets 12:00 first
-    if (mode === "time" && time === null) onTimeChange(defaultTime());
     // Pressing the same field again closes its wheel
     setOpenPicker(openPicker === mode ? null : mode);
-  }
-
-  function removeTime() {
-    onTimeChange(null);
-    if (openPicker === "time") setOpenPicker(null);
   }
 
   function iosWheel(mode: PickerMode, value: Date) {
@@ -116,18 +99,13 @@ export default function ShowingDateTimeFields({
       </View>
 
       <View className="gap-2">
-        <Label>Starttid (valfri)</Label>
+        <Label>Starttid</Label>
         <View className="flex-row items-center gap-4">
           <Button variant="outline" onPress={() => openPickerFor("time")}>
-            <Text>{time === null ? "Lägg till starttid" : toTimeString(time)}</Text>
+            <Text>{toTimeString(time)}</Text>
           </Button>
-          {time !== null && (
-            <Button variant="link" onPress={removeTime}>
-              <Text>Ta bort</Text>
-            </Button>
-          )}
         </View>
-        {isIOS && openPicker === "time" && time !== null && iosWheel("time", time)}
+        {isIOS && openPicker === "time" && iosWheel("time", time)}
       </View>
     </View>
   );
