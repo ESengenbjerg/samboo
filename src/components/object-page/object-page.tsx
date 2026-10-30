@@ -36,8 +36,6 @@ export default function ObjectPageScreen({
       </View>
     );
 
-  //   const listing = listings;
-
   return (
     <View className="flex-1 bg-background">
       <Button
