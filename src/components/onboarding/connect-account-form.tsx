@@ -16,7 +16,6 @@ export default function ConnectAccountForm() {
   // TODO: setError will be used once Supabase implementation is complete
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setsSuccessMessage] = useState<string | null>(null);
   const [invitationDialogOpen, setInvitationDialogOpen] = useState(false);
   const [inviteSent, setInviteSent] = useState(false);
   const completeOnboarding = useOnboardingStore((s) => s.completeOnboarding);
@@ -115,14 +114,15 @@ export default function ConnectAccountForm() {
         <View className="gap-2">
           <Text variant="h1">Inbjudan skickad</Text>
           <Text>
-            När personen du bjudit in accepterar kopplas era konton ihop. Du hittar dina inbjudningar under kontoinställningar.
+            När personen du bjudit in accepterar kopplas era konton ihop. Du
+            hittar dina inbjudningar under kontoinställningar.
           </Text>
         </View>
 
         <FormMessage>Inbjudan är skickad!</FormMessage>
 
         <Button
-        variant="secondary"
+          variant="secondary"
           onPress={() => completeOnboarding()}
           className="px-10 self-start"
         >
