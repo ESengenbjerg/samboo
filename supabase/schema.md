@@ -83,7 +83,7 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 
 `anon` can call none of them.
 
-- **`authenticated` and service_role:** `accept_invite`, `can_see_listing`, `decline_invite`, `in_my_group`, `is_active_user`, `leave_group`, `remove_group_member`, `like_listing`, `my_group_id`, `my_pending_invites`, `shared_likes`, `shares_group_with`, `delete_my_account`, `cancel_invite`.
+- **`authenticated` and service_role:** `accept_invite`, `can_see_listing`, `decline_invite`, `in_my_group`, `is_active_user`, `leave_group`, `remove_group_member`, `like_listing`, `my_avatar_count`, `my_group_id`, `my_pending_invites`, `shared_likes`, `shares_group_with`, `delete_my_account`, `cancel_invite`.
 - **`anon`, `authenticated`, service_role and `authenticator`:** `check_request` only. PostgREST runs it before every request as the requesting role, so revoking it would break every request.
 - **service_role only:** `dissolve_group_if_alone`, `handle_deleted_profile`, `handle_new_user`, `limit_invites_per_pair`, `limit_search_params_changes`, `limit_showings_per_group`, `match_user_listings`, `move_personal_showings`, `orphan_avatar_objects`, `purge_old_invites`, `purge_old_showings`, `purge_rate_limit_counters`, `purge_removed_listings`, `purge_search_params_log`, `rls_auto_enable`, `search_params_match_trigger`, `validate_search_places`.
 
@@ -94,6 +94,7 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 | `handle_new_user()` | trigger, security definer | Creates the `profiles` row when an auth user is created. Name comes from user metadata, otherwise the part of the email before `@` |
 | `is_active_user()` | security definer | See above |
 | `my_group_id()` | security definer | The signed-in user's `group_id` |
+| `my_avatar_count()` | security definer | Number of files in the signed-in user's own folder in the `avatars` bucket. Used by the policy `avatars_insert_own` (max 5). Must be a function: a policy on `storage.objects` that queries `storage.objects` fails with infinite recursion (42P17) |
 | `in_my_group(uuid)`, `shares_group_with(uuid)` | security definer | Whether the target is me or in my group |
 | `accept_invite(invite_id)` | RPC, security definer | Joins the inviter's group (creating it if missing) and marks the invite accepted. The own showings of the inviter and of me move into the group (`move_personal_showings()`). Requires that I am not already in a group and that my account is active. Fails with `Gruppen är full (max 10 medlemmar)` if the group already has 10 members (the group row is locked while counting). Both profile rows are locked (in id order) and the invite is read again after the lock, so a double tap or two crossing accepts cannot create two groups: the second one fails with `Inbjudan finns inte eller är inte din` or `Du är redan med i en grupp. Lämna den först.`. A pending invite from me to the inviter is set to `cancelled`. Returns a jsonb array of my showings that did not follow into the group because the group already had a showing for the same listing (empty array if none). Each item: `address`, `url`, `showing_date`, `start_time` |
 | `cancel_invite(invite_id)` | RPC, security definer | The sender sets a pending invite to `cancelled` (e.g. wrong e-mail address). Fails with `Inbjudan finns inte eller är inte din` if it is not mine or no longer pending |
@@ -197,7 +198,7 @@ Bucket `avatars`, **public**: anyone with an image URL can open it without signi
 |---|---|
 | At most 2 MB per file, only `image/jpeg`, `image/png`, `image/webp` (HEIC is not allowed) | The bucket (`file_size_limit`, `allowed_mime_types`) |
 | Path is `<own user id>/<name>.<jpg, jpeg, png or webp>`, one folder level | Policy `avatars_insert_own` and `profiles_avatar_path_check` |
-| Upload only for active users, only into the own folder, at most 5 files in the folder | `avatars_insert_own` (abuse guard) |
+| Upload only for active users, only into the own folder, at most 5 files in the folder | `avatars_insert_own` (abuse guard; the count is `my_avatar_count()`) |
 | Delete only own files, active users only | `avatars_delete_own` |
 | Listing through the API only for own files | `avatars_select_own` |
 | No overwrite: every upload gets a new name, so there is no UPDATE policy and `upsert` must not be used | No policy |
