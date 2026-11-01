@@ -1,4 +1,3 @@
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -9,6 +8,7 @@ import {
   ROOM_OPTIONS,
 } from "@/constants/filter-options";
 import { useOnboardingHydrated } from "@/hooks/useOnboardingHydrated";
+import { usePlaces } from "@/hooks/usePlaces";
 import {
   ClientFilter,
   ScraperFilter,
@@ -23,7 +23,9 @@ import FormError from "../form-error";
 import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
 import { Switch } from "../ui/switch";
+import AreaPicker from "./area-picker";
 import FilterSelect from "./filter-select";
+import MunicipalityPicker from "./municipality-picker";
 
 export default function CreateFilterForm() {
   // Wait until the store is hydrated, otherwise the saved values
@@ -47,10 +49,11 @@ function CreateFilterFields() {
 
   // Filter alternatives
   // Used to save user input before saving to scraperFilter and clientFilter
-  const [municipality, setMunicipality] = useState(
-    savedScrapeFilter?.municipality ?? "",
+  const [municipalities, setMunicipalities] = useState<string[]>(
+    savedScrapeFilter?.municipalities ?? [],
   );
-  const [area, setArea] = useState(savedClientFilter?.area[0] ?? "");
+  const [areas, setAreas] = useState<string[]>(savedClientFilter?.area ?? []);
+
   const [propertyType, setPropertyType] = useState<string[]>(
     savedScrapeFilter?.propertyTypes ?? [],
   );
@@ -74,18 +77,42 @@ function CreateFilterFields() {
     "day" | "week"
   >(savedInformationInterval);
 
-  ////////
+  const {
+    municipalities: allMunicipalities,
+    areas: allAreas,
+    isLoading: isLoadingPlaces,
+    error: placesError,
+  } = usePlaces();
+
+  // The chosen municipalities as objects, AreaPicker needs their id
+  const selectedMunicipalities = allMunicipalities.filter((m) =>
+    municipalities.includes(m.name),
+  );
+
+  // Removes areas of a removed municipality. The database rejects
+  // a search with an area outside the chosen municipalities
+  function onMunicipalitiesChange(names: string[]) {
+    setMunicipalities(names);
+
+    const ids = allMunicipalities
+      .filter((m) => names.includes(m.name))
+      .map((m) => m.id);
+    const allowedAreas = allAreas
+      .filter((a) => ids.includes(a.municipality_id))
+      .map((a) => a.name);
+    setAreas((prev) => prev.filter((name) => allowedAreas.includes(name)));
+  }
 
   function onSubmit() {
     setError(null);
 
-    if (!municipality.trim() && propertyType.length === 0) {
+    if (municipalities.length === 0 && propertyType.length === 0) {
       setError(
         "Du måste lägga till minst en kommun och bostadstyp för att spara.",
       );
       return;
     }
-    if (!municipality.trim()) {
+    if (municipalities.length === 0) {
       setError("Du måste lägga till minst en kommun för att spara.");
       return;
     }
@@ -95,12 +122,12 @@ function CreateFilterFields() {
     }
 
     const scraperFilter: ScraperFilter = {
-      municipality: municipality.trim(),
+      municipalities,
       propertyTypes: propertyType,
     };
 
     const clientFilter: ClientFilter = {
-      area: area.trim() ? [area.trim()] : [],
+      area: areas,
       minRooms: rooms ? Number(rooms.value) : undefined,
       maxMonthlyFee: monthlyFee ? Number(monthlyFee.value) : undefined,
       minLivingArea: livingArea ? Number(livingArea.value) : undefined,
@@ -118,45 +145,38 @@ function CreateFilterFields() {
         <Text>Du kan uppdatera dina val via inställningar senare.</Text>
       </View>
 
-      {/* TODO: Add field for municipality and remove free text input on area */}
-
-      {/* --- MUNICIPALITY --- */}
-      <View className="gap-1.5">
-        <Label htmlFor="create-municipality">Kommun*</Label>
-        <Input
-          id="create-municipality"
-          placeholder="Sök kommun..."
-          returnKeyType="next"
-          submitBehavior="submit"
-          value={municipality}
-          onChangeText={setMunicipality}
-          textContentType="addressCity"
-        />
-      </View>
-
-      {/* --- AREA --- */}
-      <View className="gap-1.5">
-        <Label htmlFor="create-area">Område</Label>
-        <Input
-          id="create-area"
-          placeholder="Sök område..."
-          returnKeyType="next"
-          submitBehavior="submit"
-          value={area}
-          onChangeText={setArea}
-          textContentType="addressCity"
-        />
+        {/* --- MUNICIPALITIES AND AREA --- */}
+      <View className="gap-6 z-10">
+        {isLoadingPlaces ? (
+          <Text>Laddar kommuner...</Text>
+        ) : placesError ? (
+          <FormError>{placesError}</FormError>
+        ) : (
+          <>
+            <MunicipalityPicker
+              municipalities={allMunicipalities}
+              selected={municipalities}
+              onChange={onMunicipalitiesChange}
+            />
+            <AreaPicker
+              municipalities={selectedMunicipalities}
+              areas={allAreas}
+              selected={areas}
+              onChange={setAreas}
+            />
+          </>
+        )}
       </View>
 
       {/* --- PROPERTY TYPE --- */}
-      <View className="gap-1.5">
+      <View className="gap-1.5 z-0">
         <Label>Bostadstyp*</Label>
         <ToggleGroup
           type="multiple"
           aria-label="Bostadstyp"
           value={propertyType}
           onValueChange={setPropertyType}
-          className="flex-1 gap-2 flex-wrap"
+          className="gap-2 flex-wrap"
           variant="secondary"
         >
           {PROPERTY_TYPES_OPTIONS.map((p) => (

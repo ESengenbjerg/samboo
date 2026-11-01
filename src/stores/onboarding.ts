@@ -8,7 +8,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 // Leave onboarding states outside with partialize
 
 export type ScraperFilter = {
-  municipality: string;
+  municipalities: string[];
   propertyTypes: string[];
 };
 
