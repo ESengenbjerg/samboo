@@ -25,7 +25,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 24 # Runs .ts files natively
+          node-version-file: scripts/.nvmrc # Node 24 runs .ts files natively
           cache: npm
 
       - run: npm ci
