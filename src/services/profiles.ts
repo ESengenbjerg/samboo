@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { StorageApiError } from "@supabase/supabase-js";
 
 export type ProfileRow = {
   name: string | null;
@@ -6,11 +7,6 @@ export type ProfileRow = {
 };
 
 const AVATAR_BUCKET = "avatars";
-const ALLOWED_AVATAR_TYPES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-]);
 
 export function getAvatarUrl(path: string | null) {
   if (!path) return null;
@@ -52,25 +48,24 @@ export function completeProfile(userId: string, name: string) {
     .single();
 }
 
+// Uploads a resized JPEG from pickImage() into the user's own folder.
+// Returns the path to save in profiles.avatar_path
 export async function uploadAvatar(userId: string, uri: string) {
   const response = await fetch(uri);
-  if (!response.ok) {
+  // ArrayBuffer, not Blob: a Blob from fetch() often uploads as an empty file in React Native
+  const body = await response.arrayBuffer();
+  if (body.byteLength === 0) {
     throw new Error("Kunde inte läsa den valda bilden.");
   }
 
-  const blob = await response.blob();
-  if (!ALLOWED_AVATAR_TYPES.has(blob.type)) {
-    throw new Error("Profilbilden måste vara JPG, PNG eller WebP.");
-  }
-
-  const extension = blob.type.split("/")[1].replace("jpeg", "jpg");
+  // A new random name every upload, the bucket does not allow overwrite
   const fileName = `avatar-${Date.now()}-${Math.random()
     .toString(36)
-    .slice(2, 10)}.${extension}`;
+    .slice(2, 10)}.jpg`;
   const path = `${userId}/${fileName}`;
   const { error } = await supabase.storage
     .from(AVATAR_BUCKET)
-    .upload(path, blob, { contentType: blob.type, upsert: false });
+    .upload(path, body, { contentType: "image/jpeg", upsert: false });
 
   if (error) throw error;
   return path;
@@ -87,4 +82,21 @@ export function updateProfileAvatarPath(userId: string, avatarPath: string | nul
 
 export function deleteAvatar(avatarPath: string) {
   return supabase.storage.from(AVATAR_BUCKET).remove([avatarPath]);
+}
+
+// Swedish message for errors from uploading a profile image
+export function avatarErrorMessage(error: unknown) {
+  if (error instanceof StorageApiError) {
+    if (error.statusCode === "413" || error.status === 413) {
+      return "Bilden är för stor. Välj en annan bild.";
+    }
+    // Account not active, or the folder already has 5 files
+    if (
+      error.statusCode === "403" ||
+      error.message.includes("row-level security")
+    ) {
+      return "Du kan inte ladda upp fler bilder just nu. Försök igen senare.";
+    }
+  }
+  return "Kunde inte spara profilbilden. Försök igen.";
 }

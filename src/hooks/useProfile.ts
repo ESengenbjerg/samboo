@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 
 type Profile = {
   name: string | null;
+  avatarPath: string | null;
   avatarUrl: string | null;
 };
 
@@ -32,7 +33,11 @@ export function useProfile(userId: string | undefined) {
       setResult({
         userId,
         profile: data
-          ? { name: data.name, avatarUrl: getAvatarUrl(data.avatar_path) }
+          ? {
+              name: data.name,
+              avatarPath: data.avatar_path,
+              avatarUrl: getAvatarUrl(data.avatar_path),
+            }
           : null,
       });
     });

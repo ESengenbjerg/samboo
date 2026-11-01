@@ -1,10 +1,13 @@
 import { useProfile } from "@/hooks/useProfile";
 import { useSession } from "@/hooks/useSession";
-import { updateProfileName } from "@/services/profiles";
-import { useEffect, useState } from "react";
+import { useUpdateProfileAvatar } from "@/hooks/useUpdateProfileAvatar";
+import { getAvatarUrl, updateProfileName } from "@/services/profiles";
+import { pickImage } from "@/utils/pick-image";
+import { useState } from "react";
 import { View } from "react-native";
 import FormError from "../form-error";
 import FormMessage from "../form-message";
+import ProfileImage from "../profile-image";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -18,11 +21,24 @@ export default function ProfileSettingsForm() {
     isLoading: isLoadingProfile,
     error: loadError,
   } = useProfile(userId);
+  const {
+    updateAvatar,
+    isUpdating: isUpdatingAvatar,
+    error: avatarError,
+    clearError: clearAvatarError,
+  } = useUpdateProfileAvatar();
 
-  // Name currently saved in Supabase
-  const [savedName, setSavedName] = useState("");
-  // Name user has typed
-  const [newName, setNewName] = useState("");
+  // Name saved on this visit. Until then, the one from Supabase is used
+  const [updatedName, setUpdatedName] = useState<string | null>(null);
+  const savedName = updatedName ?? profile?.name ?? "";
+  // Name user has typed. Until then, the input shows the saved name
+  const [typedName, setTypedName] = useState<string | null>(null);
+  const newName = typedName ?? savedName;
+
+  // Image uploaded on this visit. Until then, the one from Supabase is used
+  const [newAvatarPath, setNewAvatarPath] = useState<string | null>(null);
+  const currentAvatarPath = newAvatarPath ?? profile?.avatarPath ?? null;
+  const avatarUrl = getAvatarUrl(currentAvatarPath);
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -30,22 +46,14 @@ export default function ProfileSettingsForm() {
 
   // Returns true if new name is typed in input
   const nameIsChanged: boolean = newName.trim() !== savedName;
-  const errorMessage = saveError ?? loadError;
-  const isLoading = isLoadingProfile || isSaving;
-
-  // TODO: Add support for update image
-
-  useEffect(() => {
-    if (profile?.name) {
-      setSavedName(profile.name);
-      setNewName(profile.name);
-    }
-  }, [profile]);
+  const errorMessage = saveError ?? avatarError ?? loadError;
+  const isLoading = isLoadingProfile || isSaving || isUpdatingAvatar;
 
   async function onSubmit() {
     if (!userId || !nameIsChanged) return;
 
     setSaveError(null);
+    clearAvatarError();
     setSuccessMessage(null);
 
     if (!newName.trim()) {
@@ -63,8 +71,33 @@ export default function ProfileSettingsForm() {
       return;
     }
 
-    setSavedName(newName.trim());
+    setUpdatedName(newName.trim());
+    setTypedName(null);
     setSuccessMessage("Ditt visningsnamn har uppdaterats!");
+  }
+
+  async function onChangeImage() {
+    if (!userId) return;
+
+    setSaveError(null);
+    setSuccessMessage(null);
+
+    let uri: string | null;
+    try {
+      uri = await pickImage();
+    } catch (e) {
+      console.log("Pick image error:", e);
+      setSaveError("Kunde inte läsa bilden. Välj en annan bild.");
+      return;
+    }
+
+    if (!uri) return;
+
+    const path = await updateAvatar(userId, uri, currentAvatarPath);
+    if (!path) return;
+
+    setNewAvatarPath(path);
+    setSuccessMessage("Din profilbild har uppdaterats!");
   }
 
   return (
@@ -80,7 +113,7 @@ export default function ProfileSettingsForm() {
             submitBehavior="submit"
             maxLength={100}
             value={newName}
-            onChangeText={setNewName}
+            onChangeText={setTypedName}
             onSubmitEditing={onSubmit}
             editable={!isLoading}
             textContentType="name"
@@ -90,15 +123,22 @@ export default function ProfileSettingsForm() {
         <View className="gap-1.5">
           <Label htmlFor="profile-image">Profilbild</Label>
 
-          {/* TODO: Put back after added support for image */}
-          {/* <Button
+          {avatarUrl && <ProfileImage uri={avatarUrl} />}
+
+          <Button
             variant="outline"
-            onPress={() => pickImage(setProfileImage)}
-            disabled={isProfileLoading}
+            onPress={onChangeImage}
+            disabled={isLoading}
             className="bg-white border-accent shadow-none"
           >
-            <Text>{profileImage ? "Byt bild" : "Välj bild"}</Text>
-          </Button> */}
+            <Text>
+              {isUpdatingAvatar
+                ? "Laddar upp..."
+                : currentAvatarPath
+                  ? "Byt bild"
+                  : "Välj bild"}
+            </Text>
+          </Button>
         </View>
 
         {!!errorMessage && <FormError>{errorMessage}</FormError>}

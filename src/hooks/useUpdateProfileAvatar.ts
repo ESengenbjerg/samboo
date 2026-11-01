@@ -1,8 +1,10 @@
 import {
+  avatarErrorMessage,
   deleteAvatar,
   updateProfileAvatarPath,
   uploadAvatar,
 } from "@/services/profiles";
+
 import { useCallback, useState } from "react";
 
 export function useUpdateProfileAvatar() {
@@ -36,11 +38,8 @@ export function useUpdateProfileAvatar() {
         return avatarPath;
       } catch (reason) {
         console.error("Failed to update profile avatar:", reason);
-        setError(
-          reason instanceof Error
-            ? reason.message
-            : "Kunde inte uppdatera profilbilden.",
-        );
+        setError(avatarErrorMessage(reason));
+
         return null;
       } finally {
         setIsUpdating(false);

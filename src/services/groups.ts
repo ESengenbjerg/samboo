@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { getAvatarUrl } from "@/services/profiles";
 import { GroupMember } from "@/types/connected-accounts";
 
 type MemberRow = {
@@ -6,12 +7,6 @@ type MemberRow = {
   name: string;
   avatar_path: string | null;
 };
-
-// profiles.avatar_path is a path in the public 'avatars' bucket
-function avatarUrl(path: string | null) {
-  if (!path) return null;
-  return supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
-}
 
 // The other members of my group (connected accounts). Empty if I am not in a group
 export async function getGroupMembers(userId: string) {
@@ -37,7 +32,7 @@ export async function getGroupMembers(userId: string) {
   const members: GroupMember[] = data.map((m) => ({
     id: m.id,
     name: m.name,
-    avatarUrl: avatarUrl(m.avatar_path),
+    avatarUrl: getAvatarUrl(m.avatar_path),
   }));
   return { data: members, error: null };
 }
