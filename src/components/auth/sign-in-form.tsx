@@ -32,10 +32,9 @@ export function SignInForm() {
         // If user exist but they never confirmed their email,
         // send new verification email and redirect to /verify-email
         if (error.code === "email_not_confirmed") {
-          await resendSignUpCode(email.trim());
           router.push({
             pathname: "/verify-email",
-            params: { email: email.trim() },
+            params: { email: email.trim(), source: "login" },
           });
           return;
         }

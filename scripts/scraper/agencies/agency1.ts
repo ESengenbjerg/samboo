@@ -207,8 +207,8 @@ export async function scrape(
           );
         if (!data) throw new ScrapeLayoutError(`No listing ld+json on ${url}`);
 
-        // Facts that are not in the ld+json: the "Typ:" and "Månadsavgift:" lines in the
-        // fact list, e.g. "Radhus, 2-plans radhus" and "4 100 kr". Null if a line is missing
+        // Facts that are not in the ld+json: the "Typ:", "Månadsavgift:" and "Tomtarea:" lines in the
+        // fact list, e.g. "Radhus, 2-plans radhus", "4 100 kr" and "692 m2". Null if a line is missing
         const lines = await page.evaluate(() => {
           const items = Array.from(document.querySelectorAll("li.info--icon"));
           const read = (label: string) =>
@@ -216,7 +216,11 @@ export async function scrape(
               .find((li) => (li.textContent ?? "").trim().startsWith(label))
               ?.textContent?.replace(label, "")
               .trim() || null;
-          return { type: read("Typ:"), fee: read("Månadsavgift:") };
+          return {
+            type: read("Typ:"),
+            fee: read("Månadsavgift:"),
+            plot: read("Tomtarea:"),
+          };
         });
 
         rows.push({
@@ -229,6 +233,7 @@ export async function scrape(
           ...mapListing(data, {
             listingType: lines.type,
             monthlyFee: lines.fee,
+            plotArea: lines.plot,
             isNewConstruction: isNew,
           }), // Normalized columns used for matching
         });

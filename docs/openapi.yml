@@ -20,6 +20,16 @@ info:
     - Table reads accept the usual PostgREST filters (`?column=eq.value`, `select=`, `order=`, `limit=`).
       supabase-js builds them, so they are not repeated per endpoint.
 
+    **Profile images (Storage API, not part of this spec)**
+    The image itself goes through the Storage API (`supabase.storage.from('avatars')`, served under `/storage/v1`),
+    only its path is stored here in `profiles.avatar_path`. Rules enforced by the bucket and the storage.objects policies:
+    - Bucket `avatars` is public: anyone with the URL can open the image. Max 2 MB, only `image/jpeg`, `image/png`, `image/webp`.
+    - Upload (no upsert, a new random name every time) only into the own folder `<user id>/<name>.<jpg|jpeg|png|webp>`,
+      only for active users, and at most 5 files in the folder. Otherwise Storage answers
+      `new row violates row-level security policy` (statusCode 403). Too large a file gives statusCode 413.
+    - Order: upload the file, then PATCH `/profiles` with `avatar_path`, then remove the previous file (best effort).
+    - Delete and list only own files.
+
 servers:
   - url: https://{project}.supabase.co/rest/v1
     variables:
@@ -237,7 +247,7 @@ paths:
       tags: [Account]
       summary: Update my profile
       description: |
-        Filter on my own id (`?id=eq.<uid>`). Only `name`, `onboarding_completed_at` and `avatar_url`
+        Filter on my own id (`?id=eq.<uid>`). Only `name`, `onboarding_completed_at` and `avatar_path`
         can be written. `group_id` and `is_active` can only change through functions.
       operationId: profiles_update
       requestBody:
@@ -247,7 +257,7 @@ paths:
             schema: { $ref: '#/components/schemas/ProfileUpdate' }
       responses:
         '204': { description: Updated. }
-        '400': { description: 'Constraint violated (name not 1-100 characters, avatar_url not https or longer than 2048).' }
+        '400': { description: 'Constraint violated (name not 1-100 characters, avatar_path not `<own user id>/<name>.<jpg|jpeg|png|webp>` or longer than 200).' }
         '429': { $ref: '#/components/responses/RateLimited' }
 
   /groups:
@@ -580,14 +590,22 @@ components:
         is_active: { type: boolean }
         created_at: { type: string, format: date-time }
         onboarding_completed_at: { type: string, format: date-time, nullable: true }
-        avatar_url: { type: string, nullable: true, description: 'https URL, max 2048 characters' }
+        avatar_path:
+          type: string
+          nullable: true
+          description: 'Path in the public `avatars` bucket, `<user id>/<name>.<jpg|jpeg|png|webp>`. Build the URL with `supabase.storage.from(''avatars'').getPublicUrl(path)`'
 
     ProfileUpdate:
       type: object
       properties:
         name: { type: string, minLength: 1, maxLength: 100 }
         onboarding_completed_at: { type: string, format: date-time, nullable: true }
-        avatar_url: { type: string, nullable: true, maxLength: 2048, pattern: '^https://' }
+        avatar_path:
+          type: string
+          nullable: true
+          maxLength: 200
+          pattern: '^[0-9a-f-]{36}/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$'
+          description: 'Must start with the own user id. It is not checked that the file exists, so upload the file first'
 
     Invite:
       type: object
