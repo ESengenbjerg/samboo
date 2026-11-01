@@ -14,7 +14,7 @@ export const SUSPICIOUS_MIN_SHARE = 0.5;
 
 const PAGE_SIZE = 1000; // Supabase returns at most 1000 rows per request
 
-// Same rules as match_user_listings: type (empty = all types) AND (municipality OR area)
+// Same rules as match_user_listings: type (empty = all types) AND (municipality OR area, area compared ignoring case)
 function isInScope(listing: ActiveListing, scope: ScopeItem[]): boolean {
   return scope.some((item) => {
     const typeOk =
@@ -24,7 +24,8 @@ function isInScope(listing: ActiveListing, scope: ScopeItem[]): boolean {
     const placeOk =
       (listing.municipality !== null &&
         item.municipalities.includes(listing.municipality)) ||
-      (listing.area !== null && item.areas.includes(listing.area));
+      (listing.area !== null &&
+        item.areas.some((a) => a.toLowerCase() === listing.area?.toLowerCase()));
     return typeOk && placeOk;
   });
 }
