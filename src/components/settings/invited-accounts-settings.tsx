@@ -31,8 +31,8 @@ export default function ConnectAccountsSettings({
     setInviteDialogOpen(true);
   }
 
-  async function onInvite(email: string) {
-    const ok = await sendInvite(email);
+  async function onInvite(emails: string[]) {
+    const ok = await sendInvite(emails);
     if (ok) setInviteDialogOpen(false);
   }
 

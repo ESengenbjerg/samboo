@@ -121,22 +121,27 @@ export function useConnectedAccounts(userId: string | undefined) {
   );
 
   const sendInvite = useCallback(
-    async (email: string) => {
+    async (emails: string[]) => {
       if (!userId) return false;
 
-      const toEmail = normalizeEmail(email);
-      if (!EMAIL_PATTERN.test(toEmail)) {
-        setActionError("Ange en giltig e-postadress.");
-        return false;
-      }
-
       // Me + the others. The invite would be stored but could never be accepted
-      if (members.length + 1 >= MAX_GROUP_MEMBERS) {
+      if (members.length + emails.length >= MAX_GROUP_MEMBERS) {
         setActionError(`Gruppen är full (max ${MAX_GROUP_MEMBERS} medlemmar).`);
         return false;
       }
 
-      return run(() => createInvite(userId, toEmail), "Send invite");
+      for (const email of emails) {
+        const toEmail = normalizeEmail(email);
+        if (!EMAIL_PATTERN.test(toEmail)) {
+          setActionError("Ange en giltig e-postadress.");
+          return false;
+        }
+
+        const ok = await run(() => createInvite(userId, toEmail), "Send invite");
+        if (!ok) return false;
+      }
+
+      return true;
     },
     [userId, members.length, run],
   );
