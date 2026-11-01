@@ -9,13 +9,15 @@ export async function saveOnboarding(
   scraperFilter: ScraperFilter,
   clientFilter: ClientFilter,
 ) {
-  const { error: profileError } = await completeProfile(userId, profileName);
-  if (profileError) throw profileError;
-
+  // Save the search first. completeProfile() marks onboarding as done,
+  // so it must run last, when everything else is saved
   const { error: filterError } = await saveSearchParams(
     userId,
     scraperFilter,
     clientFilter,
   );
   if (filterError) throw filterError;
+
+  const { error: profileError } = await completeProfile(userId, profileName);
+  if (profileError) throw profileError;
 }
