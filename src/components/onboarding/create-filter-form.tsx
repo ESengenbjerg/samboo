@@ -17,7 +17,7 @@ import {
 import { SelectOption } from "@/types/select-option";
 import { capitalize } from "@/utils/capitalize-string";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { View } from "react-native";
 import FormError from "../form-error";
 import { Button } from "../ui/button";
@@ -26,22 +26,17 @@ import { Switch } from "../ui/switch";
 import FilterSelect from "./filter-select";
 
 export default function CreateFilterForm() {
+  // Wait until the store is hydrated, otherwise the saved values
+  // are still null/default and the form would start with empty values
+  const hasHydrated = useOnboardingHydrated();
+  if (!hasHydrated) return null;
+
+  return <CreateFilterFields />;
+}
+
+function CreateFilterFields() {
   const [error, setError] = useState<string | null>(null);
   const setFilters = useOnboardingStore((s) => s.setFilters);
-
-  // Filter alternatives
-  // Used to save user input before saving to scraperFilter and clientFilter
-  // TODO: Add municipality
-  const [municipality, setMunicipality] = useState("");
-  const [area, setArea] = useState("");
-  const [propertyType, setPropertyType] = useState<string[]>([]);
-  const [rooms, setRooms] = useState<SelectOption>();
-  const [monthlyFee, setMonthlyFee] = useState<SelectOption>();
-  const [livingArea, setLivingArea] = useState<SelectOption>();
-  const [showNewProduction, setShowNewProduction] = useState(true);
-  const [informationInterval, setInformationInterval] = useState<
-    "day" | "week"
-  >("day");
 
   // Fetches made choices in case user has started onboarding and then leaves app, after making filter choices
   const savedScrapeFilter = useOnboardingStore((s) => s.scraperFilter);
@@ -50,41 +45,36 @@ export default function CreateFilterForm() {
     (s) => s.informationInterval,
   );
 
-  const hasHydrated = useOnboardingHydrated();
-  useEffect(() => {
-    // Wait until the store is hydrated, otherwise the saved values
-    // are still null/default and would overwrite the form with empty values
-    if (!hasHydrated) return;
+  // Filter alternatives
+  // Used to save user input before saving to scraperFilter and clientFilter
+  const [municipality, setMunicipality] = useState(
+    savedScrapeFilter?.municipality ?? "",
+  );
+  const [area, setArea] = useState(savedClientFilter?.area[0] ?? "");
+  const [propertyType, setPropertyType] = useState<string[]>(
+    savedScrapeFilter?.propertyTypes ?? [],
+  );
+  const [rooms, setRooms] = useState<SelectOption | undefined>(
+    ROOM_OPTIONS.find((o) => Number(o.value) === savedClientFilter?.minRooms),
+  );
+  const [monthlyFee, setMonthlyFee] = useState<SelectOption | undefined>(
+    MONTHLY_FEE_OPTIONS.find(
+      (o) => Number(o.value) === savedClientFilter?.maxMonthlyFee,
+    ),
+  );
+  const [livingArea, setLivingArea] = useState<SelectOption | undefined>(
+    LIVING_AREA_OPTIONS.find(
+      (o) => Number(o.value) === savedClientFilter?.minLivingArea,
+    ),
+  );
+  const [showNewProduction, setShowNewProduction] = useState(
+    savedClientFilter?.showNewProduction ?? true,
+  );
+  const [informationInterval, setInformationInterval] = useState<
+    "day" | "week"
+  >(savedInformationInterval);
 
-    // Sets municipality and propertyType to saved values
-    if (savedScrapeFilter) {
-      setMunicipality(savedScrapeFilter.municipality);
-      setPropertyType(savedScrapeFilter.propertyTypes);
-    }
-    // Sets area and client filter values to saved values
-    if (savedClientFilter) {
-      setArea(savedClientFilter.area[0] ?? "");
-
-      setRooms(
-        ROOM_OPTIONS.find(
-          (o) => Number(o.value) === savedClientFilter.minRooms,
-        ),
-      );
-      setMonthlyFee(
-        MONTHLY_FEE_OPTIONS.find(
-          (o) => Number(o.value) === savedClientFilter.maxMonthlyFee,
-        ),
-      );
-      setLivingArea(
-        LIVING_AREA_OPTIONS.find(
-          (o) => Number(o.value) === savedClientFilter.minLivingArea,
-        ),
-      );
-      setShowNewProduction(savedClientFilter.showNewProduction);
-    }
-    // Sets informationInterval to saved value
-    setInformationInterval(savedInformationInterval);
-  }, [hasHydrated]); // Runs once hydration completes.
+  ////////
 
   function onSubmit() {
     setError(null);

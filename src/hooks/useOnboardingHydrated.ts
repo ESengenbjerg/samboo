@@ -1,25 +1,18 @@
 import { useOnboardingStore } from "@/stores/onboarding";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
+
+// Subscribes to the hydration-finished event. Returns the unsubscribe function
+function subscribe(onChange: () => void) {
+  return useOnboardingStore.persist.onFinishHydration(onChange);
+}
 
 export function useOnboardingHydrated() {
   // Tracks whether zustand's persist middleware has finished loading
-  // the saved state from AsyncStorage. Initialized with the current status,
-  // since hydration may already be complete on first render.
-  const [hasHydrated, setHasHydrated] = useState(
-    useOnboardingStore.persist.hasHydrated(),
+  // the saved state from AsyncStorage. Re-renders when hydration finishes.
+  return useSyncExternalStore(
+    subscribe,
+    () => useOnboardingStore.persist.hasHydrated(),
+    // Web static rendering: nothing is hydrated on the server
+    () => false,
   );
-
-  useEffect(() => {
-    // Subscribe to the hydration-finished event so the component re-renders
-    // when AsyncStorage has been read (hydration is async and may finish late).
-    const unsub = useOnboardingStore.persist.onFinishHydration(() =>
-      setHasHydrated(true),
-    );
-    // Covers the case where hydration finished between the first render
-    // and this effect, so the event would never fire.
-    setHasHydrated(useOnboardingStore.persist.hasHydrated());
-    return unsub;
-  }, []);
-
-  return hasHydrated;
 }
