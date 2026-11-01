@@ -1083,6 +1083,21 @@ AS $function$
     and not exists (select 1 from public.profiles p where p.avatar_path = o.name)
 $function$;
 
+-- Number of files in the signed-in user's own folder in the avatars bucket. Used by the policy avatars_insert_own (max 5 files).
+-- The count must live in a security definer function: a policy on storage.objects that queries storage.objects itself
+-- fails with 42P17 (infinite recursion detected in policy for relation "objects"). Returns only the caller's own count.
+CREATE OR REPLACE FUNCTION public.my_avatar_count()
+ RETURNS bigint
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+  select count(*)
+  from storage.objects o
+  where o.bucket_id = 'avatars'
+    and (storage.foldername(o.name))[1] = (select auth.uid())::text;
+$function$;
+
 -- Runs before EVERY Data API request (registered as pgrst.db_pre_request, see the note at the end of this file).
 -- Limits a signed-in user to 100 write requests (POST/PUT/PATCH/DELETE, including RPC) per 5 minutes.
 -- Reads cannot be counted: GET and HEAD run in a read-only transaction.
@@ -1410,6 +1425,7 @@ on conflict (id) do update
       allowed_mime_types = excluded.allowed_mime_types;
 
 -- Upload: own folder only, active users only, at most 5 files in the folder (abuse guard; the purge script trims it to 1).
+-- The count goes through public.my_avatar_count(): a subquery on storage.objects here would fail with infinite recursion (42P17).
 create policy avatars_insert_own on storage.objects
   for insert to authenticated
   with check (
@@ -1417,14 +1433,10 @@ create policy avatars_insert_own on storage.objects
     and (storage.foldername(name))[1] = (select auth.uid())::text
     and name ~ '^[^/]+/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$'
     and public.is_active_user()
-    and (
-      select count(*) from storage.objects o
-      where o.bucket_id = 'avatars'
-        and (storage.foldername(o.name))[1] = (select auth.uid())::text
-    ) < 5
+    and public.my_avatar_count() < 5
   );
 
--- Listing through the API (and the count above). Opening an image by its public URL does not go through this.
+-- Listing through the API. Opening an image by its public URL does not go through this.
 create policy avatars_select_own on storage.objects
   for select to authenticated
   using (
@@ -1487,6 +1499,7 @@ grant execute on function
   public.leave_group(),
   public.remove_group_member(uuid),
   public.like_listing(bigint),
+  public.my_avatar_count(),
   public.my_group_id(),
   public.my_pending_invites(),
   public.shared_likes(),
