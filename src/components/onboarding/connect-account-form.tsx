@@ -7,6 +7,7 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 import FormError from "../form-error";
+import FormMessage from "../form-message";
 import { SendInviteDialog } from "../modals/send-invite-dialog";
 import { Button } from "../ui/button";
 import { Text } from "../ui/text";
@@ -15,10 +16,12 @@ export default function ConnectAccountForm() {
   // TODO: setError will be used once Supabase implementation is complete
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setsSuccessMessage] = useState<string | null>(null);
   const [invitationDialogOpen, setInvitationDialogOpen] = useState(false);
+  const [inviteSent, setInviteSent] = useState(false);
   const completeOnboarding = useOnboardingStore((s) => s.completeOnboarding);
   const {
-    updateAvatar,
+    // updateAvatar,
     isUpdating: isUpdatingAvatar,
     error: avatarError,
   } = useUpdateProfileAvatar();
@@ -35,74 +38,98 @@ export default function ConnectAccountForm() {
       const user = await getCurrentUser();
 
       if (!user) throw new Error("Not signed in");
-
       // Fetch user input from previous onboarding steps
-      const { profileName, profileImage, scraperFilter, clientFilter } =
+      const { profileName, scraperFilter, clientFilter } =
         useOnboardingStore.getState();
 
       // If onboarding is not completed, redirect to /profile to start from beginning
       if (!scraperFilter || !clientFilter) {
         router.replace("/profile");
-        return;
+        return false;
       }
 
-      if (!profileImage) {
-        throw new Error("Profilbild saknas.");
-      }
-
-      const avatarPath = await updateAvatar(user.id, profileImage);
-
-      if (!avatarPath) {
-        throw new Error("Profilbilden kunde inte sparas");
-      }
+      // TODO: Turn on again when backend has fixed the avatars policy.
+      // Also add profileImage back to getState() above
+      // if (!profileImage) {
+      //   throw new Error("Profilbild saknas.");
+      // }
+      //
+      // const avatarPath = await updateAvatar(user.id, profileImage);
+      //
+      // if (!avatarPath) {
+      //   throw new Error("Profilbilden kunde inte sparas");
+      // }
 
       // Save search and profile name, marks onboarding as completed
-      await saveOnboarding(
-        user.id,
-        profileName,
-        scraperFilter,
-        clientFilter,
-      );
+      await saveOnboarding(user.id, profileName, scraperFilter, clientFilter);
 
-      // When everything is saved, onboarding is complete and user is moved to /search
-      completeOnboarding();
+      // Everything is saved. The caller decides when the user is moved to /search
+      return true;
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  // Save onboarding, then send invites to other users
+  async function onInvite(emails: string[]) {
+    const finished = await finish();
+    if (!finished) return;
+
+    setIsLoading(true);
+
+    try {
+      // Get user from Supabase
+      const user = await getCurrentUser();
+      if (!user) throw new Error("Not signed in.");
+
+      for (const email of emails) {
+        const { error: inviteError } = await createInvite(user.id, email);
+
+        if (inviteError) {
+          console.log("Invite error:", inviteError);
+          setError(inviteErrorMessage(inviteError));
+          return;
+        }
+      }
+
+      // All invites sent: close dialog and show success view
+      setInvitationDialogOpen(false);
+      setInviteSent(true);
     } catch (e) {
-      console.log("Onboarding error:", e);
+      console.log("Invite error", e);
       setError("Något gick fel, försök igen.");
     } finally {
       setIsLoading(false);
     }
   }
 
-  // Send invite to other user
-  async function onInvite(email: string) {
-    setIsLoading(true);
-
-    // Get user from Supabase
-    const user = await getCurrentUser();
-
-    if (!user) {
-      setError("Något gick fel, försök igen.");
-      setIsLoading(false);
-      return;
-    }
-
-    const { error: inviteError } = await createInvite(user.id, email);
-
-    setInvitationDialogOpen(false);
-
-    if (inviteError) {
-      console.log("Invite error:", inviteError);
-      setError(inviteErrorMessage(inviteError));
-      setIsLoading(false);
-      return;
-    }
-
-    await finish();
+  async function onSkip() {
+    const finished = await finish();
+    if (finished) completeOnboarding();
   }
 
-  async function onSkip() {
-    await finish();
+  // Shown after invites are sent. The user decides when to continue
+  if (inviteSent) {
+    return (
+      <View className="flex-1 justify-center w-full px-8 gap-6">
+        <View className="gap-2">
+          <Text variant="h1">Inbjudan skickad</Text>
+          <Text>
+            När personen du bjudit in accepterar kopplas era konton ihop. Du hittar dina inbjudningar under kontoinställningar.
+          </Text>
+        </View>
+
+        <FormMessage>Inbjudan är skickad!</FormMessage>
+
+        <Button
+        variant="secondary"
+          onPress={() => completeOnboarding()}
+          className="px-10 self-start"
+        >
+          <Text>Fortsätt</Text>
+        </Button>
+      </View>
+    );
   }
 
   return (
@@ -120,6 +147,8 @@ export default function ConnectAccountForm() {
           open={invitationDialogOpen}
           onOpenChange={setInvitationDialogOpen}
           onAction={onInvite}
+          isLoading={isBusy}
+          error={displayError}
         />
       )}
 

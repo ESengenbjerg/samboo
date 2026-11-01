@@ -9,13 +9,13 @@ export async function saveOnboarding(
   scraperFilter: ScraperFilter,
   clientFilter: ClientFilter,
 ) {
+  const { error: profileError } = await completeProfile(userId, profileName);
+  if (profileError) throw profileError;
+
   const { error: filterError } = await saveSearchParams(
     userId,
     scraperFilter,
     clientFilter,
   );
   if (filterError) throw filterError;
-
-  const { error: profileError } = await completeProfile(userId, profileName);
-  if (profileError) throw profileError;
 }

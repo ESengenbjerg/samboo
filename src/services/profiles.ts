@@ -47,7 +47,9 @@ export function completeProfile(userId: string, name: string) {
       name,
       onboarding_completed_at: new Date().toISOString(),
     })
-    .eq("id", userId);
+    .eq("id", userId)
+    .select("id, name, onboarding_completed_at")
+    .single();
 }
 
 export async function uploadAvatar(userId: string, uri: string) {
@@ -78,7 +80,9 @@ export function updateProfileAvatarPath(userId: string, avatarPath: string | nul
   return supabase
     .from("profiles")
     .update({ avatar_path: avatarPath })
-    .eq("id", userId);
+    .eq("id", userId)
+    .select("id, avatar_path")
+    .single();
 }
 
 export function deleteAvatar(avatarPath: string) {

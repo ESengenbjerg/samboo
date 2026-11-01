@@ -7,7 +7,7 @@ type FormMessageProps = {
 export default function FormMessage({ children }: FormMessageProps) {
   return (
     <>
-      <Text className="bg-foreground rounded min-h-10 text-center p-2 text-background">
+      <Text className="bg-muted-foreground rounded min-h-10 text-center px-10 py-2 text-background self-start">
         {children}
       </Text>
     </>
