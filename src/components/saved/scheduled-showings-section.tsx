@@ -1,5 +1,4 @@
 import ScheduledShowing from "@/components/saved/scheduled-showing";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
 import { useShowings } from "@/hooks/useShowings";
@@ -17,7 +16,7 @@ export default function ScheduledShowingsSection({
     <View>
       <View className="flex-row items-end justify-between mb-4">
         <Text variant="h2">Bokade visningar</Text>
-          {/* TODO: Add ealier showings */}
+        {/* TODO: Add ealier showings */}
         {/* <Button variant="link">
           <Text>Tidigare visningar</Text>
         </Button> */}
