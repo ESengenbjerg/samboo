@@ -237,6 +237,7 @@ export default function FilterForm({
       </View>
 
       {/* --- INFORMATION INTERVAL --- */}
+      {/* TODO: Update to correct functionality when column exist in Supabase */}
       <View className="gap-4">
         <Text variant="bold">Hur ofta vill du bli informerad?</Text>
         <RadioGroup
