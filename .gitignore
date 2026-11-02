@@ -42,3 +42,7 @@ example
 # generated native folders
 /ios
 /android
+
+# UX agent reports (generated) – keep the README
+/ux-reports/*
+!/ux-reports/README.md

@@ -1,8 +1,10 @@
-
 import { supabase } from "@/lib/supabase";
 import { getListing } from "@/services/listings";
 import { UserListing } from "@/types/listing";
 import { useEffect, useState } from "react";
+
+// This file is currently not in use anywhere
+// TODO: Remove before production if it will not be used
 
 type ListingResult = {
   listingId: string;

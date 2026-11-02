@@ -3,26 +3,61 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
+import { useSession } from "@/hooks/useSession";
+import { useUpdateProfileAvatar } from "@/hooks/useUpdateProfileAvatar";
+import { getAvatarUrl } from "@/services/profiles";
 import { useOnboardingStore } from "@/stores/onboarding";
 import { pickImage } from "@/utils/pick-image";
-import { Image } from "expo-image";
 import { router } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
+import ProfileImage from "../profile-image";
 
 export default function ProfileForm() {
-  // TODO: setIsLoading will be used once Supabase implementation is complete
+  const { session } = useSession();
+  const userId = session?.user.id;
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [profileName, setProfileName] = useState("");
-  const [profileImage, setProfileImage] = useState("");
+  // Resized JPEG picked on this visit. Uploaded when the user presses Spara
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+
+  // Image uploaded on an earlier visit to this step (user went back)
+  const savedAvatarPath = useOnboardingStore((s) => s.avatarPath);
   const setProfile = useOnboardingStore((s) => s.setProfile);
 
-  function onSubmit() {
+  const {
+    updateAvatar,
+    isUpdating,
+    error: avatarError,
+  } = useUpdateProfileAvatar();
+
+  const isBusy = isLoading || isUpdating;
+  const displayError = error ?? avatarError;
+  // Show the newly picked image, otherwise the one already uploaded
+  const previewUri = profileImage ?? getAvatarUrl(savedAvatarPath);
+
+  async function selectImage() {
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const uri = await pickImage();
+      if (uri) setProfileImage(uri);
+    } catch (e) {
+      console.log("Pick image error:", e);
+      setError("Kunde inte läsa bilden. Välj en annan bild.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function onSubmit() {
     setError(null);
 
-    if (!profileName && !profileImage) {
+    if (!profileName && !previewUri) {
       setError("Lägg till visningsnamn och profilbild.");
       return;
     }
@@ -30,12 +65,27 @@ export default function ProfileForm() {
       setError("Lägg till ett visningsnamn.");
       return;
     }
-    if (!profileImage) {
+    if (!previewUri) {
       setError("Lägg till en profilbild.");
       return;
     }
+    if (!userId) {
+      setError("Något gick fel, försök igen.");
+      return;
+    }
 
-    setProfile(profileName, profileImage);
+    let avatarPath = savedAvatarPath;
+
+    // Upload before onboarding is completed, so no one is "done" without an image.
+    // Passing the earlier path removes that file, so the folder does not fill up.
+    if (profileImage) {
+      avatarPath = await updateAvatar(userId, profileImage, savedAvatarPath);
+      // useUpdateProfileAvatar sets the error message
+      if (!avatarPath) return;
+      setProfileImage(null);
+    }
+
+    setProfile(profileName, avatarPath);
     router.push({ pathname: "/create-filter" });
   }
 
@@ -52,43 +102,31 @@ export default function ProfileForm() {
           maxLength={100}
           value={profileName}
           onChangeText={setProfileName}
-          editable={!isLoading}
+          editable={!isBusy}
           textContentType="name"
         />
       </View>
       <View className="gap-1.5">
         <Label htmlFor="profile-image">Profilbild</Label>
 
-        <Button
-          variant="outline"
-          onPress={() => pickImage(setProfileImage)}
-          disabled={isLoading}
-        >
-          <Text>{profileImage ? "Byt bild" : "Välj bild"}</Text>
+        <Button variant="outline" onPress={selectImage} disabled={isLoading}>
+          <Text>{previewUri ? "Byt bild" : "Välj bild"}</Text>
         </Button>
       </View>
 
-      {profileImage && profileName ? (
-        <View className="items-center gap-2">
-          <Image
-            source={{ uri: profileImage }}
-            className="w-24 h-24 rounded-full self-center"
-          />
-          <Text variant="bold">{profileName}</Text>
-        </View>
-      ) : null}
+      <View className="self-center">
+        {previewUri ? (
+          <View className="items-center gap-2">
+            <ProfileImage uri={previewUri}></ProfileImage>
+            {profileName ? <Text variant="bold">{profileName}</Text> : null}
+          </View>
+        ) : null}
+      </View>
 
-      {profileImage && !profileName ? (
-        <Image
-          source={{ uri: profileImage }}
-          className="w-24 h-24 rounded-full self-center"
-        />
-      ) : null}
+      {displayError && <FormError>{displayError}</FormError>}
 
-      {error && <FormError>{error}</FormError>}
-
-      <Button variant="secondary" onPress={onSubmit} disabled={isLoading}>
-        <Text>{!isLoading ? "Spara" : "Sparar..."}</Text>
+      <Button variant="secondary" onPress={onSubmit} disabled={isBusy}>
+        <Text>{!isBusy ? "Spara" : "Sparar..."}</Text>
       </Button>
     </View>
   );

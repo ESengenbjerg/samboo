@@ -23,3 +23,8 @@ export type UserListing = {
   liked: boolean;
   listings: Listing;
 };
+
+// UserListing with the owner, used when rows from several users are fetched at once
+export type MemberUserListing = UserListing & {
+  user_id: string;
+};

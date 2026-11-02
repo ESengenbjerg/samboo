@@ -10,13 +10,14 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "output": "static"
+      "output": "single"
     },
     "plugins": [
       "expo-router",
       "expo-splash-screen",
       "expo-font",
-      "expo-image"
+      "expo-image",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,

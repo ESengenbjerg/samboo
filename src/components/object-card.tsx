@@ -11,6 +11,7 @@ import { Pressable, View } from "react-native";
 
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
+import { formatPrice } from "@/utils/format-price";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Heart } from "lucide-react-native";
 import { useState } from "react";
@@ -68,7 +69,6 @@ export function ObjectCard({
   const isSmall = size === "small";
 
   // Image handling
-  const [imageFailed, setImageFailed] = useState(false);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const showFallback = !imageUrl || failedUrl === imageUrl;
 
@@ -96,7 +96,7 @@ export function ObjectCard({
         <View className={imageWrapperVariants({ size })}>
           <Image
             source={showFallback ? fallbackImage : { uri: imageUrl }}
-            onError={() => setImageFailed(true)}
+            onError={() => setFailedUrl(imageUrl ?? null)}
             style={{ width: "100%", height: "100%" }}
             contentFit="cover"
           />
@@ -120,7 +120,7 @@ export function ObjectCard({
               {!price ? (
                 <Text variant="small">Pris saknas</Text>
               ) : (
-                <Text variant="small">{price.toLocaleString("sv-SE")} kr</Text>
+                <Text variant="small">{formatPrice(price)}</Text>
               )}
 
               {/* -- LIVING AREA --- */}
@@ -152,9 +152,7 @@ export function ObjectCard({
                 {!price ? (
                   <Text variant="small">Pris saknas</Text>
                 ) : (
-                  <Text variant="small">
-                    {price.toLocaleString("sv-SE")} kr
-                  </Text>
+                  <Text variant="small">{formatPrice(price)}</Text>
                 )}
 
                 {saveButton}
