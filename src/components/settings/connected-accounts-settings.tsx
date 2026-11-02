@@ -5,6 +5,7 @@ import { LogOut, Trash } from "lucide-react-native";
 import { useState } from "react";
 import { View } from "react-native";
 import FormError from "../form-error";
+import InfoMessage from "../info-message";
 import { ConfirmDialog } from "../modals/confirm-dialog";
 import { Button } from "../ui/button";
 import { Icon } from "../ui/icon";
@@ -22,6 +23,8 @@ export default function ConnectedAccountsSettings({
     error,
     isSubmitting,
     actionError,
+    groupNotice,
+    dismissGroupNotice,
     removeMember,
     leaveGroup,
   } = accounts;
@@ -30,6 +33,9 @@ export default function ConnectedAccountsSettings({
     null,
   );
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
+
+  const displayError = error || actionError;
+  const isBusy = isLoading || isSubmitting;
 
   async function onRemoveMember() {
     if (!memberToRemove) return;
@@ -46,10 +52,12 @@ export default function ConnectedAccountsSettings({
     <View className="gap-4">
       <Text variant="h2">Kopplade konton</Text>
 
-      {error && <FormError>{error}</FormError>}
-      {actionError && <FormError>{actionError}</FormError>}
+      {displayError && <FormError>{displayError}</FormError>}
+      {groupNotice && (
+        <InfoMessage onDismiss={dismissGroupNotice}>{groupNotice}</InfoMessage>
+      )}
 
-      {isLoading ? (
+      {isBusy ? (
         <Text>Laddar...</Text>
       ) : !isInGroup ? (
         <Text>Du har inga kopplade konton ännu.</Text>
@@ -62,7 +70,7 @@ export default function ConnectedAccountsSettings({
                 {m.avatarUrl ? (
                   <Image
                     source={m.avatarUrl}
-                    style={{ width: 16, height: 16, borderRadius: 8 }}
+                    style={{ width: 32, height: 32, borderRadius: 24 }}
                     contentFit="cover"
                   />
                 ) : (
@@ -102,12 +110,12 @@ export default function ConnectedAccountsSettings({
         open={memberToRemove !== null}
         onOpenChange={(open) => !open && setMemberToRemove(null)}
         title={"Är du säker?"}
-        description={`Om du tar bort ${memberToRemove?.name ?? "kontot"} kan ni inte längre se varandras listor eller er gemensamma lista.`}
+        description={`Om du tar bort ${memberToRemove?.name ?? "kontot"} kan ni inte längre se varandras listor eller er gemensamma lista. Om du blir ensam kvar i en grupp försvinner din grupptillhörighet.`}
         actionLabel={"Bekräfta radering"}
         onAction={onRemoveMember}
         cancelLabel={"Avbryt"}
         onCancel={() => setMemberToRemove(null)}
-        isLoading={isSubmitting}
+        isLoading={isBusy}
       />
 
       <ConfirmDialog
@@ -115,13 +123,13 @@ export default function ConnectedAccountsSettings({
         onOpenChange={setLeaveDialogOpen}
         title={"Lämna gruppen?"}
         description={
-          "Du kommer inte längre kunna se de andras listor eller er gemensamma lista."
+          "Du kommer inte längre kunna se de andras listor eller er gemensamma lista. Om du blir ensam kvar i en grupp försvinner din grupptillhörighet."
         }
         actionLabel={"Lämna gruppen"}
         onAction={onLeaveGroup}
         cancelLabel={"Avbryt"}
         onCancel={() => setLeaveDialogOpen(false)}
-        isLoading={isSubmitting}
+        isLoading={isBusy}
       />
     </View>
   );

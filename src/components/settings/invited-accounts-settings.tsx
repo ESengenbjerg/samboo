@@ -8,6 +8,7 @@ import { SendInviteDialog } from "../modals/send-invite-dialog";
 import { Button } from "../ui/button";
 import { Icon } from "../ui/icon";
 import { Text } from "../ui/text";
+import InfoMessage from "../info-message";
 
 export default function ConnectAccountsSettings({
   accounts,
