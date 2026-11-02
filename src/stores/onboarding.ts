@@ -8,11 +8,12 @@ import { createJSONStorage, persist } from "zustand/middleware";
 // Leave onboarding states outside with partialize
 
 export type ScraperFilter = {
-  area: string;
+  municipalities: string[];
   propertyTypes: string[];
 };
 
 export type ClientFilter = {
+  area: string[];
   minRooms?: number;
   maxMonthlyFee?: number;
   minLivingArea?: number;
@@ -23,13 +24,13 @@ export type InformationInterval = "day" | "week";
 
 type OnboardingState = {
   profileName: string;
-  profileImage: string;
+  avatarPath: string | null;
   scraperFilter: ScraperFilter | null;
   clientFilter: ClientFilter | null;
   informationInterval: InformationInterval;
   onboardingComplete: boolean;
   completeOnboarding: () => void;
-  setProfile: (name: string, image: string) => void;
+  setProfile: (name: string, avatarPath: string | null) => void;
   setFilters: (
     scraper: ScraperFilter,
     client: ClientFilter,
@@ -42,20 +43,20 @@ export const useOnboardingStore = create<OnboardingState>()(
   persist(
     (set) => ({
       profileName: "",
-      profileImage: "",
+      avatarPath: null,
       scraperFilter: null,
       clientFilter: null,
       informationInterval: "day",
       onboardingComplete: false,
       completeOnboarding: () => set({ onboardingComplete: true }),
-      setProfile: (profileName, profileImage) =>
-        set({ profileName, profileImage }),
+      setProfile: (profileName, avatarPath) =>
+        set({ profileName, avatarPath }),
       setFilters: (scraperFilter, clientFilter, informationInterval) =>
         set({ scraperFilter, clientFilter, informationInterval }),
       reset: () =>
         set({
           profileName: "",
-          profileImage: "",
+          avatarPath: null,
           scraperFilter: null,
           clientFilter: null,
           informationInterval: "day",
@@ -68,7 +69,7 @@ export const useOnboardingStore = create<OnboardingState>()(
       // Save input choices, onboardingComplete should not survive restart
       partialize: (s) => ({
         profileName: s.profileName,
-        profileImage: s.profileImage,
+        avatarPath: s.avatarPath,
         scraperFilter: s.scraperFilter,
         clientFilter: s.clientFilter,
         informationInterval: s.informationInterval,

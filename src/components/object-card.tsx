@@ -69,7 +69,6 @@ export function ObjectCard({
   const isSmall = size === "small";
 
   // Image handling
-  const [imageFailed, setImageFailed] = useState(false);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const showFallback = !imageUrl || failedUrl === imageUrl;
 
@@ -97,7 +96,7 @@ export function ObjectCard({
         <View className={imageWrapperVariants({ size })}>
           <Image
             source={showFallback ? fallbackImage : { uri: imageUrl }}
-            onError={() => setImageFailed(true)}
+            onError={() => setFailedUrl(imageUrl ?? null)}
             style={{ width: "100%", height: "100%" }}
             contentFit="cover"
           />

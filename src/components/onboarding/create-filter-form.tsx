@@ -1,4 +1,3 @@
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -8,6 +7,8 @@ import {
   PROPERTY_TYPES_OPTIONS,
   ROOM_OPTIONS,
 } from "@/constants/filter-options";
+import { useOnboardingHydrated } from "@/hooks/useOnboardingHydrated";
+import { usePlaces } from "@/hooks/usePlaces";
 import {
   ClientFilter,
   ScraperFilter,
@@ -16,29 +17,28 @@ import {
 import { SelectOption } from "@/types/select-option";
 import { capitalize } from "@/utils/capitalize-string";
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { View } from "react-native";
 import FormError from "../form-error";
 import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
 import { Switch } from "../ui/switch";
+import AreaPicker from "./area-picker";
 import FilterSelect from "./filter-select";
+import MunicipalityPicker from "./municipality-picker";
 
 export default function CreateFilterForm() {
+  // Wait until the store is hydrated, otherwise the saved values
+  // are still null/default and the form would start with empty values
+  const hasHydrated = useOnboardingHydrated();
+  if (!hasHydrated) return null;
+
+  return <CreateFilterFields />;
+}
+
+function CreateFilterFields() {
   const [error, setError] = useState<string | null>(null);
   const setFilters = useOnboardingStore((s) => s.setFilters);
-
-  // Filter alternatives
-  // Used to save user input before saving to scraperFilter and clientFilter
-  const [area, setArea] = useState("");
-  const [propertyType, setPropertyType] = useState<string[]>([]);
-  const [rooms, setRooms] = useState<SelectOption>();
-  const [monthlyFee, setMonthlyFee] = useState<SelectOption>();
-  const [livingArea, setLivingArea] = useState<SelectOption>();
-  const [showNewProduction, setShowNewProduction] = useState(true);
-  const [informationInterval, setInformationInterval] = useState<
-    "day" | "week"
-  >("day");
 
   // Fetches made choices in case user has started onboarding and then leaves app, after making filter choices
   const savedScrapeFilter = useOnboardingStore((s) => s.scraperFilter);
@@ -47,69 +47,73 @@ export default function CreateFilterForm() {
     (s) => s.informationInterval,
   );
 
-  // Tracks whether zustand's persist middleware has finished loading
-  // the saved state from AsyncStorage. Initialized with the current status,
-  // since hydration may already be complete on first render.
-  const [hasHydrated, setHasHydrated] = useState(
-    useOnboardingStore.persist.hasHydrated(),
+  // Filter alternatives
+  // Used to save user input before saving to scraperFilter and clientFilter
+  const [municipalities, setMunicipalities] = useState<string[]>(
+    savedScrapeFilter?.municipalities ?? [],
+  );
+  const [areas, setAreas] = useState<string[]>(savedClientFilter?.area ?? []);
+
+  const [propertyType, setPropertyType] = useState<string[]>(
+    savedScrapeFilter?.propertyTypes ?? [],
+  );
+  const [rooms, setRooms] = useState<SelectOption | undefined>(
+    ROOM_OPTIONS.find((o) => Number(o.value) === savedClientFilter?.minRooms),
+  );
+  const [monthlyFee, setMonthlyFee] = useState<SelectOption | undefined>(
+    MONTHLY_FEE_OPTIONS.find(
+      (o) => Number(o.value) === savedClientFilter?.maxMonthlyFee,
+    ),
+  );
+  const [livingArea, setLivingArea] = useState<SelectOption | undefined>(
+    LIVING_AREA_OPTIONS.find(
+      (o) => Number(o.value) === savedClientFilter?.minLivingArea,
+    ),
+  );
+  const [showNewProduction, setShowNewProduction] = useState(
+    savedClientFilter?.showNewProduction ?? true,
+  );
+  const [informationInterval, setInformationInterval] = useState<
+    "day" | "week"
+  >(savedInformationInterval);
+
+  const {
+    municipalities: allMunicipalities,
+    areas: allAreas,
+    isLoading: isLoadingPlaces,
+    error: placesError,
+  } = usePlaces();
+
+  // The chosen municipalities as objects, AreaPicker needs their id
+  const selectedMunicipalities = allMunicipalities.filter((m) =>
+    municipalities.includes(m.name),
   );
 
-  useEffect(() => {
-    // Subscribe to the hydration-finished event so the component re-renders
-    // when AsyncStorage has been read (hydration is async and may finish late).
-    const unsub = useOnboardingStore.persist.onFinishHydration(() =>
-      setHasHydrated(true),
-    );
-    // Covers the case where hydration finished between the first render
-    // and this effect, so the event would never fire.
-    setHasHydrated(useOnboardingStore.persist.hasHydrated());
-    return unsub;
-  }, []);
+  // Removes areas of a removed municipality. The database rejects
+  // a search with an area outside the chosen municipalities
+  function onMunicipalitiesChange(names: string[]) {
+    setMunicipalities(names);
 
-  useEffect(() => {
-    // Wait until the store is hydrated, otherwise the saved values
-    // are still null/default and would overwrite the form with empty values
-    if (!hasHydrated) return;
-
-    // Sets area and propertyType to saved values
-    if (savedScrapeFilter) {
-      setArea(savedScrapeFilter.area);
-      setPropertyType(savedScrapeFilter.propertyTypes);
-    }
-    // Sets minRooms, maxMonthlyFee, minLivingArea, and showNewProduction to saved values
-    if (savedClientFilter) {
-      setRooms(
-        ROOM_OPTIONS.find(
-          (o) => Number(o.value) === savedClientFilter.minRooms,
-        ),
-      );
-      setMonthlyFee(
-        MONTHLY_FEE_OPTIONS.find(
-          (o) => Number(o.value) === savedClientFilter.maxMonthlyFee,
-        ),
-      );
-      setLivingArea(
-        LIVING_AREA_OPTIONS.find(
-          (o) => Number(o.value) === savedClientFilter.minLivingArea,
-        ),
-      );
-      setShowNewProduction(savedClientFilter.showNewProduction);
-    }
-    // Sets informationInterval to saved value
-    setInformationInterval(savedInformationInterval);
-  }, [hasHydrated]); // Runs once hydration completes.
+    const ids = allMunicipalities
+      .filter((m) => names.includes(m.name))
+      .map((m) => m.id);
+    const allowedAreas = allAreas
+      .filter((a) => ids.includes(a.municipality_id))
+      .map((a) => a.name);
+    setAreas((prev) => prev.filter((name) => allowedAreas.includes(name)));
+  }
 
   function onSubmit() {
     setError(null);
 
-    if (!area && propertyType.length === 0) {
+    if (municipalities.length === 0 && propertyType.length === 0) {
       setError(
-        "Du måste lägga till minst ett område och bostadstyp för att spara.",
+        "Du måste lägga till minst en kommun och bostadstyp för att spara.",
       );
       return;
     }
-    if (!area) {
-      setError("Du måste lägga till minst ett område för att spara.");
+    if (municipalities.length === 0) {
+      setError("Du måste lägga till minst en kommun för att spara.");
       return;
     }
     if (propertyType.length === 0) {
@@ -118,11 +122,12 @@ export default function CreateFilterForm() {
     }
 
     const scraperFilter: ScraperFilter = {
-      area: area.trim(),
+      municipalities,
       propertyTypes: propertyType,
     };
 
     const clientFilter: ClientFilter = {
+      area: areas,
       minRooms: rooms ? Number(rooms.value) : undefined,
       maxMonthlyFee: monthlyFee ? Number(monthlyFee.value) : undefined,
       minLivingArea: livingArea ? Number(livingArea.value) : undefined,
@@ -135,41 +140,53 @@ export default function CreateFilterForm() {
 
   return (
     <View className="flex-1 justify-center w-full px-8 gap-6">
-      <Text variant="h1">Skapa bevakning</Text>
+      <View className="gap-4">
+        <Text variant="h1">Skapa bevakning</Text>
+        <Text>Du kan uppdatera dina val via inställningar senare.</Text>
+      </View>
 
-      {/* --- AREA --- */}
-      <View className="gap-1.5">
-        <Label htmlFor="create-area">Område*</Label>
-        <Input
-          id="create-area"
-          placeholder="Sök område..."
-          returnKeyType="next"
-          submitBehavior="submit"
-          value={area}
-          onChangeText={setArea}
-          textContentType="addressCity"
-        />
+        {/* --- MUNICIPALITIES AND AREA --- */}
+      <View className="gap-6 z-10">
+        {isLoadingPlaces ? (
+          <Text>Laddar kommuner...</Text>
+        ) : placesError ? (
+          <FormError>{placesError}</FormError>
+        ) : (
+          <>
+            <MunicipalityPicker
+              municipalities={allMunicipalities}
+              selected={municipalities}
+              onChange={onMunicipalitiesChange}
+            />
+            <AreaPicker
+              municipalities={selectedMunicipalities}
+              areas={allAreas}
+              selected={areas}
+              onChange={setAreas}
+            />
+          </>
+        )}
       </View>
 
       {/* --- PROPERTY TYPE --- */}
-      <View className="gap-1.5">
+      <View className="gap-1.5 z-0">
         <Label>Bostadstyp*</Label>
         <ToggleGroup
           type="multiple"
           aria-label="Bostadstyp"
           value={propertyType}
           onValueChange={setPropertyType}
-          className="flex-1 gap-2 flex-wrap"
+          className="gap-2 flex-wrap"
           variant="secondary"
         >
           {PROPERTY_TYPES_OPTIONS.map((p) => (
             <ToggleGroupItem
-              key={p}
-              value={p}
-              aria-label={`Boendetyp ${p}`}
+              key={p.value}
+              value={p.value}
+              aria-label={`Boendetyp ${p.label}`}
               className="flex-none shrink-0"
             >
-              <Text className="p-2">{capitalize(p)}</Text>
+              <Text className="p-2">{capitalize(p.label)}</Text>
             </ToggleGroupItem>
           ))}
         </ToggleGroup>

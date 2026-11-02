@@ -1,7 +1,11 @@
-import { getProfile } from "@/services/profiles";
+import { getAvatarUrl, getProfile } from "@/services/profiles";
 import { useEffect, useState } from "react";
 
-type Profile = { name: string | null };
+type Profile = {
+  name: string | null;
+  avatarPath: string | null;
+  avatarUrl: string | null;
+};
 
 type ProfileResult = {
   userId: string;
@@ -26,7 +30,16 @@ export function useProfile(userId: string | undefined) {
         setResult({ userId, profile: null, failed: true });
         return;
       }
-      setResult({ userId, profile: data });
+      setResult({
+        userId,
+        profile: data
+          ? {
+              name: data.name,
+              avatarPath: data.avatar_path,
+              avatarUrl: getAvatarUrl(data.avatar_path),
+            }
+          : null,
+      });
     });
 
     return () => {
