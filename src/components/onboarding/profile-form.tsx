@@ -57,18 +57,11 @@ export default function ProfileForm() {
   async function onSubmit() {
     setError(null);
 
-    if (!profileName && !previewUri) {
-      setError("Lägg till visningsnamn och profilbild.");
-      return;
-    }
     if (!profileName) {
       setError("Lägg till ett visningsnamn.");
       return;
     }
-    if (!previewUri) {
-      setError("Lägg till en profilbild.");
-      return;
-    }
+    
     if (!userId) {
       setError("Något gick fel, försök igen.");
       return;
@@ -113,6 +106,10 @@ export default function ProfileForm() {
           <Text>{previewUri ? "Byt bild" : "Välj bild"}</Text>
         </Button>
       </View>
+      <Text variant="small">
+        Din profilbild är offentlig. Alla som besöker din profil kan se och
+        spara bilden. Du kan när som helst byta eller ta bort bilden under Inställningar.
+      </Text>
 
       <View className="self-center">
         {previewUri ? (

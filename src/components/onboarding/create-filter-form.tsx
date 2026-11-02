@@ -74,7 +74,7 @@ function CreateFilterFields() {
     savedClientFilter?.showNewProduction ?? true,
   );
   const [informationInterval, setInformationInterval] = useState<
-    "day" | "week"
+    "day" | "week" | "none"
   >(savedInformationInterval);
 
   const {
@@ -145,7 +145,7 @@ function CreateFilterFields() {
         <Text>Du kan uppdatera dina val via inställningar senare.</Text>
       </View>
 
-        {/* --- MUNICIPALITIES AND AREA --- */}
+      {/* --- MUNICIPALITIES AND AREA --- */}
       <View className="gap-6 z-10">
         {isLoadingPlaces ? (
           <Text>Laddar kommuner...</Text>
@@ -226,20 +226,27 @@ function CreateFilterFields() {
       {/* --- INFORMATION INTERVAL --- */}
       <View className="gap-4">
         <Text variant="bold">Hur ofta vill du bli informerad?</Text>
-        <View className="flex-row justify-between">
-          <View className="flex-row items-center gap-4">
-            <Label containerClassName="mb-0">Varje dag</Label>
+        <View className="flex-row flex-wrap gap-4 justify-between">
+          <View className="flex-row items-center gap-4 min-w-[45%]">
             <Checkbox
               checked={informationInterval === "day"}
               onCheckedChange={() => setInformationInterval("day")}
             ></Checkbox>
+            <Label containerClassName="mb-0">Varje dag</Label>
           </View>
           <View className="flex-row items-center gap-4">
-            <Label containerClassName="mb-0">Varje vecka</Label>
             <Checkbox
               checked={informationInterval === "week"}
               onCheckedChange={() => setInformationInterval("week")}
             ></Checkbox>
+            <Label containerClassName="mb-0">Varje vecka</Label>
+          </View>
+          <View className="flex-row items-center gap-4">
+            <Checkbox
+              checked={informationInterval === "none"}
+              onCheckedChange={() => setInformationInterval("none")}
+            ></Checkbox>
+            <Label containerClassName="mb-0">Aldrig</Label>
           </View>
         </View>
       </View>
