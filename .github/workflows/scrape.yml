@@ -21,9 +21,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: scripts/.nvmrc # Node 24 runs .ts files natively
           cache: npm
@@ -45,3 +45,4 @@ jobs:
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           BASE_PATH_MOCK_DATA: ${{ secrets.BASE_PATH_MOCK_DATA }}
+          BASE_PATH_AGENCY1: ${{ secrets.BASE_PATH_AGENCY1 }}
