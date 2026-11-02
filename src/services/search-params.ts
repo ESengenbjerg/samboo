@@ -11,7 +11,7 @@ export function saveSearchParams(
     {
       user_id: userId,
       property_types: scraperFilter.propertyTypes,
-      municipalities: [scraperFilter.municipalities],
+      municipalities: scraperFilter.municipalities,
       areas: clientFilter.area,
       min_rooms: clientFilter.minRooms,
       max_monthly_fee: clientFilter.maxMonthlyFee,
