@@ -100,7 +100,7 @@ export default function ProfileForm() {
         />
       </View>
       <View className="gap-1.5">
-        <Label htmlFor="profile-image">Profilbild</Label>
+        <Label htmlFor="profile-image">Profilbild (valfritt)</Label>
 
         <Button variant="outline" onPress={selectImage} disabled={isLoading}>
           <Text>{previewUri ? "Byt bild" : "Välj bild"}</Text>

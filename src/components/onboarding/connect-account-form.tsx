@@ -31,17 +31,12 @@ export default function ConnectAccountForm() {
       // Fetch user input from previous onboarding steps
       // The profile image is already uploaded in the profile step
 
-      const { profileName, avatarPath, scraperFilter, clientFilter } =
+      const { profileName, scraperFilter, clientFilter } =
         useOnboardingStore.getState();
 
       // If a step is missing, redirect to /profile to start from beginning
-      if (!avatarPath || !scraperFilter || !clientFilter) {
-        router.replace("/profile");
-        return false;
-      }
-
-      // If onboarding is not completed, redirect to /profile to start from beginning
-      if (!scraperFilter || !clientFilter) {
+      // The profile image is optional, so avatarPath is not checked
+      if (!profileName || !scraperFilter || !clientFilter) {
         router.replace("/profile");
         return false;
       }
