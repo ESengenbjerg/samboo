@@ -150,6 +150,25 @@ paths:
                 items: { $ref: '#/components/schemas/PendingInvite' }
         '429': { $ref: '#/components/responses/RateLimited' }
 
+  /rpc/my_group_members:
+    get:
+      tags: [Groups and invites]
+      summary: The other members of my group
+      description: |
+        Lists the other members of my group, sorted by name, with their e-mail (read from auth.users).
+        Myself is not included; inactive members are. Empty list if I have no group.
+        Must be called with GET (`supabase.rpc('my_group_members', undefined, { get: true })`): the function is
+        STABLE, and a POST fails with 405 because the rate limit cannot write in a read-only transaction.
+      operationId: my_group_members
+      responses:
+        '200':
+          description: List of members (empty if none).
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/GroupMember' }
+
   /rpc/leave_group:
     post:
       tags: [Groups and invites]
@@ -625,6 +644,14 @@ components:
         from_user_id: { type: string, format: uuid }
         from_name: { type: string }
         from_email: { type: string }
+
+    GroupMember:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        avatar_path: { type: string, nullable: true, description: Path in the `avatars` bucket. Build the URL with getPublicUrl(). }
+        email: { type: string }
 
     SearchParamsWrite:
       type: object
