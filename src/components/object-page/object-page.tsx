@@ -9,6 +9,7 @@ import { formatPrice } from "@/utils/format-price";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import { Linking, ScrollView, View } from "react-native";
+import { LikeButton } from "../like-button";
 
 type ObjectPageProps = {
   listing: Listing | null;
@@ -60,9 +61,12 @@ export default function ObjectPageScreen({
           {/* --- ADDRESS AND AREA --- */}
           <View className="gap-4">
             <View>
-              <Text variant="h1">
-                {listing.ld_json.streetAddress ?? "Adress saknas"}
-              </Text>
+              <View className="flex-row justify-between items-center">
+                <Text variant="h1">
+                  {listing.ld_json.streetAddress ?? "Adress saknas"}
+                </Text>
+                <LikeButton listingId={listing.id} size={24} />
+              </View>
               <Text>
                 {[listing.area, listing.municipality]
                   .filter(Boolean)

@@ -9,12 +9,11 @@ import { Text } from "@/components/ui/text";
 import { Image } from "expo-image";
 import { Pressable, View } from "react-native";
 
-import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import { formatPrice } from "@/utils/format-price";
 import { cva, type VariantProps } from "class-variance-authority";
-import { Heart } from "lucide-react-native";
 import { useState } from "react";
+import { LikeButton } from "./like-button";
 
 const fallbackImage = require("@/assets/images/no-image.jpg");
 
@@ -46,9 +45,8 @@ type ObjectCardProps = VariantProps<typeof objectCardVariants> & {
   livingArea: number | null;
   rooms: number | null;
   imageUrl: string;
-  isLiked?: boolean;
+  listingId: number;
   onPress?: () => void;
-  onLikePress?: () => void;
   className?: string;
 };
 
@@ -60,9 +58,8 @@ export function ObjectCard({
   livingArea,
   rooms,
   imageUrl,
-  isLiked = false,
+  listingId,
   onPress,
-  onLikePress,
   size,
   className,
 }: ObjectCardProps) {
@@ -71,7 +68,6 @@ export function ObjectCard({
   // Image handling
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const showFallback = !imageUrl || failedUrl === imageUrl;
-
 
   return (
     <View className={cn(objectCardVariants({ size }), className)}>
@@ -146,22 +142,14 @@ export function ObjectCard({
           className="absolute inset-0 z-0"
         />
       </Card>
-      <Pressable
-          onPress={onLikePress}
-          hitSlop={8}
-          role="button"
-          aria-label={isLiked ? "Ta bort från sparade" : "Spara objekt"}
-          className={isSmall ? "absolute right-3 bottom-4" : "absolute right-4 bottom-16 size-9 items-center justify-center"}
-        >
-          <Icon
-            as={Heart}
-            fill={`${isLiked ? "destructive" : "none"}`}
-            className={cn(
-              "size-5",
-              isLiked ? "fill-destructive text-destructive" : "text-foreground",
-            )}
-          />
-        </Pressable>
+
+      <LikeButton
+        listingId={listingId}
+        size={20}
+        className={
+          isSmall ? "absolute right-1 bottom-2" : "absolute right-4 bottom-16"
+        }
+      />
     </View>
   );
 }
