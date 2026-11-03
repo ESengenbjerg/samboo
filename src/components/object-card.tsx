@@ -9,12 +9,11 @@ import { Text } from "@/components/ui/text";
 import { Image } from "expo-image";
 import { Pressable, View } from "react-native";
 
-import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import { formatPrice } from "@/utils/format-price";
 import { cva, type VariantProps } from "class-variance-authority";
-import { Heart } from "lucide-react-native";
 import { useState } from "react";
+import { LikeButton } from "./like-button";
 
 const fallbackImage = require("@/assets/images/no-image.jpg");
 
@@ -46,9 +45,8 @@ type ObjectCardProps = VariantProps<typeof objectCardVariants> & {
   livingArea: number | null;
   rooms: number | null;
   imageUrl: string;
-  isSaved?: boolean;
+  listingId: number;
   onPress?: () => void;
-  onSavePress?: () => void;
   className?: string;
 };
 
@@ -60,9 +58,8 @@ export function ObjectCard({
   livingArea,
   rooms,
   imageUrl,
-  isSaved = false,
+  listingId,
   onPress,
-  onSavePress,
   size,
   className,
 }: ObjectCardProps) {
@@ -71,24 +68,6 @@ export function ObjectCard({
   // Image handling
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const showFallback = !imageUrl || failedUrl === imageUrl;
-
-  const saveButton = (
-    <Pressable
-      onPress={onSavePress}
-      hitSlop={12}
-      role="button"
-      aria-label={isSaved ? "Ta bort från sparade" : "Spara objekt"}
-      className="z-10"
-    >
-      <Icon
-        as={Heart}
-        className={cn(
-          "size-5",
-          isSaved ? "fill-destructive text-destructive" : "text-foreground",
-        )}
-      />
-    </Pressable>
-  );
 
   return (
     <View className={cn(objectCardVariants({ size }), className)}>
@@ -106,13 +85,11 @@ export function ObjectCard({
           <>
             <CardHeader className="flex-1 flex-row overflow-hidden justify-between">
               <View className="flex-1">
-                <CardTitle>{address}</CardTitle>
-                <CardDescription>
+                <CardTitle numberOfLines={1} className="max-w-[90%]">{address}</CardTitle>
+                <CardDescription numberOfLines={1} className="max-w-[90%]">
                   {[area, municipality].filter(Boolean).join(", ")}
                 </CardDescription>
               </View>
-
-              {saveButton}
             </CardHeader>
 
             <CardContent className="flex-row flex-wrap justify-between pb-4">
@@ -134,12 +111,14 @@ export function ObjectCard({
           <>
             <CardHeader className="flex-1 px-3">
               <View>
-                <CardTitle>{address}</CardTitle>
-                <CardDescription>{area}</CardDescription>
+                <CardTitle numberOfLines={1}>{address}</CardTitle>
+                <CardDescription numberOfLines={1}>
+                  {[area, municipality].filter(Boolean).join(", ")}
+                </CardDescription>
               </View>
             </CardHeader>
 
-            <CardContent className="px-3 pb-3">
+            <CardContent className="px-3 pb-3 gap-1.5">
               <View className="flex-row flex-wrap justify-between">
                 {/* -- ROOMS --- */}
                 {!!rooms && <Text variant="small">{rooms} rum</Text>}
@@ -154,8 +133,6 @@ export function ObjectCard({
                 ) : (
                   <Text variant="small">{formatPrice(price)}</Text>
                 )}
-
-                {saveButton}
               </View>
             </CardContent>
           </>
@@ -164,9 +141,17 @@ export function ObjectCard({
           onPress={onPress}
           role="link"
           aria-label={`${address}, ${area}`}
-          className="absolute inset-0"
+          className="absolute inset-0 z-0"
         />
       </Card>
+
+      <LikeButton
+        listingId={listingId}
+        size={20}
+        className={
+          isSmall ? "absolute right-1 bottom-2" : "absolute right-4 bottom-16"
+        }
+      />
     </View>
   );
 }
