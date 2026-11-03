@@ -564,6 +564,23 @@ AS $function$
   order by i.created_at desc;
 $function$;
 
+-- The other members of my group, with their e-mail (e.g. to see if the wrong person was invited). Needed because the e-mail is only in auth.users.
+-- Same rows as the policy profiles_select gives for my group (inactive members included), but without myself.
+CREATE OR REPLACE FUNCTION public.my_group_members()
+ RETURNS TABLE (id uuid, name text, avatar_path text, email text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+  select p.id, p.name, p.avatar_path, u.email::text
+  from public.profiles p
+  join auth.users u on u.id = p.id
+  where public.is_active_user()
+    and p.group_id = public.my_group_id()
+    and p.id <> auth.uid()
+  order by p.name;
+$function$;
+
 -- Moves a user's own showings into a group (used by accept_invite()). The group's showing wins if both have the same listing; the user's duplicate is deleted.
 -- Returns a jsonb list of the user's showings that did not follow (address, url, showing_date, start_time), so the app can tell the user.
 -- An update, not an insert, so the 50 limit is not applied (see limit_showings_per_group()).
@@ -1501,6 +1518,7 @@ grant execute on function
   public.like_listing(bigint),
   public.my_avatar_count(),
   public.my_group_id(),
+  public.my_group_members(),
   public.my_pending_invites(),
   public.shared_likes(),
   public.shares_group_with(uuid),

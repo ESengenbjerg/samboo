@@ -83,7 +83,7 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 
 `anon` can call none of them.
 
-- **`authenticated` and service_role:** `accept_invite`, `can_see_listing`, `decline_invite`, `in_my_group`, `is_active_user`, `leave_group`, `remove_group_member`, `like_listing`, `my_avatar_count`, `my_group_id`, `my_pending_invites`, `shared_likes`, `shares_group_with`, `delete_my_account`, `cancel_invite`.
+- **`authenticated` and service_role:** `accept_invite`, `can_see_listing`, `decline_invite`, `in_my_group`, `is_active_user`, `leave_group`, `remove_group_member`, `like_listing`, `my_avatar_count`, `my_group_id`, `my_group_members`, `my_pending_invites`, `shared_likes`, `shares_group_with`, `delete_my_account`, `cancel_invite`.
 - **`anon`, `authenticated`, service_role and `authenticator`:** `check_request` only. PostgREST runs it before every request as the requesting role, so revoking it would break every request.
 - **service_role only:** `dissolve_group_if_alone`, `handle_deleted_profile`, `handle_new_user`, `limit_invites_per_pair`, `limit_search_params_changes`, `limit_showings_per_group`, `match_user_listings`, `move_personal_showings`, `orphan_avatar_objects`, `purge_old_invites`, `purge_old_showings`, `purge_rate_limit_counters`, `purge_removed_listings`, `purge_search_params_log`, `rls_auto_enable`, `search_params_match_trigger`, `validate_search_places`.
 
@@ -99,6 +99,7 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 | `accept_invite(invite_id)` | RPC, security definer | Joins the inviter's group (creating it if missing) and marks the invite accepted. The own showings of the inviter and of me move into the group (`move_personal_showings()`). Requires that I am not already in a group and that my account is active. Fails with `Gruppen är full (max 10 medlemmar)` if the group already has 10 members (the group row is locked while counting). Both profile rows are locked (in id order) and the invite is read again after the lock, so a double tap or two crossing accepts cannot create two groups: the second one fails with `Inbjudan finns inte eller är inte din` or `Du är redan med i en grupp. Lämna den först.`. A pending invite from me to the inviter is set to `cancelled`. Returns a jsonb array of my showings that did not follow into the group because the group already had a showing for the same listing (empty array if none). Each item: `address`, `url`, `showing_date`, `start_time` |
 | `cancel_invite(invite_id)` | RPC, security definer | The sender sets a pending invite to `cancelled` (e.g. wrong e-mail address). Fails with `Inbjudan finns inte eller är inte din` if it is not mine or no longer pending |
 | `my_pending_invites()` | RPC, security definer | Pending invites addressed to my email, with `from_name` and `from_email` of the sender. The recipient cannot read the sender's profile directly, so the app uses this to show who invited |
+| `my_group_members()` | RPC, security definer, STABLE | The other members of my group (`id`, `name`, `avatar_path`, `email`), sorted by name. Empty if I have no group or my account is not active. Inactive members are included, as with the policy `profiles_select`. The e-mail is only in `auth.users`, so the app needs this to show it (e.g. to see if the wrong person was invited) |
 | `decline_invite(invite_id)` | RPC, security definer | Marks a pending invite addressed to my email as `declined` and sets `responded_at`. Requires an active account. Fails with `Inbjudan finns inte eller är inte din` if it is not mine or no longer pending |
 | `delete_my_account()` | RPC, security definer | Deletes the signed-in user from `auth.users`. Everything else follows via cascade and the `on_profile_deleted` trigger. Fails with `Not signed in` without a session |
 | `handle_deleted_profile()` | trigger, security definer | After a profile is deleted: if at most 1 member remains in its group, the group is dissolved (same rule as `leave_group()`, via `dissolve_group_if_alone()`) |
@@ -146,7 +147,7 @@ One storage bucket exists (`avatars`, see "Profile images" below). No custom sch
 
 ### Calling read-only functions (`{ get: true }`)
 
-`my_group_id()` and `my_pending_invites()` are STABLE, so PostgREST runs them in a read-only transaction. Called with POST (the `supabase.rpc` default), `check_request()` tries to insert into `api_rate_limit` and the call fails with 405 / 25006 "cannot execute INSERT in a read-only transaction". They must be called with `{ get: true }`, which `check_request()` skips. Any future STABLE function called from the app needs `{ get: true }` as well.
+`my_group_id()`, `my_group_members()` and `my_pending_invites()` are STABLE, so PostgREST runs them in a read-only transaction. Called with POST (the `supabase.rpc` default), `check_request()` tries to insert into `api_rate_limit` and the call fails with 405 / 25006 "cannot execute INSERT in a read-only transaction". They must be called with `{ get: true }`, which `check_request()` skips. Any future STABLE function called from the app needs `{ get: true }` as well.
 
 ### Default privileges
 
