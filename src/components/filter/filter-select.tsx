@@ -16,7 +16,7 @@ type FilterSelectProps = {
   value: SelectOption | undefined;
   onValueChange: (option: SelectOption | undefined) => void;
   options: SelectOption[];
-  fieldColor?: "bg-white" | "bg-input",
+  fieldColor?: "bg-white" | "bg-input";
 };
 
 export default function FilterSelect({
@@ -24,7 +24,7 @@ export default function FilterSelect({
   value,
   onValueChange,
   options,
-  fieldColor,
+  fieldColor = "bg-input",
 }: FilterSelectProps) {
   // Dropdowns should be as wide as their trigger
   const [triggerWidth, setTriggerWidth] = useState<number>();
