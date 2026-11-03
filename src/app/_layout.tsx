@@ -12,6 +12,7 @@ import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { useSession } from "@/hooks/useSession";
 import { signOut } from "@/services/auth";
 import { useOnboardingStore } from "@/stores/onboarding";
+import { usePasswordRecoveryStore } from "@/stores/password-recovery";
 import { MomoTrustDisplay_400Regular } from "@expo-google-fonts/momo-trust-display";
 import {
   MomoTrustSans_400Regular,
@@ -43,7 +44,9 @@ export default function RootLayout() {
 
   const onboardingComplete = useOnboardingStore((s) => s.onboardingComplete);
 
-  const isLoggedIn = !!session;
+  // During a password reset the user has a session, but must stay in (auth) to set a new password
+  const isRecoveringPassword = usePasswordRecoveryStore((s) => s.isRecovering);
+  const isLoggedIn = !!session && !isRecoveringPassword;
   const isOnboarded = (profile?.isOnboarded ?? false) || onboardingComplete;
   const isProfileLoading = isLoggedIn && profile?.userId !== userId;
   const isReady = fontsLoaded && isSessionLoaded && !isProfileLoading;

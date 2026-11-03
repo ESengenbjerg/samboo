@@ -1,5 +1,9 @@
 import { supabase } from "@/lib/supabase";
-import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
+import type {
+  AuthChangeEvent,
+  AuthError,
+  Session,
+} from "@supabase/supabase-js";
 
 export function getSession() {
   return supabase.auth.getSession();
@@ -51,8 +55,40 @@ export function resendSignUpCode(email: string) {
   return supabase.auth.resend({ type: "signup", email });
 }
 
+// Sends a verification code to a user who has requested to reset their password
+export function requestPasswordReset(email: string) {
+  return supabase.auth.resetPasswordForEmail(email);
+}
+
+// Verifies the code. On success the user is signed in with a recovery session
+export function verifyRecoveryOtp(email: string, token: string) {
+  return supabase.auth.verifyOtp({ email, token, type: "recovery" });
+}
+
+// Sets a new password for the signed-in user
+export function updatePassword(password: string) {
+  return supabase.auth.updateUser({ password });
+}
+
+// Sign out other clients when a password is updated
+export function signOutOtherClients() {
+  return supabase.auth.signOut({ scope: "others" });
+}
+
 // Deletes the signed-in user permanently (no grace period). The database cascades
 // to profile, search, matches, tags and sent invites
 export function deleteMyAccount() {
   return supabase.rpc("delete_my_account");
+}
+
+// Maps Supabase's error codes to messages
+export function passwordErrorMessage(error: AuthError) {
+  switch (error.code) {
+    case "weak_password":
+      return "För svagt lösenord. Lösenord måste vara minst 6 tecken.";
+    case "same_password":
+      return "Välj ett annat lösenord.";
+    default:
+      return "Något gick fel, försök igen.";
+  }
 }

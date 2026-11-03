@@ -1,5 +1,6 @@
 import { getSession, onAuthStateChange } from "@/services/auth";
 import { useOnboardingStore } from "@/stores/onboarding";
+import { usePasswordRecoveryStore } from "@/stores/password-recovery";
 import { Session } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 
@@ -15,12 +16,18 @@ export function useSession() {
       setIsSessionLoaded(true);
     });
 
-    return onAuthStateChange((_event, session) => {
+    return onAuthStateChange((event, session) => {
+      // A valid reset code signs the user in. Set the flag before the session, so the guard never sees the session without it
+      if (event === "PASSWORD_RECOVERY") {
+        usePasswordRecoveryStore.getState().setIsRecovering(true);
+      }
+
       setSession(session);
       if (!session) {
         // Resets onboarding to not affect next user.
         // Will be read from Supabase next time
         useOnboardingStore.getState().reset();
+        usePasswordRecoveryStore.getState().setIsRecovering(false);
       }
     });
   }, []);

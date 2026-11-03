@@ -3,33 +3,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
+import { useForgotPassword } from "@/hooks/useForgotPassword";
 import { router } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 
 export function ForgotPasswordForm() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { sendResetCode, isSending: isLoading, error } = useForgotPassword();
 
   const [email, setEmail] = useState("");
-  const DEV_EMAIL = "test@samboo.se";
 
-  function onSubmit() {
-    setError(null);
-    setIsLoading(true);
+  async function onSubmit() {
+    // Remove spaces, e.g. from autofill
+    const trimmedEmail = email.trim();
 
-    try {
-      if (email === DEV_EMAIL) {
-        router.push("/reset-password");
-        // TODO: Send verification email
-      } else {
-        setError("Det finns inget konto registrerat med denna mail.");
-        return;
-      }
-    } catch {
-      setError("Något gick fel, försök igen.");
-    } finally {
-      setIsLoading(false);
+    const sent = await sendResetCode(trimmedEmail);
+
+    // Navigate only after the email is sent, so an error is shown on this screen.
+    // The next screen needs the email to verify the code
+    if (sent) {
+      router.push({
+        pathname: "/reset-password",
+        params: { email: trimmedEmail },
+      });
     }
   }
 
@@ -38,7 +34,7 @@ export function ForgotPasswordForm() {
       <Text variant="bold" className="text-center text-xl text-background">
         Glömt lösenord?
       </Text>
-      <Text className="text-background">
+      <Text className="text-background text-center">
         Fyll i din e-postadress så skickar vi en återställningskod.
       </Text>
 
