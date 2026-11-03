@@ -31,17 +31,16 @@ export default function DeleteAccount() {
         />
       )}
 
-      {error && <FormError>{error}</FormError>}
-
-      <View>
+      <View className="gap-2 mb-6">
         <Text variant="h2">Radera konto</Text>
         <Button
           variant="destructive"
           onPress={() => setDialogOpen(true)}
           className="max-w-36"
-        >
+          >
           <Text>Radera konto</Text>
         </Button>
+          {error && <FormError>{error}</FormError>}
       </View>
     </>
   );
