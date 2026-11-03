@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
 import {
+  signOutLocal,
   signOutOtherClients,
   updatePassword,
   verifyRecoveryOtp,
@@ -11,7 +12,7 @@ import {
 import { usePasswordRecoveryStore } from "@/stores/password-recovery";
 import { AuthError } from "@supabase/supabase-js";
 import { router, useLocalSearchParams } from "expo-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { type TextInputInstance, View } from "react-native";
 
 export function ResetPasswordForm() {
@@ -28,6 +29,16 @@ export function ResetPasswordForm() {
 
   // Sent as a param from the forgot password screen. Needed to verify the code
   const { email } = useLocalSearchParams<{ email: string }>();
+
+  // Leaving the screen after the code is verified but before a new password is saved (Tillbaka, swipe back, Android back) ends the recovery session.
+  // Otherwise the user stays signed in with the flag set and gets stuck in (auth) at the next sign-in
+  useEffect(() => {
+    return () => {
+      if (usePasswordRecoveryStore.getState().isRecovering) {
+        signOutLocal();
+      }
+    };
+  }, []);
 
   // Helper function - maps Supabase's error codes to messages
   function passwordErrorMessage(error: AuthError) {
