@@ -37,7 +37,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function isInviteAlreadyHandled(error: PostgrestError) {
   return error.message
     .toLowerCase()
-    .includes("does not exist or does not belong to you");
+    .includes("inbjudan finns inte eller är inte din");
 }
 
 // Connected accounts (my group), invites to me and invites I have sent.
