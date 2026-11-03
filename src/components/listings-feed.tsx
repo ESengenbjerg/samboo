@@ -22,7 +22,6 @@ type ListingsProps = {
   path: BasePath;
   isLoading: boolean;
   error: string | null;
-  userId?: string;
   showUpdateFilter?: boolean;
 };
 
@@ -32,7 +31,6 @@ export default function ListingsFeed({
   path,
   isLoading,
   error,
-  userId,
   showUpdateFilter = false,
 }: ListingsProps) {
   const [view, setView] = useState<"column" | "grid">("column");

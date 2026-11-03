@@ -18,7 +18,7 @@ export function useLikedListings(userId: string | undefined) {
     useCallback(() => {
       if (!userId) return;
 
-      // Ignore the response if the user changed or the component unmounted
+      // Ignore the response if the user changed or the screen lost focus
       let cancelled = false;
 
       getLikedListings(userId).then(({ data, error }) => {

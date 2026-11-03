@@ -26,10 +26,8 @@ export function LikeButton({ listingId, className, size }: LikeButtonProps) {
       <Icon
         as={Heart}
         size={size}
-        fill={`${isLiked ? "destructive" : "none"}`}
-        className={cn(
-          isLiked ? "fill-destructive text-destructive" : "text-foreground",
-        )}
+        fill={`${isLiked ? "currentColor" : "none"}`}
+        className={cn(isLiked ? "text-destructive" : "text-foreground")}
       />
     </Pressable>
   );
