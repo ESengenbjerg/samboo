@@ -34,7 +34,7 @@ export function ForgotPasswordForm() {
       <Text variant="bold" className="text-center text-xl text-background">
         Glömt lösenord?
       </Text>
-      <Text className="text-background">
+      <Text className="text-background text-center">
         Fyll i din e-postadress så skickar vi en återställningskod.
       </Text>
 
