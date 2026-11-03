@@ -1,5 +1,10 @@
 import { supabase } from "@/lib/supabase";
-import { Listing, MemberUserListing, UserListing } from "@/types/listing";
+import {
+  LikedListingId,
+  Listing,
+  MemberUserListing,
+  UserListing,
+} from "@/types/listing";
 
 // TODO: Remove policy from listings table that give anon permission to read
 export function getActiveListings(userId: string) {
@@ -33,18 +38,47 @@ export function getLikedListings(userId: string) {
   );
 }
 
+// Only the ids of the listings I have liked, to show a filled heart on every card
+// without fetching the listings again
+export function getLikedListingIds(userId: string) {
+  return supabase
+    .from("user_listings")
+    .select("listing_id")
+    .eq("user_id", userId)
+    .eq("liked", true)
+    .overrideTypes<LikedListingId[]>();
+}
+
+// Like a listing by listings.id. Goes through like_listing() instead of an update, because
+// a listing that a group member has liked may not have a user_listings row for me yet
+export function likeListing(listingId: number) {
+  return supabase.rpc("like_listing", { p_listing_id: listingId });
+}
+
+// Unlike a listing by listings.id. The row is kept (only liked is changed), see match_user_listings().
+// RLS only lets me update my own rows, user_id is there to be explicit
+export function unlikeListing(userId: string, listingId: number) {
+  return supabase
+    .from("user_listings")
+    .update({ liked: false })
+    .eq("user_id", userId)
+    .eq("listing_id", listingId);
+}
+
 // Liked listings of several users at once, e.g. the members of my group.
 // RLS lets me read user_listings for everyone in my group. user_id tells whose row it is
 export function getLikedListingsForUsers(userIds: string[]) {
-  return supabase
-    .from("user_listings")
-    // !inner removes deleted listings, see getLikedListings()
-    .select("id, user_id, is_new, liked, listings!inner(*)")
-    .in("user_id", userIds)
-    .eq("liked", true)
-    .is("listings.removed_at", null)
-    .order("created_at", { ascending: false })
-    .overrideTypes<MemberUserListing[]>();
+  return (
+    supabase
+      .from("user_listings")
+      // !inner removes deleted listings, see getLikedListings()
+      .select("id, user_id, is_new, liked, listings!inner(*)")
+      .in("user_id", userIds)
+      .eq("liked", true)
+      .is("listings.removed_at", null)
+      .order("created_at", { ascending: false })
+      .overrideTypes<MemberUserListing[]>()
+  );
 }
 
 // The shared list ("Gemensam lista"): listings that every member of my group has liked.
@@ -63,14 +97,16 @@ export async function getSharedLikedListings() {
 // RLS lets me read listings matched to me or to anyone in my group, so this works
 // for my own listings as well as a group member's
 export function getListingById(listingId: string) {
-  return supabase
-    .from("listings")
-    .select("*")
-    .eq("id", listingId)
-    .is("removed_at", null)
-    // select("*") without generated types can't be cast with overrideTypes(),
-    // so the type is passed to maybeSingle() instead
-    .maybeSingle<Listing>();
+  return (
+    supabase
+      .from("listings")
+      .select("*")
+      .eq("id", listingId)
+      .is("removed_at", null)
+      // select("*") without generated types can't be cast with overrideTypes(),
+      // so the type is passed to maybeSingle() instead
+      .maybeSingle<Listing>()
+  );
 }
 
 // getListing is currently not in use anywhere
