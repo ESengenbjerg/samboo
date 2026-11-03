@@ -40,11 +40,11 @@ function TooltipContent({
             }
             exiting={FadeOut.reduceMotion(ReduceMotion.System)}
             as="Pressable">
-            <TextClassContext.Provider value="text-secondary-foreground">
+            <TextClassContext.Provider value="text-foreground">
               <TooltipPrimitive.Content
                 sideOffset={sideOffset}
                 className={cn(
-                  'bg-secondary z-50 rounded-md px-3 py-2 sm:py-1.5',
+                  'bg-background z-50 rounded-md my-2 px-3 py-4 sm:py-2.5 shadow',
                   Platform.select({
                     web: cn(
                       'animate-in fade-in-0 zoom-in-95 origin-(--radix-tooltip-content-transform-origin) w-fit text-balance',
