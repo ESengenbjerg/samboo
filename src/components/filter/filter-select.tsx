@@ -16,6 +16,7 @@ type FilterSelectProps = {
   value: SelectOption | undefined;
   onValueChange: (option: SelectOption | undefined) => void;
   options: SelectOption[];
+  fieldColor?: "bg-white" | "bg-input",
 };
 
 export default function FilterSelect({
@@ -23,6 +24,7 @@ export default function FilterSelect({
   value,
   onValueChange,
   options,
+  fieldColor,
 }: FilterSelectProps) {
   // Dropdowns should be as wide as their trigger
   const [triggerWidth, setTriggerWidth] = useState<number>();
@@ -34,7 +36,7 @@ export default function FilterSelect({
     <View className="gap-1.5">
       <Label>{label}</Label>
       <Select value={value} onValueChange={onValueChange}>
-        <SelectTrigger className="w-full" onLayout={onTriggerLayout}>
+        <SelectTrigger className={`${fieldColor} w-full`} onLayout={onTriggerLayout}>
           <SelectValue placeholder="Välj" />
         </SelectTrigger>
         <SelectContent style={contentStyle}>

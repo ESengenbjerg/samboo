@@ -40,6 +40,7 @@ type GeoPickerProps = {
   locationType: "municipality" | "area";
   selected: string[];
   onChange: (names: string[]) => void;
+  fieldColor?: "bg-white" | "bg-input";
 };
 
 export default function GeoPicker({
@@ -47,6 +48,7 @@ export default function GeoPicker({
   locationType,
   selected,
   onChange,
+  fieldColor = "bg-input",
 }: GeoPickerProps) {
   const [query, setQuery] = useState("");
   const config = CONFIG[locationType];
@@ -102,6 +104,7 @@ export default function GeoPicker({
           editable={!isFull}
           autoCorrect={false}
           textContentType={config.textContentType}
+          className={fieldColor}
         />
 
         {/* Suggestions */}
