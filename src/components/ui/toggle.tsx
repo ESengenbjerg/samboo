@@ -18,7 +18,7 @@ const toggleVariants = cva(
       variant: {
         default: 'bg-transparent',
         secondary: cn(
-          'bg-ring active:bg-foreground/80',
+          'bg-secondary/70 active:bg-foreground/80',
           Platform.select({
             web: 'hover:bg-foreground/80 hover:text-background focus-visible:ring-foreground/50',
           })
