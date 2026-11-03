@@ -9,9 +9,11 @@ import { getAvatarUrl } from "@/services/profiles";
 import { useOnboardingStore } from "@/stores/onboarding";
 import { pickImage } from "@/utils/pick-image";
 import { router } from "expo-router";
+import { Trash } from "lucide-react-native";
 import { useState } from "react";
 import { View } from "react-native";
 import ProfileImage from "../profile-image";
+import { Icon } from "../ui/icon";
 
 export default function ProfileForm() {
   const { session } = useSession();
@@ -23,6 +25,8 @@ export default function ProfileForm() {
   const [profileName, setProfileName] = useState("");
   // Resized JPEG picked on this visit. Uploaded when the user presses Spara
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  // True when the user removed the image that was uploaded on an earlier visit
+  const [removeSaved, setRemoveSaved] = useState(false);
 
   // Image uploaded on an earlier visit to this step (user went back)
   const savedAvatarPath = useOnboardingStore((s) => s.avatarPath);
@@ -30,14 +34,17 @@ export default function ProfileForm() {
 
   const {
     updateAvatar,
+    removeAvatar,
     isUpdating,
     error: avatarError,
+    clearError: clearAvatarError,
   } = useUpdateProfileAvatar();
 
   const isBusy = isLoading || isUpdating;
   const displayError = error ?? avatarError;
   // Show the newly picked image, otherwise the one already uploaded
-  const previewUri = profileImage ?? getAvatarUrl(savedAvatarPath);
+  const previewUri =
+    profileImage ?? (removeSaved ? null : getAvatarUrl(savedAvatarPath));
 
   async function selectImage() {
     setError(null);
@@ -45,7 +52,10 @@ export default function ProfileForm() {
 
     try {
       const uri = await pickImage();
-      if (uri) setProfileImage(uri);
+      if (uri) {
+        setProfileImage(uri);
+        setRemoveSaved(false);
+      }
     } catch (e) {
       console.log("Pick image error:", e);
       setError("Kunde inte läsa bilden. Välj en annan bild.");
@@ -61,7 +71,7 @@ export default function ProfileForm() {
       setError("Lägg till ett visningsnamn.");
       return;
     }
-    
+
     if (!userId) {
       setError("Något gick fel, försök igen.");
       return;
@@ -76,10 +86,22 @@ export default function ProfileForm() {
       // useUpdateProfileAvatar sets the error message
       if (!avatarPath) return;
       setProfileImage(null);
+    } else if (removeSaved && savedAvatarPath) {
+      const removed = await removeAvatar(userId, savedAvatarPath);
+      // useUpdateProfileAvatar sets the error message
+      if (!removed) return;
+      avatarPath = null;
     }
 
+    setRemoveSaved(false);
     setProfile(profileName, avatarPath);
     router.push({ pathname: "/create-filter" });
+  }
+
+  function onRemove() {
+    setProfileImage(null);
+    if (savedAvatarPath) setRemoveSaved(true);
+    clearAvatarError();
   }
 
   return (
@@ -102,13 +124,26 @@ export default function ProfileForm() {
       <View className="gap-1.5">
         <Label htmlFor="profile-image">Profilbild (valfritt)</Label>
 
-        <Button variant="outline" onPress={selectImage} disabled={isLoading}>
+        <Button
+          id="profile-image"
+          variant="outline"
+          onPress={selectImage}
+          disabled={isBusy}
+        >
           <Text>{previewUri ? "Byt bild" : "Välj bild"}</Text>
         </Button>
+
+        {previewUri && (
+          <Button variant="destructive" onPress={onRemove} disabled={isBusy}>
+            <Text>{"Ta bort bild"}</Text>
+            <Icon as={Trash} />
+          </Button>
+        )}
       </View>
       <Text variant="small">
         Din profilbild är offentlig. Alla som besöker din profil kan se och
-        spara bilden. Du kan när som helst byta eller ta bort bilden under Inställningar.
+        spara bilden. Du kan när som helst byta eller ta bort bilden under
+        Inställningar.
       </Text>
 
       <View className="self-center">
