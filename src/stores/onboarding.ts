@@ -20,7 +20,7 @@ export type ClientFilter = {
   showNewProduction: boolean;
 };
 
-export type InformationInterval = "day" | "week";
+export type InformationInterval = "day" | "week" | "none";
 
 type OnboardingState = {
   profileName: string;
