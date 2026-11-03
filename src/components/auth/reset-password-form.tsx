@@ -1,11 +1,18 @@
+import FormError from "@/components/form-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
-import { router } from "expo-router";
+import {
+  signOutOtherClients,
+  updatePassword,
+  verifyRecoveryOtp,
+} from "@/services/auth";
+import { usePasswordRecoveryStore } from "@/stores/password-recovery";
+import { AuthError } from "@supabase/supabase-js";
+import { router, useLocalSearchParams } from "expo-router";
 import { useRef, useState } from "react";
 import { type TextInputInstance, View } from "react-native";
-import FormError from "@/components/form-error";
 
 export function ResetPasswordForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -19,16 +26,50 @@ export function ResetPasswordForm() {
   const [password, setPassword] = useState("");
   const [repeatPassword, setRepeatPassword] = useState("");
 
-  // TODO: Remove, verify the code with the auth provider instead
-  const DEV_CODE = "123456";
+  // Sent as a param from the forgot password screen. Needed to verify the code
+  const { email } = useLocalSearchParams<{ email: string }>();
 
-  function onVerifyCode() {
+  // Helper function - maps Supabase's error codes to messages
+  function passwordErrorMessage(error: AuthError) {
+    switch (error.code) {
+      case "weak_password":
+        return "För svagt lösenord. Lösenord måste vara minst 6 tecken.";
+      case "same_password":
+        return "Välj ett annat lösenord.";
+      default:
+        return "Något gick fel, försök igen.";
+    }
+  }
+
+  async function onVerifyCode() {
     if (isLoading) return;
     setError(null);
+
+    // Pasted codes may include a space
+    if (!code.trim()) {
+      setError("Fyll i koden från mailet.");
+      return;
+    }
+
+    // Locks the button while verifying. Unlocked again in finally
     setIsLoading(true);
 
     try {
-      code === DEV_CODE ? setIsVerified(true) : setError("Koden stämmer inte.");
+      // On success Supabase signs the user in and sends PASSWORD_RECOVERY -> useSession sets the recovery flag, so the user stays on this screen
+      const { error } = await verifyRecoveryOtp(email, code.trim());
+
+      if (error) {
+        console.log("Verify recovery code error:", error);
+        setError(
+          error.code === "otp_expired"
+            ? "Koden har gått ut. Gå tillbaka och begär en ny."
+            : "Koden stämmer inte. Försök igen.",
+        );
+        return;
+      }
+
+      // Only reached when the code was correct
+      setIsVerified(true);
     } catch {
       setError("Något gick fel, försök igen.");
     } finally {
@@ -36,15 +77,35 @@ export function ResetPasswordForm() {
     }
   }
 
-  function onSubmit() {
+  async function onSubmit() {
     if (isLoading) return;
     setError(null);
+
+    // Protect againt "" === ""
+    if (!password) {
+      setError("Fyll i ett nytt lösenord.");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       if (password === repeatPassword) {
-        // TODO: Set new password with the auth provider
-        router.dismissTo("/login");
+        const { error } = await updatePassword(password);
+
+        if (error) {
+          console.log("Update password error", error);
+          setError(passwordErrorMessage(error));
+          return;
+        }
+
+        // Signs out other devices, in case someone else had access to the account
+        const { error: signOutError } = await signOutOtherClients();
+        if (signOutError)
+          console.log("Sign out other clients error:", signOutError);
+
+        // The reset is done: the root layout now sees a normal signed-in user and sends them into the app, so no navigation is needed here
+        usePasswordRecoveryStore.getState().setIsRecovering(false);
       } else {
         setError("Lösenorden matchar inte.");
         return;
@@ -144,6 +205,7 @@ export function ResetPasswordForm() {
           </Button>
         )}
         <Button variant="link" onPress={() => router.dismissTo("/login")}>
+          {/* THIS NEEDS SOME ATTENTION */}
           <Text className="text-background">Tillbaka</Text>
         </Button>
       </View>
