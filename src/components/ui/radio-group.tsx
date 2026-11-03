@@ -24,7 +24,7 @@ function RadioGroupItem({
         className
       )}
       {...props}>
-      <RadioGroupPrimitive.Indicator className="bg-primary size-2 rounded-full" />
+      <RadioGroupPrimitive.Indicator className="bg-secondary size-2 rounded-full" />
     </RadioGroupPrimitive.Item>
   );
 }
