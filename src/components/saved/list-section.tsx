@@ -30,8 +30,8 @@ export default function SavedListSection({ userId }: { userId: string }) {
         {isLoadingShared && <Text>Laddar gemensam lista...</Text>}
         {sharedError && <Text>{sharedError}</Text>}
 
-        {/*  Shared list */}
-        {!isLoadingShared && !sharedError && sharedListings.length !== 0 && (
+        {/*  Shared list -- only visible if session user is in a group */}
+        {memberLists.length > 0 && (
           <ListButton
             title={"Gemensam"}
             listId={SHARED_LIST_ID}
