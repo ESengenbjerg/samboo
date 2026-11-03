@@ -51,6 +51,26 @@ export function resendSignUpCode(email: string) {
   return supabase.auth.resend({ type: "signup", email });
 }
 
+// Sends a verification code to a user who has requested to reset their password
+export function requestPasswordReset(email: string) {
+  return supabase.auth.resetPasswordForEmail(email);
+}
+
+// Verifies the code. On success the user is signed in with a recovery session
+export function verifyRecoveryOtp(email: string, token: string) {
+  return supabase.auth.verifyOtp({ email, token, type: "recovery" });
+}
+
+// Sets a new password for the signed-in user
+export function updatePassword(password: string) {
+  return supabase.auth.updateUser({ password });
+}
+
+// Sign out other clients when a password is updated
+export function signOutOtherClients() {
+  return supabase.auth.signOut({ scope: "others" });
+}
+
 // Deletes the signed-in user permanently (no grace period). The database cascades
 // to profile, search, matches, tags and sent invites
 export function deleteMyAccount() {
