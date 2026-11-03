@@ -46,9 +46,9 @@ type ObjectCardProps = VariantProps<typeof objectCardVariants> & {
   livingArea: number | null;
   rooms: number | null;
   imageUrl: string;
-  isSaved?: boolean;
+  isLiked?: boolean;
   onPress?: () => void;
-  onSavePress?: () => void;
+  onLikePress?: () => void;
   className?: string;
 };
 
@@ -60,9 +60,9 @@ export function ObjectCard({
   livingArea,
   rooms,
   imageUrl,
-  isSaved = false,
+  isLiked = false,
   onPress,
-  onSavePress,
+  onLikePress,
   size,
   className,
 }: ObjectCardProps) {
@@ -72,23 +72,6 @@ export function ObjectCard({
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const showFallback = !imageUrl || failedUrl === imageUrl;
 
-  const saveButton = (
-    <Pressable
-      onPress={onSavePress}
-      hitSlop={12}
-      role="button"
-      aria-label={isSaved ? "Ta bort från sparade" : "Spara objekt"}
-      className="z-10"
-    >
-      <Icon
-        as={Heart}
-        className={cn(
-          "size-5",
-          isSaved ? "fill-destructive text-destructive" : "text-foreground",
-        )}
-      />
-    </Pressable>
-  );
 
   return (
     <View className={cn(objectCardVariants({ size }), className)}>
@@ -111,8 +94,6 @@ export function ObjectCard({
                   {[area, municipality].filter(Boolean).join(", ")}
                 </CardDescription>
               </View>
-
-              {saveButton}
             </CardHeader>
 
             <CardContent className="flex-row flex-wrap justify-between pb-4">
@@ -139,7 +120,7 @@ export function ObjectCard({
               </View>
             </CardHeader>
 
-            <CardContent className="px-3 pb-3">
+            <CardContent className="px-3 pb-3 gap-1.5">
               <View className="flex-row flex-wrap justify-between">
                 {/* -- ROOMS --- */}
                 {!!rooms && <Text variant="small">{rooms} rum</Text>}
@@ -154,8 +135,6 @@ export function ObjectCard({
                 ) : (
                   <Text variant="small">{formatPrice(price)}</Text>
                 )}
-
-                {saveButton}
               </View>
             </CardContent>
           </>
@@ -164,9 +143,25 @@ export function ObjectCard({
           onPress={onPress}
           role="link"
           aria-label={`${address}, ${area}`}
-          className="absolute inset-0"
+          className="absolute inset-0 z-0"
         />
       </Card>
+      <Pressable
+          onPress={onLikePress}
+          hitSlop={8}
+          role="button"
+          aria-label={isLiked ? "Ta bort från sparade" : "Spara objekt"}
+          className={isSmall ? "absolute right-3 bottom-4" : "absolute right-4 bottom-16 size-9 items-center justify-center"}
+        >
+          <Icon
+            as={Heart}
+            fill={`${isLiked ? "destructive" : "none"}`}
+            className={cn(
+              "size-5",
+              isLiked ? "fill-destructive text-destructive" : "text-foreground",
+            )}
+          />
+        </Pressable>
     </View>
   );
 }

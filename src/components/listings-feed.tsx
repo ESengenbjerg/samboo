@@ -15,6 +15,7 @@ import { Link } from "expo-router";
 import { useState } from "react";
 import { ScrollView, View } from "react-native";
 import FormError from "./form-error";
+import { useLikes } from "@/hooks/useLikes";
 
 type ListingsProps = {
   title: string;
@@ -22,6 +23,7 @@ type ListingsProps = {
   path: BasePath;
   isLoading: boolean;
   error: string | null;
+  userId?: string;
   showUpdateFilter?: boolean;
 };
 
@@ -31,9 +33,11 @@ export default function ListingsFeed({
   path,
   isLoading,
   error,
+  userId,
   showUpdateFilter = false,
 }: ListingsProps) {
   const [view, setView] = useState<"column" | "grid">("column");
+  const { isLiked, toggleLike } = useLikes(userId)
 
   return (
     <View className="flex-1 px-6 bg-background gap-8 ">
@@ -97,6 +101,8 @@ export default function ListingsFeed({
               rooms={listing.rooms ?? 0}
               imageUrl={listing.ld_json.image ?? ""}
               onPress={() => goToObject(listing.id, path)}
+              isLiked={isLiked(listing.id)}
+              onLikePress={() => toggleLike(listing.id)}
               size={view === "grid" ? "small" : "default"}
             />
           ))}

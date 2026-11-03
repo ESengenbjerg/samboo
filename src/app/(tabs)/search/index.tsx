@@ -13,6 +13,7 @@ export default function SearchScreen() {
       path={"/search/object/[id]"}
       isLoading={isLoading}
       error={error}
+      userId={session?.user.id}
       showUpdateFilter
     />
   );
