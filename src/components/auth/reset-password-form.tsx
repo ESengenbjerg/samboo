@@ -23,14 +23,8 @@ export function ResetPasswordForm() {
   // Sent as a param from the forgot password screen. Needed to verify the code
   const { email } = useLocalSearchParams<{ email: string }>();
 
-  const {
-    verifyCode,
-    resendCode,
-    savePassword,
-    countdown,
-    isLoading,
-    error,
-  } = useResetPassword(email);
+  const { verifyCode, resendCode, savePassword, countdown, isLoading, error } =
+    useResetPassword(email);
 
   async function onVerifyCode() {
     // Show the password fields only when the code was correct
@@ -38,6 +32,7 @@ export function ResetPasswordForm() {
   }
 
   function onSubmit() {
+    // Updates DB with new password
     savePassword(password, repeatPassword);
   }
 
