@@ -3,7 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
+import { useCountdown } from "@/hooks/useCountdown";
 import {
+  requestPasswordReset,
   signOutLocal,
   signOutOtherClients,
   updatePassword,
@@ -13,7 +15,13 @@ import { usePasswordRecoveryStore } from "@/stores/password-recovery";
 import { AuthError } from "@supabase/supabase-js";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { type TextInputInstance, View } from "react-native";
+import { type TextInputInstance, TextStyle, View } from "react-native";
+
+// Matches Supabase's cooldown between emails to the same address
+const RESEND_CODE_INTERVAL_SECONDS = 60;
+
+// Digits of equal width, so the text doesn't jump while counting down
+const TABULAR_NUMBERS_STYLE: TextStyle = { fontVariant: ["tabular-nums"] };
 
 export function ResetPasswordForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -29,6 +37,34 @@ export function ResetPasswordForm() {
 
   // Sent as a param from the forgot password screen. Needed to verify the code
   const { email } = useLocalSearchParams<{ email: string }>();
+
+  // The code was just sent from the forgot password screen, so the countdown starts right away
+  const { countdown, restartCountdown } = useCountdown(
+    RESEND_CODE_INTERVAL_SECONDS,
+  );
+
+  async function onResendCode() {
+    if (isLoading) return;
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const { error } = await requestPasswordReset(email);
+
+      if (error) {
+        console.log("Resend reset code error:", error);
+        setError("Kunde inte skicka koden, försök igen.");
+        return;
+      }
+
+      restartCountdown();
+    } catch (e) {
+      console.log("Resend reset code error:", e);
+      setError("Kunde inte skicka koden, försök igen.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   // Leaving the screen after the code is verified but before a new password is saved (Tillbaka, swipe back, Android back) ends the recovery session.
   // Otherwise the user stays signed in with the flag set and gets stuck in (auth) at the next sign-in
@@ -73,7 +109,7 @@ export function ResetPasswordForm() {
         console.log("Verify recovery code error:", error);
         setError(
           error.code === "otp_expired"
-            ? "Koden har gått ut. Gå tillbaka och begär en ny."
+            ? "Koden har gått ut. Tryck på Skicka igen för en ny kod."
             : "Koden stämmer inte. Försök igen.",
         );
         return;
@@ -155,6 +191,24 @@ export function ResetPasswordForm() {
               onChangeText={setCode}
               editable={!isLoading}
             />
+            <Button
+              variant="link"
+              size="sm"
+              disabled={countdown > 0 || isLoading}
+              onPress={onResendCode}
+            >
+              <Text className="text-center text-sm text-background">
+                Skicka igen{" "}
+                {countdown > 0 ? (
+                  <Text
+                    className="text-sm text-background"
+                    style={TABULAR_NUMBERS_STYLE}
+                  >
+                    ({countdown})
+                  </Text>
+                ) : null}
+              </Text>
+            </Button>
           </View>
 
           <Button onPress={onVerifyCode} className="px-10" disabled={isLoading}>
@@ -216,7 +270,6 @@ export function ResetPasswordForm() {
           </Button>
         )}
         <Button variant="link" onPress={() => router.dismissTo("/login")}>
-          {/* THIS NEEDS SOME ATTENTION */}
           <Text className="text-background">Tillbaka</Text>
         </Button>
       </View>
