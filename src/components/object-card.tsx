@@ -85,8 +85,8 @@ export function ObjectCard({
           <>
             <CardHeader className="flex-1 flex-row overflow-hidden justify-between">
               <View className="flex-1">
-                <CardTitle>{address}</CardTitle>
-                <CardDescription>
+                <CardTitle numberOfLines={1} className="max-w-[90%]">{address}</CardTitle>
+                <CardDescription numberOfLines={1} className="max-w-[90%]">
                   {[area, municipality].filter(Boolean).join(", ")}
                 </CardDescription>
               </View>
@@ -111,8 +111,10 @@ export function ObjectCard({
           <>
             <CardHeader className="flex-1 px-3">
               <View>
-                <CardTitle>{address}</CardTitle>
-                <CardDescription>{area}</CardDescription>
+                <CardTitle numberOfLines={1}>{address}</CardTitle>
+                <CardDescription numberOfLines={1}>
+                  {[area, municipality].filter(Boolean).join(", ")}
+                </CardDescription>
               </View>
             </CardHeader>
 

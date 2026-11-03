@@ -40,19 +40,6 @@ export default function SavedListSection({ userId }: { userId: string }) {
           />
         )}
 
-        {isLoading && <Text>Laddar...</Text>}
-        {error && <Text>{error}</Text>}
-
-        {/* My list */}
-        {!isLoading && !error && (
-          <ListButton
-            title={"Min"}
-            listId={MY_LIST_ID}
-            numberOfSavedObjects={listings.length}
-            firstObjectImage={listings[0]?.ld_json.image}
-          />
-        )}
-
         {isLoadingGroup && <Text>Laddar grupp...</Text>}
         {groupError && <Text>{groupError}</Text>}
 
@@ -68,6 +55,19 @@ export default function SavedListSection({ userId }: { userId: string }) {
               firstObjectImage={l.listings[0]?.ld_json.image}
             />
           ))}
+
+        {isLoading && <Text>Laddar...</Text>}
+        {error && <Text>{error}</Text>}
+
+        {/* My list */}
+        {!isLoading && !error && (
+          <ListButton
+            title={"Min"}
+            listId={MY_LIST_ID}
+            numberOfSavedObjects={listings.length}
+            firstObjectImage={listings[0]?.ld_json.image}
+          />
+        )}
       </View>
     </View>
   );
