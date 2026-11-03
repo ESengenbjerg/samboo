@@ -28,6 +28,7 @@ export default function SavedListScreen() {
         isLoading={isLoading}
         error={error}
         path={"/saved/object/[id]"}
+        userId={session?.user.id}
       />
     </>
   );
