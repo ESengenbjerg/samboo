@@ -1,6 +1,7 @@
 import { getLikedListings } from "@/services/listings";
 import { Listing } from "@/types/listing";
-import { useEffect, useState } from "react";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 
 type LikedListingsResult = {
   userId: string;
@@ -8,30 +9,33 @@ type LikedListingsResult = {
   failed?: boolean;
 };
 
-// Listings the logged in user has liked ("Min lista"). Pass undefined until the session is loaded
+// Reloads every time the screen comes into focus, so a like made on another
+// screen shows up when the user comes back to this one
 export function useLikedListings(userId: string | undefined) {
   const [result, setResult] = useState<LikedListingsResult | null>(null);
 
-  useEffect(() => {
-    if (!userId) return;
+  useFocusEffect(
+    useCallback(() => {
+      if (!userId) return;
 
-    // Ignore the response if the user changed or the component unmounted
-    let cancelled = false;
+      // Ignore the response if the user changed or the component unmounted
+      let cancelled = false;
 
-    getLikedListings(userId).then(({ data, error }) => {
-      if (cancelled) return;
-      if (error) {
-        console.error("Failed to load liked listings: ", error);
-        setResult({ userId, listings: [], failed: true });
-        return;
-      }
-      setResult({ userId, listings: data.map((row) => row.listings) });
-    });
+      getLikedListings(userId).then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          console.error("Failed to load liked listings: ", error);
+          setResult({ userId, listings: [], failed: true });
+          return;
+        }
+        setResult({ userId, listings: data.map((row) => row.listings) });
+      });
 
-    return () => {
-      cancelled = true;
-    };
-  }, [userId]);
+      return () => {
+        cancelled = true;
+      };
+    }, [userId]),
+  );
 
   // Never expose a result that belongs to a previous user
   const current = userId && result?.userId === userId ? result : null;
