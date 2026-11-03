@@ -3,60 +3,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
-import { requestPasswordReset } from "@/services/auth";
+import { useForgotPassword } from "@/hooks/useForgotPassword";
 import { router } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 
 export function ForgotPasswordForm() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { sendResetCode, isSending: isLoading, error } = useForgotPassword();
 
   const [email, setEmail] = useState("");
 
   async function onSubmit() {
-    // The keyboard's submit can run this while sending. A second request would hit Supabase's cooldown and trigger an error after the user has moved on
-    if (isLoading) return;
-    setError(null);
-
-    // Remove spaces
+    // Remove spaces, e.g. from autofill
     const trimmedEmail = email.trim();
 
-    // Something, @, something, dot, something. Supabase does the full check
-    if (!/^\S+@\S+\.\S+$/.test(trimmedEmail)) {
-      setError("Fyll i en giltig e-postadress.");
-      return;
-    }
+    const sent = await sendResetCode(trimmedEmail);
 
-    setIsLoading(true);
-
-    try {
-      // Supabase answers the same whether the account exists or not, so the form can't be used to find out who has an account.
-      // Errors are returned in { error }, not thrown, so they are checked below
-      const { error } = await requestPasswordReset(trimmedEmail);
-
-      if (error) {
-        console.log("Reset password error:", error);
-        setError(
-          error.code === "over_email_send_rate_limit"
-            ? "För många försök. Vänta en stund och försök igen."
-            : "Något gick fel, försök igen.",
-        );
-        return;
-      }
-
-      // Navigate only after the email is sent, so an error is shown on this screen.
-      // The next screen needs the email to verify the code
+    // Navigate only after the email is sent, so an error is shown on this screen.
+    // The next screen needs the email to verify the code
+    if (sent) {
       router.push({
         pathname: "/reset-password",
         params: { email: trimmedEmail },
       });
-    } catch (e) {
-      // Unexpected errors, e.g. the network request failing completely
-      console.log("Reset password error:", e);
-      setError("Något gick fel, försök igen.");
-    } finally {
-      setIsLoading(false);
     }
   }
 
