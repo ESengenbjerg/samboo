@@ -12,7 +12,6 @@
     "@rn-primitives/checkbox": "^1.5.2",
     "@rn-primitives/dialog": "^1.5.2",
     "@rn-primitives/dropdown-menu": "^1.5.2",
-    "@rn-primitives/hover-card": "^1.5.2",
     "@rn-primitives/label": "^1.5.2",
     "@rn-primitives/portal": "^1.5.3",
     "@rn-primitives/progress": "^1.5.2",

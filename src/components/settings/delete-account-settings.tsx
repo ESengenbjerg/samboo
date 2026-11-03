@@ -37,10 +37,10 @@ export default function DeleteAccount() {
           variant="destructive"
           onPress={() => setDialogOpen(true)}
           className="max-w-36"
-          >
+        >
           <Text>Radera konto</Text>
         </Button>
-          {error && <FormError>{error}</FormError>}
+        {error && <FormError>{error}</FormError>}
       </View>
     </>
   );
