@@ -149,6 +149,7 @@ export function useConnectedAccounts(userId: string | undefined) {
       isHandled?: (error: PostgrestError) => boolean,
     ) => {
       setActionError(null);
+      setGroupNotice(null);
       setIsSubmitting(true);
 
       const { error } = await action();

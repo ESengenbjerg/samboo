@@ -99,6 +99,7 @@ export default function ConnectedAccountsSettings({
                 aria-label={`Ta bort ${m.name}`}
                 onPress={() => {
                   clearActionError();
+                  dismissGroupNotice();
                   setMemberToRemove(m);
                 }}
                 disabled={isSubmitting}
@@ -114,6 +115,7 @@ export default function ConnectedAccountsSettings({
             variant="outline"
             onPress={() => {
               clearActionError();
+              dismissGroupNotice();
               setLeaveDialogOpen(true);
             }}
             disabled={isSubmitting}
