@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
-import { resendSignUpCode, signIn } from "@/services/auth";
+import { signIn } from "@/services/auth";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
 import { type TextInputInstance, View } from "react-native";

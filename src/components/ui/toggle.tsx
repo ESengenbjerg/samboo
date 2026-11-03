@@ -10,7 +10,7 @@ const toggleVariants = cva(
   cn(
     'active:bg-muted group flex flex-row items-center justify-center gap-2 rounded-md',
     Platform.select({
-      web: 'hover:bg-muted hover:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive inline-flex cursor-default whitespace-nowrap outline-none transition-[color,box-shadow] focus-visible:ring-[3px] disabled:pointer-events-none [&_svg]:pointer-events-none',
+      web: 'hover:bg-muted hover:text-secondary-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive inline-flex cursor-default whitespace-nowrap outline-none transition-[color,box-shadow] focus-visible:ring-[3px] disabled:pointer-events-none [&_svg]:pointer-events-none',
     })
   ),
   {
@@ -20,13 +20,13 @@ const toggleVariants = cva(
         secondary: cn(
           'bg-secondary/70 active:bg-foreground/80',
           Platform.select({
-            web: 'hover:bg-foreground/80 hover:text-background focus-visible:ring-foreground/50',
+            web: 'hover:bg-foreground/80 hover:text-secondary-foreground focus-visible:ring-foreground/50',
           })
         ),
         outline: cn(
-          'active:bg-accent bg-transparent shadow-sm shadow-black/5',
+          'active:bg-secondary bg-transparent shadow-sm shadow-black/5',
           Platform.select({
-            web: 'hover:bg-accent hover:text-accent-foreground',
+            web: 'hover:bg-muted-foreground hover:border-muted-foreground hover:text-secondary-foreground',
           })
         ),
       },
@@ -54,15 +54,15 @@ function Toggle({
       value={cn(
         'text-sm text-foreground font-sans-medium',
         props.pressed
-          ? 'text-accent-foreground'
-          : Platform.select({ web: 'group-hover:text-muted-foreground' }),
+          ? 'text-secondary-foreground'
+          : Platform.select({ web: 'group-hover:text-secondary-foreground' }),
         className
       )}>
       <TogglePrimitive.Root
         className={cn(
           toggleVariants({ variant, size }),
           props.disabled && 'opacity-50',
-          props.pressed && 'bg-accent',
+          props.pressed && 'bg-secondary',
           className
         )}
         {...props}

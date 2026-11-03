@@ -40,6 +40,7 @@ type GeoPickerProps = {
   locationType: "municipality" | "area";
   selected: string[];
   onChange: (names: string[]) => void;
+  mainColor?: "secondary" | "primary";
   fieldColor?: "bg-white" | "bg-input";
 };
 
@@ -48,6 +49,7 @@ export default function GeoPicker({
   locationType,
   selected,
   onChange,
+  mainColor = "secondary",
   fieldColor = "bg-input",
 }: GeoPickerProps) {
   const [query, setQuery] = useState("");
@@ -137,12 +139,27 @@ export default function GeoPicker({
                 onPress={() => remove(name)}
                 role="button"
                 aria-label={`Ta bort ${text}`}
-                className="flex-row items-center gap-1 rounded-sm bg-secondary px-3 py-2"
+                className={`flex-row items-center gap-1 rounded-sm px-3 py-2 ${
+                  mainColor === "primary" ? "bg-primary" : "bg-secondary"
+                }`}
               >
-                <Text className="text-secondary-foreground text-sm">
+                <Text
+                  className={`text-sm ${
+                    mainColor === "primary"
+                      ? "text-foreground"
+                      : "text-secondary-foreground"
+                  }`}
+                >
                   {text}
                 </Text>
-                <Icon as={X} className="size-4 text-secondary-foreground" />
+                <Icon
+                  as={X}
+                  className={`size-4 ${
+                    mainColor === "primary"
+                      ? "text-foreground"
+                      : "text-secondary-foreground"
+                  }`}
+                />
               </Pressable>
             );
           })}

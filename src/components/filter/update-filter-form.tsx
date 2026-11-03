@@ -5,8 +5,9 @@ import { useSearchParams } from "@/hooks/useSearchParams";
 import { useSession } from "@/hooks/useSession";
 import { useUpdateSearchParams } from "@/hooks/useUpdateSearchParams";
 import { ClientFilter, ScraperFilter } from "@/stores/onboarding";
-import { router } from "expo-router";
+import { useState } from "react";
 import { View } from "react-native";
+import FormMessage from "../form-message";
 
 export default function UpdateFilterForm() {
   const { session } = useSession();
@@ -20,6 +21,8 @@ export default function UpdateFilterForm() {
     error: updateError,
   } = useUpdateSearchParams();
 
+  const [successMessage, setSuccessMessage] = useState<null | string>(null);
+
   // Reads start values once, and must not render until saved search is fetched
   if (!userId || isLoading) {
     return <Text>Laddar bevakning...</Text>;
@@ -30,14 +33,15 @@ export default function UpdateFilterForm() {
   }
 
   async function onSave(scraper: ScraperFilter, client: ClientFilter) {
+    setSuccessMessage(null);
     if (isUpdating || !userId) return;
 
     const ok = await updateSearchParams(userId, scraper, client);
-    if (ok) router.back();
+    if (ok) setSuccessMessage("Bevakning uppdaterad!");
   }
 
   return (
-    <View>
+    <View className="flex-1">
       <FilterForm
         title="Uppdatera bevakning"
         description="Ändra dina sökfilter för att uppdatera bostäderna i ditt resultat."
@@ -46,11 +50,18 @@ export default function UpdateFilterForm() {
         savedClientFilter={clientFilter}
         savedInformationInterval={"day"}
         onSave={onSave}
+        mainColor="primary"
         fieldColor="bg-white"
       />
 
+      {successMessage && (
+        <View className="px-6 mt-4 self-center">
+          <FormMessage>{successMessage}</FormMessage>
+        </View>
+      )}
+
       {updateError && (
-        <View>
+        <View className="px-6 mt-4 self-center">
           <FormError>{updateError}</FormError>
         </View>
       )}

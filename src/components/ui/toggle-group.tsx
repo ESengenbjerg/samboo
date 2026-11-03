@@ -70,8 +70,8 @@ function ToggleGroupItem({
         isSecondary
           ? 'text-background'
           : isSelected
-            ? 'text-primary-foreground'
-            : Platform.select({ web: 'group-hover:text-muted-foreground' })
+            ? 'text-secondary-foreground'
+            : Platform.select({ web: 'group-hover:text-secondary-foreground' })
       )}>
       <ToggleGroupPrimitive.Item
         className={cn(
@@ -86,7 +86,7 @@ function ToggleGroupItem({
                 'bg-foreground active:bg-foreground/90',
                 Platform.select({ web: 'hover:bg-foreground/90' })
               )
-            : cn('border-2', isSelected ? 'bg-primary border-primary' : 'border-border'),
+            : cn('border-2', isSelected ? 'bg-secondary border-secondary' : 'border-muted-foreground/60'),
           props.disabled && 'opacity-50',
           Platform.select({ web: 'flex-1 focus:z-10 focus-visible:z-10' }),
           className
