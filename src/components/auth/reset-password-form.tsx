@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
 import { useCountdown } from "@/hooks/useCountdown";
 import {
+  passwordErrorMessage,
   requestPasswordReset,
   signOutLocal,
   signOutOtherClients,
@@ -12,7 +13,6 @@ import {
   verifyRecoveryOtp,
 } from "@/services/auth";
 import { usePasswordRecoveryStore } from "@/stores/password-recovery";
-import { AuthError } from "@supabase/supabase-js";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { type TextInputInstance, TextStyle, View } from "react-native";
@@ -75,18 +75,6 @@ export function ResetPasswordForm() {
       }
     };
   }, []);
-
-  // Helper function - maps Supabase's error codes to messages
-  function passwordErrorMessage(error: AuthError) {
-    switch (error.code) {
-      case "weak_password":
-        return "För svagt lösenord. Lösenord måste vara minst 6 tecken.";
-      case "same_password":
-        return "Välj ett annat lösenord.";
-      default:
-        return "Något gick fel, försök igen.";
-    }
-  }
 
   async function onVerifyCode() {
     if (isLoading) return;

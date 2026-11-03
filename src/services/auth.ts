@@ -1,5 +1,9 @@
 import { supabase } from "@/lib/supabase";
-import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
+import type {
+  AuthChangeEvent,
+  AuthError,
+  Session,
+} from "@supabase/supabase-js";
 
 export function getSession() {
   return supabase.auth.getSession();
@@ -75,4 +79,16 @@ export function signOutOtherClients() {
 // to profile, search, matches, tags and sent invites
 export function deleteMyAccount() {
   return supabase.rpc("delete_my_account");
+}
+
+// Maps Supabase's error codes to messages
+export function passwordErrorMessage(error: AuthError) {
+  switch (error.code) {
+    case "weak_password":
+      return "För svagt lösenord. Lösenord måste vara minst 6 tecken.";
+    case "same_password":
+      return "Välj ett annat lösenord.";
+    default:
+      return "Något gick fel, försök igen.";
+  }
 }
