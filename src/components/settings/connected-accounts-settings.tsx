@@ -1,7 +1,7 @@
 import { ConnectedAccounts } from "@/hooks/useConnectedAccounts";
 import { GroupMember } from "@/types/connected-accounts";
 import { Image } from "expo-image";
-import { LogOut, Trash } from "lucide-react-native";
+import { LogOut, Trash, User } from "lucide-react-native";
 import { useState } from "react";
 import { View } from "react-native";
 import FormError from "../form-error";
@@ -10,6 +10,7 @@ import { ConfirmDialog } from "../modals/confirm-dialog";
 import { Button } from "../ui/button";
 import { Icon } from "../ui/icon";
 import { Text } from "../ui/text";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 export default function ConnectedAccountsSettings({
   accounts,
@@ -63,20 +64,32 @@ export default function ConnectedAccountsSettings({
         <Text>Du har inga kopplade konton ännu.</Text>
       ) : (
         <View className="gap-2">
+          <Text>Tryck på namnet för att se kontots mailadress.</Text>
           {members.map((m) => (
             <View key={m.id} className="flex-row justify-between items-center">
               {/* Avatar and name */}
-              <View className="flex-row items-center gap-3">
-                {m.avatarUrl ? (
-                  <Image
-                    source={m.avatarUrl}
-                    style={{ width: 32, height: 32, borderRadius: 24 }}
-                    contentFit="cover"
-                  />
-                ) : (
-                  <View className="size-4 rounded-full bg-muted" />
-                )}
-                <Text className="max-w-44">{m.name}</Text>
+              <View>
+                <Tooltip>
+                  <TooltipTrigger className="flex-row items-center gap-3">
+                    {m.avatarUrl ? (
+                      <Image
+                        source={m.avatarUrl}
+                        style={{ width: 32, height: 32, borderRadius: 24 }}
+                        contentFit="cover"
+                      />
+                    ) : (
+                      <View className="size-8 rounded-full bg-muted items-center justify-center">
+                        <Icon as={User} size={22} />
+                      </View>
+                    )}
+                    <Text variant="bold" className="max-w-44">
+                      {m.name}
+                    </Text>
+                  </TooltipTrigger>
+                  <TooltipContent align="start">
+                    <Text>{m.email}</Text>
+                  </TooltipContent>
+                </Tooltip>
               </View>
 
               {/* Remove text and trash icon */}

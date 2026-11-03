@@ -7,6 +7,8 @@ export type InviteStatus = "pending" | "accepted" | "declined" | "cancelled";
 export type GroupMember = {
   id: string;
   name: string;
+  // From my_group_members(), the e-mail is only in auth.users
+  email: string;
   // Public URL built from profiles.avatar_path, null if no image
   avatarUrl: string | null;
 };

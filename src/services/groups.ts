@@ -6,32 +6,22 @@ type MemberRow = {
   id: string;
   name: string;
   avatar_path: string | null;
+  email: string;
 };
 
-// The other members of my group (connected accounts). Empty if I am not in a group
-export async function getGroupMembers(userId: string) {
+// The other members of my group (connected accounts), with e-mail. Empty if I am not in a group
+export async function getGroupMembers() {
   // GET: the function is read-only (STABLE). A POST would make check_request() try to write
   // the rate limit counter inside a read-only transaction, which fails
-  const { data: groupId, error: groupError } = await supabase.rpc(
-    "my_group_id",
-    undefined,
-    { get: true },
-  );
-  if (groupError) return { data: null, error: groupError };
-  if (groupId === null) return { data: [] as GroupMember[], error: null };
-
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, name, avatar_path")
-    .eq("group_id", groupId)
-    .neq("id", userId)
-    .order("name")
-    .overrideTypes<MemberRow[]>();
+  const { data, error } = await supabase.rpc("my_group_members", undefined, {
+    get: true,
+  });
   if (error) return { data: null, error };
 
-  const members: GroupMember[] = data.map((m) => ({
+  const members: GroupMember[] = (data as MemberRow[]).map((m) => ({
     id: m.id,
     name: m.name,
+    email: m.email,
     avatarUrl: getAvatarUrl(m.avatar_path),
   }));
   return { data: members, error: null };

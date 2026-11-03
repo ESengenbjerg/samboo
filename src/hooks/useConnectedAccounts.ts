@@ -69,7 +69,7 @@ export function useConnectedAccounts(userId: string | undefined) {
     let cancelled = false;
 
     Promise.all([
-      getGroupMembers(userId),
+      getGroupMembers(),
       getReceivedInvites(),
       getSentInvites(userId),
     ]).then(([members, received, sent]) => {
