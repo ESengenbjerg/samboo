@@ -33,9 +33,6 @@ type ConnectedAccountsData = {
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// How long action errors stay visible
-const MESSAGE_TIMEOUT_MS = 10000;
-
 // Thrown by the database when the invite is already answered, e.g. after a double tap on "Accept"
 function isInviteAlreadyHandled(error: PostgrestError) {
   return error.message
@@ -127,13 +124,6 @@ export function useConnectedAccounts(userId: string | undefined) {
       cancelled = true;
     };
   }, [userId, refreshCount]);
-
-  // Action errors disappear on their own. Group notices stay until dismissed
-  useEffect(() => {
-    if (!actionError) return;
-    const timer = setTimeout(() => setActionError(null), MESSAGE_TIMEOUT_MS);
-    return () => clearTimeout(timer);
-  }, [actionError]);
 
   const refresh = useCallback(() => setRefreshCount((c) => c + 1), []);
 

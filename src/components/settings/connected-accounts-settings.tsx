@@ -26,6 +26,7 @@ export default function ConnectedAccountsSettings({
     actionError,
     groupNotice,
     dismissGroupNotice,
+    clearActionError,
     removeMember,
     leaveGroup,
   } = accounts;
@@ -96,7 +97,10 @@ export default function ConnectedAccountsSettings({
               <Button
                 variant="destructive"
                 aria-label={`Ta bort ${m.name}`}
-                onPress={() => setMemberToRemove(m)}
+                onPress={() => {
+                  clearActionError();
+                  setMemberToRemove(m);
+                }}
                 disabled={isSubmitting}
                 className="px-2 items-center"
               >
@@ -108,7 +112,10 @@ export default function ConnectedAccountsSettings({
 
           <Button
             variant="outline"
-            onPress={() => setLeaveDialogOpen(true)}
+            onPress={() => {
+              clearActionError();
+              setLeaveDialogOpen(true);
+            }}
             disabled={isSubmitting}
             className="self-start mt-2"
           >
