@@ -266,8 +266,9 @@ paths:
       tags: [Account]
       summary: Update my profile
       description: |
-        Filter on my own id (`?id=eq.<uid>`). Only `name`, `onboarding_completed_at` and `avatar_path`
-        can be written. `group_id` and `is_active` can only change through functions.
+        Filter on my own id (`?id=eq.<uid>`). Only `name`, `onboarding_completed_at`, `avatar_path` and
+        `notification_frequency` can be written. `group_id` and `is_active` can only change through functions,
+        `last_notified_at` only by the notification script.
       operationId: profiles_update
       requestBody:
         required: true
@@ -276,7 +277,7 @@ paths:
             schema: { $ref: '#/components/schemas/ProfileUpdate' }
       responses:
         '204': { description: Updated. }
-        '400': { description: 'Constraint violated (name not 1-100 characters, avatar_path not `<own user id>/<name>.<jpg|jpeg|png|webp>` or longer than 200).' }
+        '400': { description: 'Constraint violated (name not 1-100 characters, avatar_path not `<own user id>/<name>.<jpg|jpeg|png|webp>` or longer than 200, notification_frequency not day/week/none).' }
         '429': { $ref: '#/components/responses/RateLimited' }
 
   /groups:
@@ -613,6 +614,8 @@ components:
           type: string
           nullable: true
           description: 'Path in the public `avatars` bucket, `<user id>/<name>.<jpg|jpeg|png|webp>`. Build the URL with `supabase.storage.from(''avatars'').getPublicUrl(path)`'
+        notification_frequency: { $ref: '#/components/schemas/NotificationFrequency' }
+        last_notified_at: { type: string, format: date-time, nullable: true, description: When the last notification mail was sent. Read-only }
 
     ProfileUpdate:
       type: object
@@ -625,6 +628,13 @@ components:
           maxLength: 200
           pattern: '^[0-9a-f-]{36}/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$'
           description: 'Must start with the own user id. It is not checked that the file exists, so upload the file first'
+        notification_frequency: { $ref: '#/components/schemas/NotificationFrequency' }
+
+    NotificationFrequency:
+      type: string
+      enum: [day, week, none]
+      default: day
+      description: 'How often the notification mail is sent (about 07:00 Swedish time): day = every morning, week = Friday mornings, none = never. Covers both new matches and group members'' likes'
 
     Invite:
       type: object
@@ -691,6 +701,7 @@ components:
         listing_id: { type: integer, format: int64 }
         is_new: { type: boolean, description: true until the user has seen it }
         liked: { type: boolean }
+        liked_at: { type: string, format: date-time, nullable: true, description: When liked last became true. Set by the database, read-only }
 
     Listing:
       type: object
