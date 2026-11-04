@@ -1,10 +1,10 @@
-import { View } from "react-native";
-import { Text } from "@/components/ui/text";
+import UpdateFilterForm from "@/components/filter/update-filter-form";
+import { ScrollView } from "react-native";
 
 export default function EditFilterScreen() {
-    return (
-        <View className="flex-1 items-center justify-center bg-background">
-            <Text>Ändra bevakning</Text>
-        </View>
-    )
+  return (
+    <ScrollView className="bg-background py-6">
+      <UpdateFilterForm />
+    </ScrollView>
+  );
 }

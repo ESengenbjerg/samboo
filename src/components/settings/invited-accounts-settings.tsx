@@ -74,7 +74,7 @@ export default function ConnectAccountsSettings({
         {pendingSentInvites.map((i) => (
           <View key={i.id} className="flex-row justify-between items-center">
             {/* Avatar and name */}
-            <View className="justify-start">
+            <View className="justify-start max-w-[60%]">
               <Text variant="bold">{i.to_email}</Text>
               <Text>Väntar på svar</Text>
             </View>

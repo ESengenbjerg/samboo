@@ -31,9 +31,7 @@ export default function DeleteAccount() {
         />
       )}
 
-      {error && <FormError>{error}</FormError>}
-
-      <View>
+      <View className="gap-2 mb-6">
         <Text variant="h2">Radera konto</Text>
         <Button
           variant="destructive"
@@ -42,6 +40,7 @@ export default function DeleteAccount() {
         >
           <Text>Radera konto</Text>
         </Button>
+        {error && <FormError>{error}</FormError>}
       </View>
     </>
   );

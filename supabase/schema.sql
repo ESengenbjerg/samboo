@@ -745,9 +745,31 @@ begin
     raise exception 'Annonsen finns inte eller är inte tillgänglig för dig';
   end if;
 
+  -- A like counts as seen, so is_new is cleared also when the row already exists
   insert into public.user_listings (user_id, listing_id, liked, is_new)
   values (auth.uid(), p_listing_id, true, false)
-  on conflict (user_id, listing_id) do update set liked = true;
+  on conflict (user_id, listing_id) do update set liked = true, is_new = false;
+end;
+$function$;
+
+-- Called by the app when the listing page opens, whichever list it was opened from (own results, own likes, a group member's likes).
+-- Only my own row is touched. Without a row (a group member's listing that does not match my search) nothing happens.
+CREATE OR REPLACE FUNCTION public.mark_listing_seen(p_listing_id bigint)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+begin
+  if not public.is_active_user() then
+    raise exception 'Ditt konto är inte aktivt';
+  end if;
+
+  update public.user_listings
+  set is_new = false
+  where user_id = auth.uid()
+    and listing_id = p_listing_id
+    and is_new;
 end;
 $function$;
 
@@ -1608,7 +1630,7 @@ grant insert (from_user_id, to_email) on public.invites       to authenticated;
 grant update (name, onboarding_completed_at, avatar_path, notification_frequency) on public.profiles to authenticated;  -- not last_notified_at: only scripts/notify sets it
 grant insert (listing_id, showing_date, start_time, note) on public.showings to authenticated;  -- group_id and user_id come from the column defaults
 grant update (showing_date, start_time, note) on public.showings to authenticated;
-grant update (is_new, liked)          on public.user_listings to authenticated;
+grant update (liked)                  on public.user_listings to authenticated;  -- is_new only via mark_listing_seen() and like_listing()
 
 
 -- ---------------------------------------------------------------------
@@ -1628,6 +1650,7 @@ grant execute on function
   public.leave_group(),
   public.remove_group_member(uuid),
   public.like_listing(bigint),
+  public.mark_listing_seen(bigint),
   public.my_avatar_count(),
   public.my_group_id(),
   public.my_group_members(),

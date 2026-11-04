@@ -14,9 +14,12 @@ info:
     **Common rules**
     - Every call requires a signed-in user with a confirmed e-mail and an active profile (`is_active_user()`).
       Otherwise reads return empty lists and RPC calls fail with `Ditt konto är inte aktivt`.
+      Exception: the reference data (`counties`, `municipalities`, `areas`) is readable by every signed-in user.
     - `anon` has no access to anything.
-    - Rate limit: at most 100 write requests (POST/PUT/PATCH/DELETE, RPC included) per user per 5 minutes.
-      Reads are not counted. Over the limit gives HTTP 429 (see `RateLimited`).
+    - Rate limit: at most 100 write requests (POST/PUT/PATCH/DELETE, RPC called with POST included) per user per 5 minutes.
+      Reads (GET) are not counted. Over the limit gives HTTP 429 (see `RateLimited`).
+    - Read-only (STABLE) functions must be called with GET (`supabase.rpc('name', undefined, { get: true })`).
+      A POST makes the rate limit try to write inside a read-only transaction and fails with 405.
     - Table reads accept the usual PostgREST filters (`?column=eq.value`, `select=`, `order=`, `limit=`).
       supabase-js builds them, so they are not repeated per endpoint.
 
@@ -45,6 +48,7 @@ tags:
   - name: Listings
   - name: Account
   - name: Search
+  - name: Showings
   - name: Tags
 
 paths:
@@ -58,7 +62,8 @@ paths:
       description: |
         The recipient accepts a pending invite addressed to their e-mail. Joins the sender's group
         (the group is created if the sender has none) and marks the invite `accepted`.
-        A group has at most 10 members.
+        A group has at most 10 members. The own showings of the sender and of me move into the group.
+        A pending invite from me to the sender is set to `cancelled`.
       operationId: accept_invite
       requestBody:
         required: true
@@ -70,7 +75,15 @@ paths:
               properties:
                 invite_id: { type: integer, format: int64 }
       responses:
-        '200': { $ref: '#/components/responses/VoidOk' }
+        '200':
+          description: |
+            My showings that did not follow into the group, because the group already had a showing
+            for the same listing (empty array if none). Show them to the user so nothing disappears silently.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/SkippedShowing' }
         '400':
           description: |
             Business rule violated. `message` is one of:
@@ -132,13 +145,14 @@ paths:
         '429': { $ref: '#/components/responses/RateLimited' }
 
   /rpc/my_pending_invites:
-    post:
+    get:
       tags: [Groups and invites]
       summary: Pending invites addressed to me
       description: |
         Lists pending invites sent to my e-mail, newest first, with the sender's name and e-mail.
+        Invites from inactive senders are left out.
         Needed because the recipient cannot read the sender's profile (not in the same group).
-        Counted as a write request by the rate limit because it is a POST.
+        Must be called with GET (STABLE), see the common rules.
       operationId: my_pending_invites
       responses:
         '200':
@@ -169,16 +183,59 @@ paths:
                 type: array
                 items: { $ref: '#/components/schemas/GroupMember' }
 
+  /rpc/my_group_id:
+    get:
+      tags: [Groups and invites]
+      summary: The id of my group
+      description: Must be called with GET (STABLE), see the common rules.
+      operationId: my_group_id
+      responses:
+        '200':
+          description: My group id, or `null` if I have no group.
+          content:
+            application/json:
+              schema: { type: integer, format: int64, nullable: true }
+
   /rpc/leave_group:
     post:
       tags: [Groups and invites]
       summary: Leave my group
-      description: If at most 1 member remains afterwards, the group is dissolved.
+      description: |
+        The group's showings stay with the group; I start without any of my own.
+        If at most 1 member remains afterwards, the group is dissolved and its showings go to that member.
       operationId: leave_group
       responses:
         '200': { $ref: '#/components/responses/VoidOk' }
         '400':
           description: '`Du är inte med i någon grupp`.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /rpc/remove_group_member:
+    post:
+      tags: [Groups and invites]
+      summary: Remove another member from my group
+      description: |
+        Any member can remove any other member. Same group rule as `leave_group`:
+        if at most 1 member remains, the group is dissolved and its showings go to that member.
+      operationId: remove_group_member
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [target]
+              properties:
+                target: { type: string, format: uuid }
+      responses:
+        '200': { $ref: '#/components/responses/VoidOk' }
+        '400':
+          description: |
+            `message` is one of: `Ditt konto är inte aktivt`, `Använd "Lämna grupp" för att lämna din egen grupp`,
+            `Du är inte med i någon grupp`, `Personen är inte längre med i din grupp`.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -190,6 +247,7 @@ paths:
       summary: Like a listing
       description: |
         Sets `liked = true` on my `user_listings` row for the listing (the row is created if missing).
+        A like counts as seen, so `is_new` is set to false as well.
         Only allowed for listings that are already visible to me, i.e. matched to me or to someone in my group.
         There is no unlike function: to remove a like, update `user_listings.liked` to false directly.
       operationId: like_listing
@@ -211,11 +269,42 @@ paths:
               schema: { $ref: '#/components/schemas/Error' }
         '429': { $ref: '#/components/responses/RateLimited' }
 
-  /rpc/shared_likes:
+  /rpc/mark_listing_seen:
     post:
       tags: [Listings]
+      summary: Mark a listing as seen
+      description: |
+        Sets `is_new = false` on my `user_listings` row for the listing. Call it when the listing page opens,
+        whichever list it was opened from (my results, my likes, a group member's likes).
+        Does nothing if I have no row for the listing (a group member's listing outside my search) or it is already seen.
+        This is the only way to change `is_new`; it cannot be written directly.
+      operationId: mark_listing_seen
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [p_listing_id]
+              properties:
+                p_listing_id: { type: integer, format: int64 }
+      responses:
+        '200': { $ref: '#/components/responses/VoidOk' }
+        '400':
+          description: '`Ditt konto är inte aktivt`.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /rpc/shared_likes:
+    get:
+      tags: [Listings]
       summary: The shared list ("Gemensam-listan")
-      description: Listings that every member of my group has liked. Recalculated on every call.
+      description: |
+        Listings that every member of my group has liked. Recalculated on every call.
+        Removed listings are included: filter on `removed_at=is.null` to hide them.
+        Must be called with GET (STABLE), see the common rules.
       operationId: shared_likes
       responses:
         '200':
@@ -233,7 +322,8 @@ paths:
       summary: Delete my account permanently
       description: |
         Deletes the signed-in user from `auth.users`. No grace period. Cascades to profile, search, matches,
-        tags and sent invites. The group is dissolved if at most 1 member remains.
+        tags, sent invites and my own showings (the group's showings stay with the group).
+        The group is dissolved if at most 1 member remains.
         Invites sent to my e-mail by others are not removed (known gap, GDPR follow-up).
         An already issued JWT stays valid until it expires, but every request is blocked by RLS after deletion.
       operationId: delete_my_account
@@ -364,7 +454,9 @@ paths:
       description: |
         At most one per user (`user_id` is unique, a second POST gives 409; use PATCH or upsert).
         Saving triggers matching in the database: matching listings appear in `user_listings` with `is_new = true`.
-        A search without municipality and area matches nothing.
+        A search without a municipality matches nothing. A chosen municipality without chosen areas means the
+        whole municipality. Every municipality must exist in `municipalities`, and every area must exist in `areas`
+        under one of the chosen municipalities.
         At most 5 changes (insert or update) per 24 hours. Unchanged updates do not count.
       operationId: search_params_insert
       requestBody:
@@ -376,8 +468,10 @@ paths:
         '201': { description: Created. }
         '400':
           description: |
-            `Du har ändrat din sökning för många gånger. Försök igen senare`, or a check constraint
-            (min greater than max for price or rooms, unknown property type, more than 10 municipalities or 20 areas).
+            `Du har ändrat din sökning för många gånger. Försök igen senare`, `Okänd kommun: <namn>`,
+            `Området "<namn>" finns inte i någon av dina valda kommuner`, or a check constraint
+            (min greater than max for price or rooms, unknown property type, negative fee or area,
+            more than 10 municipalities or 200 areas).
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -427,8 +521,8 @@ paths:
                 items: { $ref: '#/components/schemas/UserListing' }
     patch:
       tags: [Listings]
-      summary: Mark a match as seen, or remove a like
-      description: Only my own rows, and only `is_new` and `liked` can be written. Use `like_listing` to like.
+      summary: Remove a like
+      description: Only my own rows, and only `liked` can be written. Use `like_listing` to like and `mark_listing_seen` to mark as seen.
       operationId: user_listings_update
       requestBody:
         required: true
@@ -437,7 +531,6 @@ paths:
             schema:
               type: object
               properties:
-                is_new: { type: boolean }
                 liked: { type: boolean }
       responses:
         '204': { description: Updated. }
@@ -446,7 +539,7 @@ paths:
   /listings:
     get:
       tags: [Listings]
-      summary: Read listings matched to me or to someone in my group
+      summary: Read listings matched to me or to someone in my group, or that my group (or I) have a showing for
       description: |
         Shared scraped data, read only. Listings where `removed_at` is set have disappeared from the agency's site:
         show them as "Hittas inte". They are deleted 14 days after `removed_at` (daily cleanup by pg_cron).
@@ -460,6 +553,141 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/Listing' }
+
+  /showings:
+    get:
+      tags: [Showings]
+      summary: Read my group's showings, or my own if I have no group
+      description: |
+        Planned showings entered by hand (not an official booking). Use `select=*,listings(*)` to get the listing:
+        the listing stays readable as long as the showing exists, even if nobody matches it any more.
+        Deleted by pg_cron 30 days after `showing_date`.
+      operationId: showings_select
+      responses:
+        '200':
+          description: Showings.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Showing' }
+    post:
+      tags: [Showings]
+      summary: Add a showing
+      description: |
+        Do not send `group_id` or `user_id`: the database sets my group, or me if I have no group.
+        The listing must be visible to me. One showing per listing and owner. At most 50 per owner.
+      operationId: showings_insert
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [listing_id, showing_date]
+              properties:
+                listing_id: { type: integer, format: int64 }
+                showing_date: { type: string, format: date }
+                start_time: { type: string, nullable: true, example: '17:30' }
+                note: { type: string, nullable: true, maxLength: 500 }
+      responses:
+        '201': { description: Created. }
+        '400':
+          description: '`Gruppen har redan max antal visningar (50)`, `Du har redan max antal visningar (50)`, or a check constraint (note longer than 500).'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403': { description: Rejected by RLS (the listing is not visible to me, or my account is not active). }
+        '409': { description: 'There is already a showing for this listing (code 23505).' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    patch:
+      tags: [Showings]
+      summary: Change a showing
+      description: Any member of the group can change the group's showings. Only `showing_date`, `start_time` and `note` can be written.
+      operationId: showings_update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                showing_date: { type: string, format: date }
+                start_time: { type: string, nullable: true }
+                note: { type: string, nullable: true, maxLength: 500 }
+      responses:
+        '204': { description: Updated. }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    delete:
+      tags: [Showings]
+      summary: Delete a showing
+      description: Any member of the group can delete the group's showings.
+      operationId: showings_delete
+      responses:
+        '204': { description: Deleted. }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /municipalities:
+    get:
+      tags: [Search]
+      summary: Read Sweden's municipalities
+      description: Reference data, read only. The only valid values for `search_params.municipalities`.
+      operationId: municipalities_select
+      responses:
+        '200':
+          description: Municipalities.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: integer, format: int64 }
+                    name: { type: string }
+                    county_id: { type: integer, format: int64 }
+
+  /areas:
+    get:
+      tags: [Search]
+      summary: Read the areas a municipality can be narrowed down to
+      description: |
+        Reference data, read only, entered by hand. Save `name` in `search_params.areas`;
+        show `display_name` when it is set, otherwise `name`.
+      operationId: areas_select
+      responses:
+        '200':
+          description: Areas.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: integer, format: int64 }
+                    municipality_id: { type: integer, format: int64 }
+                    name: { type: string }
+                    display_name: { type: string, nullable: true }
+
+  /counties:
+    get:
+      tags: [Search]
+      summary: Read Sweden's counties
+      description: Reference data, read only. Only used to group municipalities; a search never stores a county.
+      operationId: counties_select
+      responses:
+        '200':
+          description: Counties.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: integer, format: int64 }
+                    name: { type: string }
 
   /user_tags:
     get:
@@ -674,8 +902,8 @@ components:
         property_types:
           type: array
           items: { $ref: '#/components/schemas/PropertyType' }
-        municipalities: { type: array, maxItems: 10, items: { type: string } }
-        areas: { type: array, maxItems: 20, items: { type: string } }
+        municipalities: { type: array, maxItems: 10, items: { type: string }, description: Names from `municipalities` }
+        areas: { type: array, maxItems: 200, items: { type: string }, description: 'Names (not display_name) from `areas`, each under one of the chosen municipalities' }
         min_price: { type: integer, format: int64, nullable: true }
         max_price: { type: integer, format: int64, nullable: true }
         min_rooms: { type: number, nullable: true }
@@ -699,7 +927,7 @@ components:
         created_at: { type: string, format: date-time }
         user_id: { type: string, format: uuid }
         listing_id: { type: integer, format: int64 }
-        is_new: { type: boolean, description: true until the user has seen it }
+        is_new: { type: boolean, description: 'true until the user has opened the listing page or liked it. Drives the "NEW" flag on my own results only' }
         liked: { type: boolean }
         liked_at: { type: string, format: date-time, nullable: true, description: When liked last became true. Set by the database, read-only }
 
@@ -724,6 +952,32 @@ components:
         monthly_fee: { type: integer, format: int64, nullable: true, description: Apartments only }
         living_area: { type: number, nullable: true }
         is_new_construction: { type: boolean }
+        address: { type: string, nullable: true, maxLength: 300 }
+        image_url: { type: string, nullable: true, maxLength: 500 }
+        description: { type: string, nullable: true, maxLength: 5000, description: The app cuts it for the UI }
+        floor_level: { type: integer, nullable: true, minimum: -5, maximum: 100, description: Apartments only }
+        plot_area: { type: integer, format: int64, nullable: true, minimum: 0, description: Houses }
+        build_year: { type: integer, nullable: true, minimum: 1000, maximum: 2100 }
+
+    Showing:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        created_at: { type: string, format: date-time }
+        group_id: { type: integer, format: int64, nullable: true, description: Set while the owner is a group }
+        user_id: { type: string, format: uuid, nullable: true, description: Set when the owner is a user without a group }
+        listing_id: { type: integer, format: int64 }
+        showing_date: { type: string, format: date }
+        start_time: { type: string, nullable: true, example: '17:30:00' }
+        note: { type: string, nullable: true, maxLength: 500 }
+
+    SkippedShowing:
+      type: object
+      properties:
+        address: { type: string, nullable: true }
+        url: { type: string }
+        showing_date: { type: string, format: date }
+        start_time: { type: string, nullable: true }
 
     UserTag:
       type: object

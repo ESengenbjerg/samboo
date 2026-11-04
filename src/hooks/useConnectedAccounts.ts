@@ -21,7 +21,7 @@ import {
   SentInvite,
 } from "@/types/connected-accounts";
 import type { PostgrestError } from "@supabase/supabase-js";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type ConnectedAccountsData = {
   userId: string;
@@ -33,6 +33,13 @@ type ConnectedAccountsData = {
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Thrown by the database when the invite is already answered, e.g. after a double tap on "Accept"
+function isInviteAlreadyHandled(error: PostgrestError) {
+  return error.message
+    .toLowerCase()
+    .includes("inbjudan finns inte eller är inte din");
+}
+
 // Connected accounts (my group), invites to me and invites I have sent.
 // Pass undefined until the session is loaded
 export function useConnectedAccounts(userId: string | undefined) {
@@ -41,6 +48,16 @@ export function useConnectedAccounts(userId: string | undefined) {
   const [refreshCount, setRefreshCount] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  // Info about changes made by others, e.g. someone left the group
+  const [groupNotice, setGroupNotice] = useState<string | null>(null);
+  // Members from the previous load, to see who disappeared
+  const previousMembers = useRef<{
+    userId: string;
+    members: GroupMember[];
+  } | null>(null);
+  // Changes I made myself should not show up as notices
+  const removedByMe = useRef(new Set<string>());
+  const leftByMe = useRef(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -49,7 +66,7 @@ export function useConnectedAccounts(userId: string | undefined) {
     let cancelled = false;
 
     Promise.all([
-      getGroupMembers(userId),
+      getGroupMembers(),
       getReceivedInvites(),
       getSentInvites(userId),
     ]).then(([members, received, sent]) => {
@@ -68,9 +85,36 @@ export function useConnectedAccounts(userId: string | undefined) {
         return;
       }
 
+      const newMembers = members.data ?? [];
+      const previous = previousMembers.current;
+      if (previous?.userId === userId && previous.members.length > 0) {
+        if (newMembers.length === 0) {
+          if (!leftByMe.current) {
+            // With 2+ others left the group lives on without me, so I was removed.
+            // With 1 other the group is gone either way
+            setGroupNotice(
+              previous.members.length > 1
+                ? "Du har blivit borttagen från gruppen."
+                : "Din grupp har upphört.",
+            );
+          }
+        } else {
+          const newIds = new Set(newMembers.map((m) => m.id));
+          const names = previous.members
+            .filter((m) => !newIds.has(m.id) && !removedByMe.current.has(m.id))
+            .map((m) => m.name);
+          if (names.length > 0) {
+            setGroupNotice(`${names.join(" och ")} har lämnat gruppen.`);
+          }
+        }
+      }
+      previousMembers.current = { userId, members: newMembers };
+      removedByMe.current.clear();
+      leftByMe.current = false;
+
       setData({
         userId,
-        members: members.data ?? [],
+        members: newMembers,
         receivedInvites: received.data ?? [],
         sentInvites: sent.data ?? [],
       });
@@ -96,19 +140,24 @@ export function useConnectedAccounts(userId: string | undefined) {
   const isInGroup = members.length > 0;
 
   // Runs one database call, shows a message on failure and reloads everything afterwards.
-  // Returns true if it succeeded
+  // Returns true if it succeeded. An error matching isHandled counts as success,
+  // the reload shows the real state
   const run = useCallback(
     async (
       action: () => PromiseLike<{ error: PostgrestError | null }>,
       logLabel: string,
+      isHandled?: (error: PostgrestError) => boolean,
     ) => {
       setActionError(null);
+      setGroupNotice(null);
       setIsSubmitting(true);
 
       const { error } = await action();
       setIsSubmitting(false);
       // Reload on failure too: the invite or group may have changed on the other side
       refresh();
+
+      if (error && isHandled?.(error)) return true;
 
       if (error) {
         console.log(`${logLabel} error:`, error);
@@ -137,7 +186,10 @@ export function useConnectedAccounts(userId: string | undefined) {
           return false;
         }
 
-        const ok = await run(() => createInvite(userId, toEmail), "Send invite");
+        const ok = await run(
+          () => createInvite(userId, toEmail),
+          "Send invite",
+        );
         if (!ok) return false;
       }
 
@@ -155,7 +207,11 @@ export function useConnectedAccounts(userId: string | undefined) {
         );
         return false;
       }
-      return run(() => acceptInviteRpc(inviteId), "Accept invite");
+      return run(
+        () => acceptInviteRpc(inviteId),
+        "Accept invite",
+        isInviteAlreadyHandled,
+      );
     },
     [isInGroup, run],
   );
@@ -173,18 +229,21 @@ export function useConnectedAccounts(userId: string | undefined) {
 
   // Removes one connected account from my group
   const removeMember = useCallback(
-    (memberId: string) =>
-      run(() => removeGroupMemberRpc(memberId), "Remove member"),
+    (memberId: string) => {
+      removedByMe.current.add(memberId);
+      return run(() => removeGroupMemberRpc(memberId), "Remove member");
+    },
     [run],
   );
 
   // I leave the group. The others stay connected if at least two of them remain
-  const leaveGroup = useCallback(
-    () => run(() => leaveGroupRpc(), "Leave group"),
-    [run],
-  );
+  const leaveGroup = useCallback(() => {
+    leftByMe.current = true;
+    return run(() => leaveGroupRpc(), "Leave group");
+  }, [run]);
 
   const clearActionError = useCallback(() => setActionError(null), []);
+  const dismissGroupNotice = useCallback(() => setGroupNotice(null), []);
 
   // Invites from someone already in my group can no longer be accepted, so hide them
   const memberIds = new Set(members.map((m) => m.id));
@@ -205,6 +264,8 @@ export function useConnectedAccounts(userId: string | undefined) {
     refresh,
     isSubmitting,
     actionError,
+    groupNotice,
+    dismissGroupNotice,
     clearActionError,
     sendInvite,
     acceptInvite,
