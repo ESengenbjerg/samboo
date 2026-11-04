@@ -30,7 +30,7 @@ export function useGroupLikedListings(userId: string | undefined) {
       let cancelled = false;
 
       async function load(id: string) {
-        const membersResult = await getGroupMembers(id);
+        const membersResult = await getGroupMembers();
         if (cancelled) return;
         if (membersResult.error) {
           console.error("Failed to load group members: ", membersResult.error);
