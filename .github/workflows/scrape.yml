@@ -4,10 +4,10 @@ name: Scrape listings
 
 on:
   schedule:
-    # Once a day. GitHub cron is always UTC: 02:07 UTC = 03:07 Swedish winter time,
-    # 04:07 summer time. Off the hour on purpose, GitHub delays jobs queued at :00
-    # Planned delay on 7 minutes since GitHub tend to delay runs scheduled on sharp hours.
-    - cron: "7 2 * * *"
+    # Once a day. GitHub cron is always UTC: 02:12 UTC = 03:12 Swedish winter time,
+    # 04:12 summer time. Off the hour on purpose, GitHub delays jobs queued at :00
+    # Planned delay on 12 minutes since GitHub tend to delay runs scheduled on sharp hours.
+    - cron: "12 2 * * *"
 
   workflow_dispatch: # Manual run from the Actions tab
 

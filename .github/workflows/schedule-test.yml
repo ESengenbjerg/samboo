@@ -1,0 +1,18 @@
+name: Schedule test
+
+# TEMPORARY! Checks that GitHub's scheduler triggers workflows in this repo at all.
+# Remove this file as soon as a scheduled run shows up in the Actions tab.
+
+on:
+  schedule:
+    # Every 15 minutes (UTC). Only triggers from the default branch (develop).
+    - cron: "*/15 * * * *"
+
+  workflow_dispatch: # Manual run from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - run: echo "Scheduler works, triggered by ${{ github.event_name }}"

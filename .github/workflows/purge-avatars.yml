@@ -6,7 +6,7 @@ name: Purge orphan avatars
 on:
   schedule:
     # Once a day. GitHub cron is always UTC. Off the hour on purpose, GitHub delays jobs queued at :00
-    - cron: "37 2 * * *"
+    - cron: "41 2 * * *"
 
   workflow_dispatch: # Manual run from the Actions tab
 
