@@ -10,6 +10,7 @@ import { Image } from "expo-image";
 import { router } from "expo-router";
 import { Linking, ScrollView, View } from "react-native";
 import { LikeButton } from "../like-button";
+import CategoryTag from "../tags/category-tag";
 
 type ObjectPageProps = {
   listing: Listing | null;
@@ -80,6 +81,13 @@ export default function ObjectPageScreen({
             )}
           </View>
           <Separator />
+
+          {/* --- CATEGORIES --- */}
+          <View className="flex-row justify-start gap-2">
+            <CategoryTag isNew />
+            <CategoryTag isNewConstruction />
+          </View>
+
           {/* --- OBJECT INFO --- */}
           <View className="gap-6">
             <Text variant="h4">Om bostaden</Text>
