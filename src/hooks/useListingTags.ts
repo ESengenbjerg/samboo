@@ -13,6 +13,8 @@ type ListingTagsResult = {
 // Pass undefined until the session is loaded
 export function useListingTags(userId: string | undefined) {
   const [result, setResult] = useState<ListingTagsResult | null>(null);
+  // Bumped by reload() to fetch again, e.g. after saving a change
+  const [reloadCount, setReloadCount] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -34,13 +36,19 @@ export function useListingTags(userId: string | undefined) {
       return () => {
         cancelled = true;
       };
-    }, [userId]),
+    // reloadCount is not read in the callback. It is a dependency on purpose, so a new
+    // callback (and a new fetch) is created every time reload() is called
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [userId, reloadCount]),
   );
+
+  const reload = useCallback(() => setReloadCount((c) => c + 1), []);
 
   // Never expose a result that belongs to a previous user
   const current = userId && result?.userId === userId ? result : null;
 
   return {
+    reload,
     listingTags: current?.listingTags ?? [],
     isLoading: !!userId && !current,
     error: current?.failed ? "Kunde inte hämta kategorier." : null,

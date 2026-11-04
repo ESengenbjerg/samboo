@@ -14,7 +14,6 @@ import { formatPrice } from "@/utils/format-price";
 import { cva, type VariantProps } from "class-variance-authority";
 import { useState } from "react";
 import { LikeButton } from "./like-button";
-import Tag from "./tags/card-tag";
 import OnCardTag from "./tags/card-tag";
 
 const fallbackImage = require("@/assets/images/no-image.jpg");
@@ -48,6 +47,8 @@ type ObjectCardProps = VariantProps<typeof objectCardVariants> & {
   rooms: number | null;
   imageUrl: string;
   listingId: number;
+  isNew?: boolean;
+  isNewConstruction?: boolean;
   onPress?: () => void;
   className?: string;
 };
@@ -61,6 +62,8 @@ export function ObjectCard({
   rooms,
   imageUrl,
   listingId,
+  isNew,
+  isNewConstruction,
   onPress,
   size,
   className,
@@ -81,7 +84,7 @@ export function ObjectCard({
             style={{ width: "100%", height: "100%" }}
             contentFit="cover"
           />
-          <OnCardTag isNewConstruction />
+          <OnCardTag isNew={isNew} isNewConstruction={isNewConstruction} />
         </View>
 
         {!isSmall ? (

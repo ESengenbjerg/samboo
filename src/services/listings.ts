@@ -109,9 +109,6 @@ export function getListingById(listingId: string) {
   );
 }
 
-// getListing is currently not in use anywhere
-// TODO: Remove before production if it will not be used
-
 // listingId is listings.id (= user_listings.listing_id).
 // Filter on user_id too, since RLS also shows group members' rows and
 // .maybeSingle() fails if more than one row is returned.
