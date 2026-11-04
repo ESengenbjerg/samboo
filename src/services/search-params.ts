@@ -30,7 +30,7 @@ export function saveSearchParams(
       min_rooms: clientFilter.minRooms ?? null,
       max_monthly_fee: clientFilter.maxMonthlyFee ?? null,
       min_living_area: clientFilter.minLivingArea ?? null,
-      include_new_construction: clientFilter.showNewProduction,
+      include_new_construction: clientFilter.shownewConstruction,
     },
     { onConflict: "user_id" },
   );

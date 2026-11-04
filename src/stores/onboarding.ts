@@ -17,7 +17,7 @@ export type ClientFilter = {
   minRooms?: number;
   maxMonthlyFee?: number;
   minLivingArea?: number;
-  showNewProduction: boolean;
+  shownewConstruction: boolean;
 };
 
 export type InformationInterval = "day" | "week" | "none";
@@ -49,8 +49,7 @@ export const useOnboardingStore = create<OnboardingState>()(
       informationInterval: "day",
       onboardingComplete: false,
       completeOnboarding: () => set({ onboardingComplete: true }),
-      setProfile: (profileName, avatarPath) =>
-        set({ profileName, avatarPath }),
+      setProfile: (profileName, avatarPath) => set({ profileName, avatarPath }),
       setFilters: (scraperFilter, clientFilter, informationInterval) =>
         set({ scraperFilter, clientFilter, informationInterval }),
       reset: () =>
