@@ -9,8 +9,8 @@ import { useCallback, useState } from "react";
 
 // Create/delete tags and apply/remove them on a listing.
 // Every function returns true (or the new tag) on success, false/null on failure.
-// TODO: Implement validation (empty name, max 100 characters) and refetch of
-// useUserTags / useListingTags after a change
+// The caller refetches useUserTags / useListingTags after a change. Empty names are
+// stopped in the dialog and the name length is limited by the input and the database
 export function useSaveTag() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);

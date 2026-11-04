@@ -30,7 +30,7 @@ export function applyClientFilter(
     )
       return false;
 
-    if (!filter.shownewConstruction && isNewConstruction(listing)) return false;
+    if (!filter.showNewConstruction && isNewConstruction(listing)) return false;
 
     return true;
   });

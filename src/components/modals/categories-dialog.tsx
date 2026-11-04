@@ -84,7 +84,7 @@ export function CategoriesDialog({
           <DialogTitle>Spara objekt</DialogTitle>
         </DialogHeader>
 
-        <View className="gap-4">
+        <View className="gap-6">
           {/* --- CHOOSE FROM EXISTING CATEGORIES --- */}
 
           <View className="gap-2">
@@ -130,7 +130,7 @@ export function CategoriesDialog({
           </View>
 
           {/* --- CHOSEN CATEGORY --- */}
-          <View className="gap-2">
+          <View>
             <Label>Valda kategorier</Label>
             <View className="flex-row gap-2 flex-wrap">
               {draftCategories.length === 0 && (
