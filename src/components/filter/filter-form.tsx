@@ -43,6 +43,8 @@ type FilterFormProps = {
     clientFilter: ClientFilter,
     informationInterval: InformationInterval,
   ) => void;
+  mainColor?: "secondary" | "primary";
+  fieldColor?: "bg-white" | "bg-input";
 };
 
 export default function FilterForm({
@@ -53,6 +55,8 @@ export default function FilterForm({
   savedClientFilter,
   savedInformationInterval,
   onSave,
+  mainColor = "secondary",
+  fieldColor = "bg-input",
 }: FilterFormProps) {
   const [error, setError] = useState<string | null>(null);
 
@@ -167,6 +171,8 @@ export default function FilterForm({
                 locationType="municipality"
                 selected={municipalities}
                 onChange={onMunicipalitiesChange}
+                mainColor={mainColor}
+                fieldColor={fieldColor}
               />
             </View>
             {availableAreas.length > 0 && (
@@ -175,6 +181,8 @@ export default function FilterForm({
                 locationType="area"
                 selected={areas}
                 onChange={setAreas}
+                mainColor={mainColor}
+                fieldColor={fieldColor}
               />
             )}
           </>
@@ -198,6 +206,7 @@ export default function FilterForm({
               value={p.value}
               aria-label={`Boendetyp ${p.label}`}
               className="flex-none shrink-0"
+              variant="outline"
             >
               <Text className="p-2">{capitalize(p.label)}</Text>
             </ToggleGroupItem>
@@ -211,6 +220,7 @@ export default function FilterForm({
         value={rooms}
         onValueChange={setRooms}
         options={ROOM_OPTIONS}
+        fieldColor={fieldColor}
       />
 
       <FilterSelect
@@ -218,6 +228,7 @@ export default function FilterForm({
         value={monthlyFee}
         onValueChange={setMonthlyFee}
         options={MONTHLY_FEE_OPTIONS}
+        fieldColor={fieldColor}
       />
 
       <FilterSelect
@@ -225,6 +236,7 @@ export default function FilterForm({
         value={livingArea}
         onValueChange={setLivingArea}
         options={LIVING_AREA_OPTIONS}
+        fieldColor={fieldColor}
       />
 
       {/* --- NEW PRODUCTION --- */}
@@ -268,7 +280,11 @@ export default function FilterForm({
       {error && <FormError>{error}</FormError>}
 
       <View className="items-center mt-10">
-        <Button variant="secondary" className="max-w-44" onPress={onSubmit}>
+        <Button
+          variant={mainColor === "primary" ? "default" : "secondary"}
+          className="max-w-44"
+          onPress={onSubmit}
+        >
           <Text>{submitLabel}</Text>
         </Button>
       </View>
