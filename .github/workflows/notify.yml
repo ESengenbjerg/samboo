@@ -1,0 +1,46 @@
+name: Send notification mails
+
+# Sends mail weekly & daily to users with updates
+
+on:
+  schedule:
+    # On schedule. GitHub cron is always UTC. Off the hour on purpose, GitHub delays jobs queued at :00
+    - cron: "7 5 * * *"
+    - cron: "7 6 * * *"
+
+  workflow_dispatch: # Manual run from the Actions tab
+
+# Never run two notifies at once
+concurrency:
+  group: notify
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: scripts/.nvmrc # Node 24 runs .ts files natively
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck backend
+        run: npx tsc --noEmit -p scripts/tsconfig.json
+
+      # The script calls process.loadEnvFile(".env"), which throws if the file is missing.
+      # An empty file is fine: variables already in the environment are not overwritten.
+      - run: touch .env
+
+      - name: Send notification mails
+        run: node scripts/notify/sendNotifications.ts
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          NOTIFY_FROM: ${{ vars.NOTIFY_FROM }}
+          APP_URL: ${{ vars.APP_URL}}
