@@ -5,7 +5,12 @@ import {
   removeListingTag,
 } from "@/services/tags";
 import { UserTag } from "@/types/tags";
+import { capitalize } from "@/utils/capitalize-string";
 import { useCallback, useState } from "react";
+
+// check_request() rate limit on write requests
+const RATE_LIMITED_MESSAGE =
+  "Du har gjort för många ändringar. Vänta en stund och försök igen.";
 
 // Create/delete tags and apply/remove them on a listing.
 // Every function returns true (or the new tag) on success, false/null on failure.
@@ -19,17 +24,20 @@ export function useSaveTag() {
     async (userId: string, name: string): Promise<UserTag | null> => {
       setError(null);
       setIsSaving(true);
-      const { data, error } = await createUserTag(userId, name.trim());
+      const { data, error } = await createUserTag(
+        userId,
+        // Stored in one spelling, so "villa" and "Villa" hit the unique rule in the database
+        capitalize(name.trim()),
+      );
       setIsSaving(false);
 
       if (error) {
         console.error("Failed to create tag: ", error);
         // 23505 = user_tags_unique
-        setError(
-          error.code === "23505"
-            ? "Du har redan en kategori med det namnet."
-            : "Kunde inte skapa kategorin. Försök igen.",
-        );
+        if (error.code === "rate_limited") setError(RATE_LIMITED_MESSAGE);
+        else if (error.code === "23505")
+          setError("Du har redan en kategori med det namnet.");
+        else setError("Kunde inte skapa kategorin. Försök igen.");
         return null;
       }
       return data;
@@ -54,7 +62,11 @@ export function useSaveTag() {
       const { error } = await addListingTag(userTagId, userListingId);
       if (error) {
         console.error("Failed to apply tag: ", error);
-        setError("Kunde inte kategorisera annonsen. Försök igen.");
+        setError(
+          error.code === "rate_limited"
+            ? RATE_LIMITED_MESSAGE
+            : "Kunde inte kategorisera annonsen. Försök igen.",
+        );
         return false;
       }
       return true;
@@ -68,7 +80,11 @@ export function useSaveTag() {
       const { error } = await removeListingTag(userTagId, userListingId);
       if (error) {
         console.error("Failed to remove tag: ", error);
-        setError("Kunde inte ta bort kategorin från annonsen. Försök igen.");
+        setError(
+          error.code === "rate_limited"
+            ? RATE_LIMITED_MESSAGE
+            : "Kunde inte ta bort kategorin från annonsen. Försök igen.",
+        );
         return false;
       }
       return true;
@@ -78,5 +94,13 @@ export function useSaveTag() {
 
   const clearError = useCallback(() => setError(null), []);
 
-  return { createTag, deleteTag, applyTag, unapplyTag, isSaving, error, clearError };
+  return {
+    createTag,
+    deleteTag,
+    applyTag,
+    unapplyTag,
+    isSaving,
+    error,
+    clearError,
+  };
 }

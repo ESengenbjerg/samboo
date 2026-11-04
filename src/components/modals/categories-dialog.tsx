@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { capitalize } from "@/utils/capitalize-string";
 import { UserTag } from "@/types/tags";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
@@ -48,6 +49,11 @@ export function CategoriesDialog({
   // Save draft only when user presses save
   const [draftIds, setDraftIds] = useState<number[]>(selectedIds);
   const [newName, setNewName] = useState("");
+  // Feedback from the dialog itself, e.g. when the category is already chosen
+  const [message, setMessage] = useState<string | null>(null);
+
+  // The dialog's own message goes first, then errors from saving
+  const shownMessage = message ?? error;
 
   // Categories currently chosen in the dialog (shown as removable tags)
   const draftCategories = categories.filter((c) => draftIds.includes(c.id));
@@ -70,6 +76,22 @@ export function CategoriesDialog({
     const name = newName.trim();
     if (!name) return;
 
+    // "Villa" and "villa" are the same category. If it exists, select it instead of
+    // creating a duplicate (the database only treats identical spelling as equal)
+    const existing = categories.find(
+      (c) => c.tag_name.toLowerCase() === name.toLowerCase(),
+    );
+    if (existing) {
+      // Already chosen: keep the text and tell the user, so it does not look like nothing happened
+      if (draftIds.includes(existing.id)) {
+        setMessage(`Kategorin finns redan.`);
+        return;
+      }
+      addToDraft(existing.id);
+      setNewName("");
+      return;
+    }
+
     const category = await onCreateCategory(name);
     if (category) {
       addToDraft(category.id);
@@ -81,7 +103,7 @@ export function CategoriesDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[80vw]">
         <DialogHeader>
-          <DialogTitle>Spara objekt</DialogTitle>
+          <DialogTitle>Kategorisera objekt</DialogTitle>
         </DialogHeader>
 
         <View className="gap-6">
@@ -103,7 +125,7 @@ export function CategoriesDialog({
                   {availableCategories.map((c) => (
                     <SelectItem
                       key={c.id}
-                      label={c.tag_name}
+                      label={capitalize(c.tag_name)}
                       value={String(c.id)}
                     />
                   ))}
@@ -119,11 +141,19 @@ export function CategoriesDialog({
               <Input
                 className="flex-1"
                 value={newName}
-                onChangeText={setNewName}
+                onChangeText={(text) => {
+                  setNewName(text);
+                  // The old message was about the previous text
+                  setMessage(null);
+                }}
                 placeholder="T.ex. Balkong"
                 maxLength={100}
               />
-              <Button variant="outline" onPress={handleCreate}>
+              <Button
+                disabled={isSaving || newName.trim() === ""}
+                variant="outline"
+                onPress={handleCreate}
+              >
                 <Text>Lägg till</Text>
               </Button>
             </View>
@@ -144,13 +174,13 @@ export function CategoriesDialog({
             </View>
           </View>
 
-          {error && <FormError>{error}</FormError>}
+          {shownMessage && <FormError>{shownMessage}</FormError>}
         </View>
 
         <DialogFooter>
           <View className="flex-1 gap-4">
             <Button disabled={isSaving} onPress={() => onSave(draftIds)}>
-              <Text>Spara objekt</Text>
+              <Text>{isSaving ? "Sparar..." : "Spara kategorisering"}</Text>
             </Button>
           </View>
         </DialogFooter>

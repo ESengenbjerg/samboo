@@ -1,3 +1,4 @@
+import { capitalize } from "@/utils/capitalize-string";
 import { X } from "lucide-react-native";
 import { View } from "react-native";
 import { Icon } from "../ui/icon";
@@ -18,7 +19,7 @@ export default function CategoryTag({
     <>
       <View className="px-3 py-1 min-w-12 flex-row gap-1 items-center rounded-sm bg-secondary">
         <Text className="text-secondary-foreground">
-          {isNewConstruction ? "Nyproduktion" : text }
+          {isNewConstruction ? "Nyproduktion" : capitalize(text ?? "")}
         </Text>
         {removable && <Icon as={X} className="text-secondary-foreground" />}
       </View>

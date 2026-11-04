@@ -38,17 +38,50 @@ export default function ObjectPageScreen({
   const { session } = useSession();
   const userId = session?.user.id;
 
+  const [isSaving, setIsSaving] = useState(false);
+
   // My user_listings row for this listing (id and is_new).
   // null if a group member has been matched with the listing, but not the session user
-  const { userListing } = useListing(listing ? String(listing.id) : undefined);
+  const { userListing, error: userListingError } = useListing(
+    listing ? String(listing.id) : undefined,
+  );
 
   // Mark the listing as seen once my user_listings row is loaded and says it is new
   useMarkListingSeen(listing?.id, userListing?.is_new);
 
-  const { tags, reload: reloadTags } = useUserTags(userId);
-  const { listingTags, reload: reloadListingTags } = useListingTags(userId);
-  const { createTag, applyTag, unapplyTag, isSaving, error, clearError } =
-    useSaveTag();
+  const {
+    tags,
+    reload: reloadTags,
+    isLoading: tagsLoading,
+    error: tagsError,
+  } = useUserTags(userId);
+  const {
+    listingTags,
+    reload: reloadListingTags,
+    isLoading: listingTagsLoading,
+    error: listingTagsError,
+  } = useListingTags(userId);
+  const {
+    createTag,
+    applyTag,
+    unapplyTag,
+    isSaving: isSavingTag,
+    error: saveTagError,
+    clearError,
+  } = useSaveTag();
+
+  // Load errors (tags or applied tags) and save errors are shown in the same place
+  const error =
+    userListingError || tagsError || listingTagsError || saveTagError;
+  // The dialog starts from the applied tags, so it must not open before both lists are
+  // loaded. Otherwise saving would remove tags that just had not been fetched yet
+  const canCategorize =
+    !!userListing &&
+    !tagsLoading &&
+    !listingTagsLoading &&
+    !tagsError &&
+    !listingTagsError;
+  const saving = isSaving || isSavingTag;
 
   // The ids of my categories (user_tags.id) that are on this listing.
   // listingTags holds every tag application I have, so filter on this listing's row
@@ -72,6 +105,7 @@ export default function ObjectPageScreen({
   // Only the difference to what is already saved is sent to the database
   async function handleSave(selectedIds: number[]) {
     if (!userListing) return;
+    setIsSaving(true);
 
     // Selected in the dialog but not saved yet
     const toAdd = selectedIds.filter((id) => !appliedTagIds.includes(id));
@@ -88,6 +122,7 @@ export default function ObjectPageScreen({
     reloadListingTags();
     // Keep the dialog open if something failed, so the error is visible
     if (results.every(Boolean)) setCategoriesDialogOpen(false);
+    setIsSaving(false);
   }
 
   // Removes one category from this listing directly, without opening the dialog
@@ -103,6 +138,12 @@ export default function ObjectPageScreen({
   function openCategoriesDialog() {
     clearError();
     setCategoriesDialogOpen(true);
+  }
+
+  // Clears an old error when dialog is closed
+  function closeCategoriesDialog() {
+    clearError();
+    setCategoriesDialogOpen(false);
   }
 
   if (isLoading)
@@ -168,8 +209,8 @@ export default function ObjectPageScreen({
 
           {/* --- CATEGORIES --- */}
           <View className="gap-2">
-            {/* Only possible if I have my own user_listings row for the listing */}
-            {userListing && (
+            {/* Only possible if I have my own user_listings row and the tags are loaded */}
+            {canCategorize && (
               <Pressable
                 onPress={openCategoriesDialog}
                 className="flex-row justify-start items-center gap-1 w-[50%]"
@@ -196,13 +237,13 @@ export default function ObjectPageScreen({
           {categoriesDialogOpen && (
             <CategoriesDialog
               open={categoriesDialogOpen}
-              onOpenChange={setCategoriesDialogOpen}
+              onOpenChange={closeCategoriesDialog}
               categories={tags}
               selectedIds={appliedTagIds}
               onCreateCategory={handleCreateTag}
               onSave={handleSave}
-              isSaving={isSaving}
-              error={error}
+              isSaving={saving}
+              error={saveTagError}
             />
           )}
 
