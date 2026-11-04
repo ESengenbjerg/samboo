@@ -44,7 +44,7 @@ export default function TabsNavigation({
               role="tab"
               aria-selected={isFocused}
               aria-label={label}
-              className={`flex-1 h-[90%] m-1 rounded items-center justify-center gap-1 ${isFocused ? "bg-sand" : ""}`}
+              className={`flex-1 h-[90%] m-1 rounded-sm items-center justify-center gap-1 ${isFocused ? "bg-sand" : ""}`}
             >
               {options.tabBarIcon?.({ focused: isFocused, color, size: 24 })}
               <Text style={{ color }} className="text-xs">
