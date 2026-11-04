@@ -40,5 +40,7 @@ export function useUpdateSearchParams() {
     [],
   );
 
-  return { updateSearchParams, isUpdating, error };
+  const clearError = useCallback(() => setError(null), []);
+
+  return { updateSearchParams, isUpdating, error, clearError };
 }

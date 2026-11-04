@@ -5,7 +5,8 @@ import { useSearchParams } from "@/hooks/useSearchParams";
 import { useSession } from "@/hooks/useSession";
 import { useUpdateSearchParams } from "@/hooks/useUpdateSearchParams";
 import { ClientFilter, ScraperFilter } from "@/stores/onboarding";
-import { useState } from "react";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import { View } from "react-native";
 import FormMessage from "../form-message";
 
@@ -19,9 +20,20 @@ export default function UpdateFilterForm() {
     updateSearchParams,
     isUpdating,
     error: updateError,
+    clearError,
   } = useUpdateSearchParams();
 
   const [successMessage, setSuccessMessage] = useState<null | string>(null);
+
+  // The tab never unmounts, so clear old messages when the user leaves it
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        setSuccessMessage(null);
+        clearError();
+      };
+    }, [clearError]),
+  );
 
   // Reads start values once, and must not render until saved search is fetched
   if (!userId || isLoading) {
