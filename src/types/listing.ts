@@ -28,3 +28,8 @@ export type UserListing = {
 export type MemberUserListing = UserListing & {
   user_id: string;
 };
+
+// Only the listing id of a liked user_listings row (listings.id = user_listings.listing_id)
+export type LikedListingId = {
+  listing_id: number;
+};

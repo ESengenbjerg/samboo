@@ -1,16 +1,17 @@
+import FormError from "@/components/form-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
-import { router } from "expo-router";
+import { useResetPassword } from "@/hooks/useResetPassword";
+import { router, useLocalSearchParams } from "expo-router";
 import { useRef, useState } from "react";
-import { type TextInputInstance, View } from "react-native";
-import FormError from "@/components/form-error";
+import { type TextInputInstance, TextStyle, View } from "react-native";
+
+// Digits of equal width, so the text doesn't jump while counting down
+const TABULAR_NUMBERS_STYLE: TextStyle = { fontVariant: ["tabular-nums"] };
 
 export function ResetPasswordForm() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
   const passwordInputRef = useRef<TextInputInstance>(null);
   const repeatPasswordInputRef = useRef<TextInputInstance>(null);
 
@@ -19,41 +20,20 @@ export function ResetPasswordForm() {
   const [password, setPassword] = useState("");
   const [repeatPassword, setRepeatPassword] = useState("");
 
-  // TODO: Remove, verify the code with the auth provider instead
-  const DEV_CODE = "123456";
+  // Sent as a param from the forgot password screen. Needed to verify the code
+  const { email } = useLocalSearchParams<{ email: string }>();
 
-  function onVerifyCode() {
-    if (isLoading) return;
-    setError(null);
-    setIsLoading(true);
+  const { verifyCode, resendCode, savePassword, countdown, isLoading, error } =
+    useResetPassword(email);
 
-    try {
-      code === DEV_CODE ? setIsVerified(true) : setError("Koden stämmer inte.");
-    } catch {
-      setError("Något gick fel, försök igen.");
-    } finally {
-      setIsLoading(false);
-    }
+  async function onVerifyCode() {
+    // Show the password fields only when the code was correct
+    if (await verifyCode(code)) setIsVerified(true);
   }
 
   function onSubmit() {
-    if (isLoading) return;
-    setError(null);
-    setIsLoading(true);
-
-    try {
-      if (password === repeatPassword) {
-        // TODO: Set new password with the auth provider
-        router.dismissTo("/login");
-      } else {
-        setError("Lösenorden matchar inte.");
-        return;
-      }
-    } catch {
-      setError("Något gick fel, försök igen.");
-    } finally {
-      setIsLoading(false);
-    }
+    // Updates DB with new password
+    savePassword(password, repeatPassword);
   }
 
   return (
@@ -83,6 +63,24 @@ export function ResetPasswordForm() {
               onChangeText={setCode}
               editable={!isLoading}
             />
+            <Button
+              variant="link"
+              size="sm"
+              disabled={countdown > 0 || isLoading}
+              onPress={resendCode}
+            >
+              <Text className="text-center text-sm text-background">
+                Skicka igen{" "}
+                {countdown > 0 ? (
+                  <Text
+                    className="text-sm text-background"
+                    style={TABULAR_NUMBERS_STYLE}
+                  >
+                    ({countdown})
+                  </Text>
+                ) : null}
+              </Text>
+            </Button>
           </View>
 
           <Button onPress={onVerifyCode} className="px-10" disabled={isLoading}>
