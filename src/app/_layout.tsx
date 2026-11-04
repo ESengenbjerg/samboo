@@ -8,10 +8,12 @@ import { useEffect } from "react";
 import Header from "@/components/header";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { useLikesSync } from "@/hooks/useLikes";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { useSession } from "@/hooks/useSession";
 import { signOut } from "@/services/auth";
 import { useOnboardingStore } from "@/stores/onboarding";
+import { usePasswordRecoveryStore } from "@/stores/password-recovery";
 import { MomoTrustDisplay_400Regular } from "@expo-google-fonts/momo-trust-display";
 import {
   MomoTrustSans_400Regular,
@@ -39,11 +41,14 @@ export default function RootLayout() {
 
   const { session, isSessionLoaded } = useSession();
   const userId = session?.user.id;
-  const { status: profile, retry: retryProfile } = useOnboardingStatus(userId);
+  useLikesSync(userId);
 
+  const { status: profile, retry: retryProfile } = useOnboardingStatus(userId);
   const onboardingComplete = useOnboardingStore((s) => s.onboardingComplete);
 
-  const isLoggedIn = !!session;
+  // During a password reset the user has a session, but must stay in (auth) to set a new password
+  const isRecoveringPassword = usePasswordRecoveryStore((s) => s.isRecovering);
+  const isLoggedIn = !!session && !isRecoveringPassword;
   const isOnboarded = (profile?.isOnboarded ?? false) || onboardingComplete;
   const isProfileLoading = isLoggedIn && profile?.userId !== userId;
   const isReady = fontsLoaded && isSessionLoaded && !isProfileLoading;
@@ -54,7 +59,8 @@ export default function RootLayout() {
   }, [isReady]);
 
   // Explicit targets: without them the redirect lands on the bare group URL, e.g. "/(auth)", which doesn't match a route
-  const homeHref = isLoggedIn && !isOnboarded ? "/(onboarding)/profile" : "/(tabs)/search";
+  const homeHref =
+    isLoggedIn && !isOnboarded ? "/(onboarding)/profile" : "/(tabs)/search";
   const loginHref = "/(auth)/login";
 
   if (!isReady) return null;
@@ -89,15 +95,15 @@ export default function RootLayout() {
           <Stack.Screen name="(auth)" />
         </Stack.Protected>
         <Stack.Protected
-            guard={isLoggedIn && !isOnboarded}
-            redirectTo={isLoggedIn ? homeHref : loginHref}
-          >
+          guard={isLoggedIn && !isOnboarded}
+          redirectTo={isLoggedIn ? homeHref : loginHref}
+        >
           <Stack.Screen name="(onboarding)" />
         </Stack.Protected>
         <Stack.Protected
-            guard={isLoggedIn && isOnboarded}
-            redirectTo={isLoggedIn ? homeHref : loginHref}
-          >
+          guard={isLoggedIn && isOnboarded}
+          redirectTo={isLoggedIn ? homeHref : loginHref}
+        >
           <Stack.Screen
             name="(tabs)"
             options={{ headerShown: true, header: () => <Header /> }}

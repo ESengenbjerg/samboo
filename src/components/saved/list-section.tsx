@@ -30,26 +30,13 @@ export default function SavedListSection({ userId }: { userId: string }) {
         {isLoadingShared && <Text>Laddar gemensam lista...</Text>}
         {sharedError && <Text>{sharedError}</Text>}
 
-        {/*  Shared list */}
-        {!isLoadingShared && !sharedError && sharedListings.length !== 0 && (
+        {/*  Shared list -- only visible if session user is in a group */}
+        {memberLists.length > 0 && (
           <ListButton
             title={"Gemensam"}
             listId={SHARED_LIST_ID}
             numberOfSavedObjects={sharedListings.length}
             firstObjectImage={sharedListings[0]?.ld_json.image}
-          />
-        )}
-
-        {isLoading && <Text>Laddar...</Text>}
-        {error && <Text>{error}</Text>}
-
-        {/* My list */}
-        {!isLoading && !error && (
-          <ListButton
-            title={"Min"}
-            listId={MY_LIST_ID}
-            numberOfSavedObjects={listings.length}
-            firstObjectImage={listings[0]?.ld_json.image}
           />
         )}
 
@@ -68,6 +55,19 @@ export default function SavedListSection({ userId }: { userId: string }) {
               firstObjectImage={l.listings[0]?.ld_json.image}
             />
           ))}
+
+        {isLoading && <Text>Laddar...</Text>}
+        {error && <Text>{error}</Text>}
+
+        {/* My list */}
+        {!isLoading && !error && (
+          <ListButton
+            title={"Min"}
+            listId={MY_LIST_ID}
+            numberOfSavedObjects={listings.length}
+            firstObjectImage={listings[0]?.ld_json.image}
+          />
+        )}
       </View>
     </View>
   );

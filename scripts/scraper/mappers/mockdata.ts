@@ -1,4 +1,11 @@
 import type { MappedListing, PropertyType } from "../../lib/types.ts";
+import {
+  toInteger,
+  toNumber,
+  toPlaceName,
+  toPrice,
+  toText,
+} from "./parse.ts";
 
 // Maps mockdata's ld+json to the normalized columns on the listings table.
 // Missing values become null, never undefined.
@@ -15,42 +22,13 @@ const PROPERTY_TYPES: Record<string, PropertyType> = {
   fritidshus: "fritidshus",
 };
 
-// Only real numbers pass. Strings, null, undefined, NaN and Infinity become null
-function toNumber(value: unknown): number | null {
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
-
-// A price has to be a real number above 0. Anything else means "no price (yet)" -> null
-function toPrice(value: unknown): number | null {
-  const n = toNumber(value);
-  return n !== null && n > 0 ? n : null;
-}
-
-// Trimmed text, or null if it is not a string or empty. Too long text becomes null, or is cut when truncate is set (a cut URL or address would be wrong, a cut description is fine)
-function toText(
-  value: unknown,
-  maxLength: number,
-  truncate = false,
-): string | null {
-  if (typeof value !== "string") return null;
-  const text = value.trim();
-  if (text === "") return null;
-  if (text.length <= maxLength) return text;
-  return truncate ? text.slice(0, maxLength) : null;
-}
-
-// For smallint/bigint columns: only whole numbers within [min, max] pass, since one value the database rejects fails the whole batch upsert
-function toInteger(value: unknown, min: number, max: number): number | null {
-  const n = toNumber(value);
-  return n !== null && Number.isInteger(n) && n >= min && n <= max ? n : null;
-}
-
 function mapPropertyType(category: unknown): PropertyType | null {
-  if (!category) return null;
+  const text = toText(category);
+  if (!text) return null;
 
-  const mapped = PROPERTY_TYPES[String(category).trim().toLowerCase()];
+  const mapped = PROPERTY_TYPES[text.toLowerCase()];
   if (!mapped) {
-    console.warn(`Unknown property type "${category}", saving as "other"`);
+    console.warn(`Unknown property type "${text}", saving as "other"`);
     return "other";
   }
   return mapped;
@@ -80,8 +58,8 @@ export type MockdataLdJson = {
 export function mapListing(data: MockdataLdJson): MappedListing {
   return {
     property_type: mapPropertyType(data.category),
-    municipality: data.municipality ?? null,
-    area: data.district ?? data.addressLocality ?? null,
+    municipality: toText(data.municipality),
+    area: toPlaceName(data.district ?? data.addressLocality),
     address: toText(data.streetAddress, 300),
     price: toPrice(data.price),
     rooms: toNumber(data.rooms),
@@ -91,10 +69,9 @@ export function mapListing(data: MockdataLdJson): MappedListing {
     description: toText(data.description, 5000, true),
     latitude: toNumber(data.geo?.latitude),
     longitude: toNumber(data.geo?.longitude),
-    monthly_fee: toNumber(data.monthlyFee),
-    living_area: toNumber(data.livingArea),
-    build_year: toNumber(data.buildYear),
+    monthly_fee: toPrice(data.monthlyFee),
+    living_area: toPrice(data.livingArea),
+    build_year: toInteger(data.buildYear, 1000, 2100),
     is_new_construction: data.newProduction === true,
-    // NOTE! toNumber always returns an actuall number or null. So if value is missing it will be null
   };
 }

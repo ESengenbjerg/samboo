@@ -38,6 +38,7 @@ export default function SettingsScreen() {
 
   function trackSection(key: string) {
     return (e: LayoutChangeEvent) => {
+      // eslint-disable-next-line react-hooks/refs -- only written in onLayout, not during render
       sectionY.current[key] = e.nativeEvent.layout.y;
     };
   }

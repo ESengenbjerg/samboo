@@ -36,7 +36,7 @@ export default function ListingsFeed({
   const [view, setView] = useState<"column" | "grid">("column");
 
   return (
-    <View className="flex-1 px-6 bg-background gap-8 ">
+    <View className="flex-1 px-6 bg-background gap-2">
       <View className="flex-row justify-between">
         <Text variant="h1">{title}</Text>
         {/* TODO: Replace with correct component */}
@@ -49,7 +49,7 @@ export default function ListingsFeed({
         </Button>
       </View>
       <View className="flex-row justify-between items-end">
-        <View className="gap-4">
+        <View className="mb-2">
           <Label>Sortera</Label>
           <Select>
             <SelectTrigger className="bg-white min-w-32">
@@ -97,6 +97,7 @@ export default function ListingsFeed({
               rooms={listing.rooms ?? 0}
               imageUrl={listing.ld_json.image ?? ""}
               onPress={() => goToObject(listing.id, path)}
+              listingId={listing.id}
               size={view === "grid" ? "small" : "default"}
             />
           ))}

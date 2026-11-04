@@ -3,12 +3,14 @@ import { useSession } from "@/hooks/useSession";
 import { useUpdateProfileAvatar } from "@/hooks/useUpdateProfileAvatar";
 import { getAvatarUrl, updateProfileName } from "@/services/profiles";
 import { pickImage } from "@/utils/pick-image";
+import { Trash } from "lucide-react-native";
 import { useState } from "react";
 import { View } from "react-native";
 import FormError from "../form-error";
 import FormMessage from "../form-message";
 import ProfileImage from "../profile-image";
 import { Button } from "../ui/button";
+import { Icon } from "../ui/icon";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Text } from "../ui/text";
@@ -23,6 +25,7 @@ export default function ProfileSettingsForm() {
   } = useProfile(userId);
   const {
     updateAvatar,
+    removeAvatar,
     isUpdating: isUpdatingAvatar,
     error: avatarError,
     clearError: clearAvatarError,
@@ -37,7 +40,11 @@ export default function ProfileSettingsForm() {
 
   // Image uploaded on this visit. Until then, the one from Supabase is used
   const [newAvatarPath, setNewAvatarPath] = useState<string | null>(null);
-  const currentAvatarPath = newAvatarPath ?? profile?.avatarPath ?? null;
+  // True after the user removed their image on this visit
+  const [avatarRemoved, setAvatarRemoved] = useState(false);
+  const currentAvatarPath = avatarRemoved
+    ? null
+    : (newAvatarPath ?? profile?.avatarPath ?? null);
   const avatarUrl = getAvatarUrl(currentAvatarPath);
 
   const [isSaving, setIsSaving] = useState(false);
@@ -96,8 +103,24 @@ export default function ProfileSettingsForm() {
     const path = await updateAvatar(userId, uri, currentAvatarPath);
     if (!path) return;
 
+    setAvatarRemoved(false);
     setNewAvatarPath(path);
     setSuccessMessage("Din profilbild har uppdaterats!");
+  }
+
+  async function onRemove() {
+    if (!userId || !currentAvatarPath) return;
+
+    setSaveError(null);
+    clearAvatarError();
+    setSuccessMessage(null);
+
+    const removed = await removeAvatar(userId, currentAvatarPath);
+    if (!removed) return;
+
+    setNewAvatarPath(null);
+    setAvatarRemoved(true);
+    setSuccessMessage("Din profilbild har tagits bort.");
   }
 
   return (
@@ -123,22 +146,36 @@ export default function ProfileSettingsForm() {
         <View className="gap-1.5">
           <Label htmlFor="profile-image">Profilbild</Label>
 
-          {avatarUrl && <ProfileImage uri={avatarUrl} />}
-
-          <Button
-            variant="outline"
-            onPress={onChangeImage}
-            disabled={isLoading}
-            className="bg-white border-accent shadow-none"
-          >
-            <Text>
-              {isUpdatingAvatar
-                ? "Laddar upp..."
-                : currentAvatarPath
-                  ? "Byt bild"
-                  : "Välj bild"}
-            </Text>
-          </Button>
+          <View className="flex-row gap-2 justify-between">
+            <View className="gap-1.5">
+              <Button
+                variant="outline"
+                onPress={onChangeImage}
+                disabled={isLoading}
+                className="bg-white border-accent shadow-none w-44"
+              >
+                <Text>
+                  {isUpdatingAvatar
+                    ? "Laddar upp..."
+                    : currentAvatarPath
+                      ? "Byt bild"
+                      : "Välj bild"}
+                </Text>
+              </Button>
+              {currentAvatarPath && (
+                <Button
+                  variant="destructive"
+                  onPress={onRemove}
+                  disabled={isLoading}
+                  className="w-44"
+                >
+                  <Text>Ta bort bild</Text>
+                  <Icon as={Trash} />
+                </Button>
+              )}
+            </View>
+            {avatarUrl && <ProfileImage uri={avatarUrl} />}
+          </View>
         </View>
 
         {!!errorMessage && <FormError>{errorMessage}</FormError>}
@@ -147,7 +184,7 @@ export default function ProfileSettingsForm() {
         <Button
           onPress={onSubmit}
           disabled={isLoading || !nameIsChanged}
-          className="max-w-36"
+          className="max-w-44"
         >
           <Text>{!isSaving ? "Uppdatera" : "Uppdaterar..."}</Text>
         </Button>

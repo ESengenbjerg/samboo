@@ -43,7 +43,7 @@ export default function ListButton({
             />
           </View>
           <View className="flex-1 px-6 py-8 items-start">
-            <Text variant="bold">{title} lista</Text>
+            <Text variant="bold" numberOfLines={1} className="flex-1">{title} lista</Text>
             <Text>{numberOfSavedObjects} sparade objekt</Text>
           </View>
         </View>
