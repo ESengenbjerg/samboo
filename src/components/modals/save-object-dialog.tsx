@@ -56,7 +56,11 @@ export function SaveObjectDialog({
           </View>
           <View className="gap-2">
             <Label>Anteckning</Label>
-            <Textarea placeholder="Lägg till anteckning..." className="h-24" />
+            <Textarea
+              placeholder="Lägg till anteckning..."
+              maxLength={500}
+              className="h-24"
+            />
           </View>
         </View>
 

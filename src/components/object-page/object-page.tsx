@@ -64,7 +64,7 @@ export default function ObjectPageScreen({
       >
         <Text>Tillbaka</Text>
       </Button>
-      <ScrollView className="flex-1">
+      <ScrollView className="flex-1 bg-background" contentContainerClassName="pb-8">
         {/* --- IMAGE --- */}
         <ListingImage imageUrl={listing.image_url} />
         <View className="px-8 py-6 gap-6">

@@ -48,6 +48,7 @@ export function ForgotPasswordForm() {
           keyboardType="email-address"
           autoComplete="email"
           autoCapitalize="none"
+          maxLength={254}
           returnKeyType="send"
           value={email}
           onChangeText={setEmail}

@@ -81,7 +81,11 @@ export default function ListingsFeed({
       )}
 
       {/* Present properties based in column or grid based on user choice */}
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        className="bg-background"
+        contentContainerClassName="pb-8"
+        showsVerticalScrollIndicator={false}
+      >
         <View
           className={`${view === "grid" ? "flex-row gap-2 mb-4 flex-wrap" : "gap-4 mb-4"}`}
         >

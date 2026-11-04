@@ -67,7 +67,9 @@ export default function ProfileForm() {
   async function onSubmit() {
     setError(null);
 
-    if (!profileName) {
+    const trimmedName = profileName.trim();
+
+    if (!trimmedName) {
       setError("Lägg till ett visningsnamn.");
       return;
     }
@@ -94,7 +96,7 @@ export default function ProfileForm() {
     }
 
     setRemoveSaved(false);
-    setProfile(profileName, avatarPath);
+    setProfile(trimmedName, avatarPath);
     router.push({ pathname: "/create-filter" });
   }
 
