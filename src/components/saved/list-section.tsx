@@ -36,7 +36,7 @@ export default function SavedListSection({ userId }: { userId: string }) {
             title={"Gemensam"}
             listId={SHARED_LIST_ID}
             numberOfSavedObjects={sharedListings.length}
-            firstObjectImage={sharedListings[0]?.ld_json.image}
+            firstObjectImage={sharedListings[0]?.image_url ?? undefined}
           />
         )}
 
@@ -52,7 +52,7 @@ export default function SavedListSection({ userId }: { userId: string }) {
               title={nameEndsWithS(l.member.name)}
               listId={l.member.id}
               numberOfSavedObjects={l.listings.length}
-              firstObjectImage={l.listings[0]?.ld_json.image}
+              firstObjectImage={l.listings[0]?.image_url ?? undefined}
             />
           ))}
 
@@ -65,7 +65,7 @@ export default function SavedListSection({ userId }: { userId: string }) {
             title={"Min"}
             listId={MY_LIST_ID}
             numberOfSavedObjects={listings.length}
-            firstObjectImage={listings[0]?.ld_json.image}
+            firstObjectImage={listings[0]?.image_url ?? undefined}
           />
         )}
       </View>

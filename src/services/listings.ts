@@ -12,7 +12,7 @@ export function getActiveListings(userId: string) {
     supabase
       .from("user_listings")
       // !inner removes deleted listings. Without !inner listings is null and
-      // app will crash on listing.ld_json
+      // app will crash on listing.address
       .select("id, is_new, liked, listings!inner(*)")
       .eq("user_id", userId)
       .is("listings.removed_at", null)
@@ -27,7 +27,7 @@ export function getLikedListings(userId: string) {
     supabase
       .from("user_listings")
       // !inner removes deleted listings. Without !inner listings is null and
-      // app will crash on listing.ld_json
+      // app will crash on listing.address
       .select("id, is_new, liked, listings!inner(*)")
       .eq("user_id", userId)
       .eq("liked", true)

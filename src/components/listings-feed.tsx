@@ -89,13 +89,13 @@ export default function ListingsFeed({
           {listings.map((listing) => (
             <ObjectCard
               key={listing.id}
-              address={listing.ld_json.streetAddress ?? ""}
+              address={listing.address ?? ""}
               area={listing.area ?? ""}
               municipality={listing.municipality ?? ""}
               price={listing.price ?? 0}
               livingArea={listing.living_area ?? 0}
               rooms={listing.rooms ?? 0}
-              imageUrl={listing.ld_json.image ?? ""}
+              imageUrl={listing.image_url ?? ""}
               onPress={() => goToObject(listing.id, path)}
               listingId={listing.id}
               size={view === "grid" ? "small" : "default"}

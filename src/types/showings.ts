@@ -19,7 +19,7 @@ export type ShowingRow = {
   // "11:00:00", null if no start time was entered
   start_time: string | null;
   note: string | null;
-  listings: Pick<Listing, "municipality" | "area" | "ld_json">;
+  listings: Pick<Listing, "address" | "municipality" | "area">;
 };
 
 // What the app sends when saving a showing. The owner (group_id, or user_id if I have

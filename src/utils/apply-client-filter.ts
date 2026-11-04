@@ -29,7 +29,7 @@ export function applyClientFilter(
     )
       return false;
 
-    if (!filter.showNewProduction && listing.ld_json.newProduction)
+    if (!filter.showNewProduction && listing.is_new_construction)
       return false;
 
     return true;
