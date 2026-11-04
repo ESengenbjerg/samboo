@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
 import { useListing } from "@/hooks/useListing";
 import { useListingTags } from "@/hooks/useListingTags";
+import { useMarkListingSeen } from "@/hooks/useMarkListingSeen";
 import { useSaveTag } from "@/hooks/useSaveTag";
 import { useSession } from "@/hooks/useSession";
 import { useUserTags } from "@/hooks/useUserTags";
@@ -40,6 +41,9 @@ export default function ObjectPageScreen({
   // My user_listings row for this listing (id and is_new).
   // null if a group member has been matched with the listing, but not the session user
   const { userListing } = useListing(listing ? String(listing.id) : undefined);
+
+  // Mark the listing as seen once my user_listings row is loaded and says it is new
+  useMarkListingSeen(listing?.id, userListing?.is_new);
 
   const { tags, reload: reloadTags } = useUserTags(userId);
   const { listingTags, reload: reloadListingTags } = useListingTags(userId);

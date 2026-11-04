@@ -55,6 +55,14 @@ export function likeListing(listingId: number) {
   return supabase.rpc("like_listing", { p_listing_id: listingId });
 }
 
+// Mark a listing as seen (is_new = false) by listings.id. Goes through mark_listing_seen()
+// because is_new can not be updated directly. Does nothing if I have no user_listings row
+// for the listing, or if it is already seen
+export function markListingSeen(listingId: number) {
+  return supabase.rpc("mark_listing_seen", { p_listing_id: listingId });
+}
+
+
 // Unlike a listing by listings.id. The row is kept (only liked is changed), see match_user_listings().
 // RLS only lets me update my own rows, user_id is there to be explicit
 export function unlikeListing(userId: string, listingId: number) {
