@@ -84,7 +84,7 @@ export function CategoriesDialog({
     if (existing) {
       // Already chosen: keep the text and tell the user, so it does not look like nothing happened
       if (draftIds.includes(existing.id)) {
-        setMessage(`Kategorin finns redan.`);
+        setMessage(`Kategorin ${capitalize(existing.tag_name)} är redan vald.`);
         return;
       }
       addToDraft(existing.id);
