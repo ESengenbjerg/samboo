@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { capitalize } from "@/utils/capitalize-string";
 import { UserTag } from "@/types/tags";
+import { capitalize } from "@/utils/capitalize-string";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import FormError from "../form-error";
@@ -31,9 +31,10 @@ type CategoriesDialogProps = {
   categories: UserTag[];
   selectedIds: number[];
   onCreateCategory: (name: string) => Promise<UserTag | null>;
-  onSave: (selectedIds: number[]) => void;
+  onSave: (selectedIds: number[], initialIds: number[]) => void;
   isSaving: boolean;
   error: string | null;
+  onClearError: () => void;
 };
 
 export function CategoriesDialog({
@@ -45,9 +46,11 @@ export function CategoriesDialog({
   onSave,
   isSaving,
   error,
+  onClearError,
 }: CategoriesDialogProps) {
-  // Save draft only when user presses save
-  const [draftIds, setDraftIds] = useState<number[]>(selectedIds);
+  // What the dialog was opened with. Sent back on save so only the user's own changes are diffed
+  const [initialIds] = useState<number[]>(selectedIds);
+  const [draftIds, setDraftIds] = useState<number[]>(initialIds);
   const [newName, setNewName] = useState("");
   // Feedback from the dialog itself, e.g. when the category is already chosen
   const [message, setMessage] = useState<string | null>(null);
@@ -143,8 +146,9 @@ export function CategoriesDialog({
                 value={newName}
                 onChangeText={(text) => {
                   setNewName(text);
-                  // The old message was about the previous text
+                  // The old messages were about the previous text
                   setMessage(null);
+                  onClearError();
                 }}
                 placeholder="T.ex. Balkong"
                 maxLength={100}
@@ -179,7 +183,10 @@ export function CategoriesDialog({
 
         <DialogFooter>
           <View className="flex-1 gap-4">
-            <Button disabled={isSaving} onPress={() => onSave(draftIds)}>
+            <Button
+              disabled={isSaving}
+              onPress={() => onSave(draftIds, initialIds)}
+            >
               <Text>{isSaving ? "Sparar..." : "Spara kategorisering"}</Text>
             </Button>
           </View>

@@ -101,16 +101,16 @@ export default function ObjectPageScreen({
     return tag;
   }
 
-  // Called by the dialog with the final list of selected category ids.
-  // Only the difference to what is already saved is sent to the database
-  async function handleSave(selectedIds: number[]) {
+  // Called by the dialog with the final list of selected category ids, and the ids the
+  // dialog was opened with. Only the user's own changes are sent to the database.
+  async function handleSave(selectedIds: number[], initialIds: number[]) {
     if (!userListing) return;
     setIsSaving(true);
 
-    // Selected in the dialog but not saved yet
-    const toAdd = selectedIds.filter((id) => !appliedTagIds.includes(id));
-    // Saved earlier but removed in the dialog
-    const toRemove = appliedTagIds.filter((id) => !selectedIds.includes(id));
+    // Selected in the dialog but not selected when it was opened
+    const toAdd = selectedIds.filter((id) => !initialIds.includes(id));
+    // Selected when the dialog was opened but removed in the dialog
+    const toRemove = initialIds.filter((id) => !selectedIds.includes(id));
 
     // Run all changes in parallel. Each call returns true on success
     const results = await Promise.all([
@@ -219,7 +219,7 @@ export default function ObjectPageScreen({
                 <Icon as={PlusSquare} size={18} />
               </Pressable>
             )}
-            <View className="flex-row justify-start gap-2">
+            <View className="flex-row flex-wrap justify-start gap-2">
               {isNewConstruction(listing) && <CategoryTag isNewConstruction />}
               {/* My own categories on this listing */}
               {tags
@@ -244,6 +244,7 @@ export default function ObjectPageScreen({
               onSave={handleSave}
               isSaving={saving}
               error={saveTagError}
+              onClearError={clearError}
             />
           )}
 
