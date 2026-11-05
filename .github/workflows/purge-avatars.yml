@@ -10,6 +10,9 @@ on:
 
   workflow_dispatch: # Manual run from the Actions tab
 
+permissions:
+  contents: read
+
 # Never run two purges at once
 concurrency:
   group: purge-avatars
