@@ -78,6 +78,12 @@ function SelectContent({
     className?: string;
     portalHost?: string;
   }) {
+  // On native the content does not follow the trigger's width by itself (web does, via CSS),
+  // so measure it from the root context
+  const { triggerPosition } = SelectPrimitive.useRootContext();
+  const nativeWidth =
+    Platform.OS !== 'web' && triggerPosition ? { width: triggerPosition.width } : undefined;
+
   return (
     <SelectPrimitive.Portal hostName={portalHost}>
       <FullWindowOverlay>
@@ -112,6 +118,7 @@ function SelectContent({
                   className
                 )}
                 position={position}
+                style={nativeWidth}
                 {...props}>
                 <SelectScrollUpButton />
                 <SelectPrimitive.Viewport

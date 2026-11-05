@@ -45,12 +45,17 @@ create table public.profiles (
   -- Profile image, stored as a URL (https only)
   -- Path of the profile image inside the 'avatars' bucket: '<user id>/<name>.<jpg|jpeg|png|webp>'. The app builds the public URL with getPublicUrl()
   avatar_path              text,
+  -- How often the notification mail is sent: 'day' (every morning), 'week' (Friday mornings) or 'none'. Same values as the app's InformationInterval
+  notification_frequency   text not null default 'day',
+  -- When the last notification mail was sent. Listings and likes after this time are "new" in the next mail. Set by scripts/notify (service_role), never by the app
+  last_notified_at         timestamptz,
   constraint profiles_pkey primary key (id),
   constraint profiles_id_fkey       foreign key (id)       references auth.users (id) on delete cascade,
   constraint profiles_group_id_fkey foreign key (group_id) references public.groups (id) on delete set null,
   constraint profiles_name_length check (char_length(name) between 1 and 100),
   -- The path must start with the user's own id and point to a plain image file. It is not checked that the file exists
-  constraint profiles_avatar_path_check check (avatar_path is null or (char_length(avatar_path) <= 200 and avatar_path ~ ('^' || id::text || '/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$')))
+  constraint profiles_avatar_path_check check (avatar_path is null or (char_length(avatar_path) <= 200 and avatar_path ~ ('^' || id::text || '/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$'))),
+  constraint profiles_notification_frequency_check check (notification_frequency = any (array['day', 'week', 'none']))
 );
 
 create table public.invites (
@@ -186,6 +191,9 @@ create table public.user_listings (
   listing_id  bigint not null,
   is_new      boolean not null default true,
   liked       boolean not null default false,
+  -- When liked last became true, set by the trigger user_listings_set_liked_at (null when not liked). Used for the "partner has liked" part of the notification mail.
+  -- Likes made before the column existed have null and are never mailed
+  liked_at    timestamptz,
   constraint user_listings_pkey primary key (id),
   constraint user_listings_unique unique (user_id, listing_id),
   constraint user_listings_user_id_fkey    foreign key (user_id)    references public.profiles (id) on delete cascade,
@@ -766,6 +774,22 @@ begin
 end;
 $function$;
 
+-- Keeps user_listings.liked_at in step with liked (see trigger user_listings_set_liked_at). Liking an already liked row keeps the old time.
+CREATE OR REPLACE FUNCTION public.set_liked_at()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO ''
+AS $function$
+begin
+  if not new.liked then
+    new.liked_at := null;
+  elsif tg_op = 'INSERT' or not old.liked then
+    new.liked_at := now();
+  end if;
+  return new;
+end;
+$function$;
+
 -- The shared list ("Gemensam-listan"): listings that EVERY member of the group has liked.
 CREATE OR REPLACE FUNCTION public.shared_likes()
  RETURNS SETOF listings
@@ -1158,6 +1182,90 @@ AS $function$
     and not exists (select 1 from public.profiles p where p.avatar_path = o.name)
 $function$;
 
+-- Users who are due a notification mail today, with what to put in it. Called by scripts/notify (service_role), which sends the mails
+-- and then sets profiles.last_notified_at = window_end for each user it mailed.
+-- Due: active profile, confirmed e-mail, frequency 'day', or 'week' on a Friday (Swedish time), and not already mailed today (Swedish date),
+-- so a second run on the same day returns nobody. Users with nothing new are left out.
+-- New = since last_notified_at (sign-up for a new user), but at most 8 days back, so turning mails on again does not mail old listings:
+--   * new_listings: my matches whose LISTING was scraped in the window (not user_listings.created_at: changing the search re-creates rows for old listings).
+--     Not liked by me, not removed. new_count is the total, new_listings the 5 newest
+--   * partner_likes: per other member of my group, listings they liked in the window that I have not liked myself. listings = the 2 latest
+-- p_include_weekly: null = only on Fridays; true/false forces the weekly users in/out (for testing the dry run)
+CREATE OR REPLACE FUNCTION public.due_notifications(p_include_weekly boolean DEFAULT NULL::boolean)
+ RETURNS TABLE(user_id uuid, name text, email text, frequency text, window_end timestamptz, new_count integer, new_listings jsonb, partner_likes jsonb)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+  with clock as (
+    select
+      now() as now_at,
+      (now() at time zone 'Europe/Stockholm')::date as today,
+      coalesce(p_include_weekly, extract(isodow from now() at time zone 'Europe/Stockholm') = 5) as weekly_today
+  ),
+  due as (
+    select
+      p.id, p.name, u.email::text as email, p.notification_frequency, p.group_id, c.now_at,
+      greatest(coalesce(p.last_notified_at, p.created_at), c.now_at - interval '8 days') as since
+    from public.profiles p
+    join auth.users u on u.id = p.id
+    cross join clock c
+    where p.is_active
+      and u.email_confirmed_at is not null
+      and u.email is not null
+      and (p.notification_frequency = 'day' or (p.notification_frequency = 'week' and c.weekly_today))
+      and (p.last_notified_at is null or (p.last_notified_at at time zone 'Europe/Stockholm')::date < c.today)
+  )
+  select d.id, d.name, d.email, d.notification_frequency, d.now_at, n.new_count, n.new_listings, pl.partner_likes
+  from due d
+  cross join lateral (
+    select
+      count(*)::int as new_count,
+      coalesce(jsonb_agg(x.listing order by x.rn) filter (where x.rn <= 5), '[]'::jsonb) as new_listings
+    from (
+      select
+        row_number() over (order by l.created_at desc, l.id desc) as rn,
+        jsonb_build_object(
+          'id', l.id, 'address', l.address, 'area', l.area, 'municipality', l.municipality,
+          'property_type', l.property_type, 'price', l.price, 'rooms', l.rooms, 'living_area', l.living_area,
+          'monthly_fee', l.monthly_fee, 'is_new_construction', l.is_new_construction, 'agency', l.agency, 'url', l.url
+        ) as listing
+      from public.user_listings ul
+      join public.listings l on l.id = ul.listing_id
+      where ul.user_id = d.id
+        and not ul.liked
+        and l.removed_at is null
+        and l.created_at > d.since
+    ) x
+  ) n
+  cross join lateral (
+    select coalesce(jsonb_agg(jsonb_build_object('name', m.name, 'count', m.cnt, 'listings', m.listings) order by m.name), '[]'::jsonb) as partner_likes
+    from (
+      select
+        mp.name,
+        count(*)::int as cnt,
+        to_jsonb((array_agg(jsonb_build_object('id', l.id, 'address', l.address) order by ul.liked_at desc))[1:2]) as listings
+      from public.profiles mp
+      join public.user_listings ul on ul.user_id = mp.id
+      join public.listings l on l.id = ul.listing_id
+      where d.group_id is not null
+        and mp.group_id = d.group_id
+        and mp.id <> d.id
+        and mp.is_active
+        and ul.liked
+        and ul.liked_at > d.since
+        and l.removed_at is null
+        and not exists (
+          select 1 from public.user_listings mine
+          where mine.user_id = d.id and mine.listing_id = ul.listing_id and mine.liked
+        )
+      group by mp.id, mp.name
+    ) m
+  ) pl
+  where n.new_count > 0 or jsonb_array_length(pl.partner_likes) > 0
+  order by d.id
+$function$;
+
 -- Number of files in the signed-in user's own folder in the avatars bucket. Used by the policy avatars_insert_own (max 5 files).
 -- The count must live in a security definer function: a policy on storage.objects that queries storage.objects itself
 -- fails with 42P17 (infinite recursion detected in policy for relation "objects"). Returns only the caller's own count.
@@ -1290,6 +1398,10 @@ CREATE TRIGGER invites_limit_per_pair
 CREATE TRIGGER showings_limit_per_group
   BEFORE INSERT ON public.showings
   FOR EACH ROW EXECUTE FUNCTION public.limit_showings_per_group();
+
+CREATE TRIGGER user_listings_set_liked_at
+  BEFORE INSERT OR UPDATE OF liked ON public.user_listings
+  FOR EACH ROW EXECUTE FUNCTION public.set_liked_at();
 
 CREATE TRIGGER on_profile_deleted
   AFTER DELETE ON public.profiles
@@ -1551,7 +1663,7 @@ grant select, insert, update, delete on public.user_tags     to authenticated;
 
 -- Column level. Direct writes are limited to these columns; everything else (e.g. profiles.is_active, profiles.group_id) can only change via functions or service_role.
 grant insert (from_user_id, to_email) on public.invites       to authenticated;
-grant update (name, onboarding_completed_at, avatar_path) on public.profiles to authenticated;
+grant update (name, onboarding_completed_at, avatar_path, notification_frequency) on public.profiles to authenticated;  -- not last_notified_at: only scripts/notify sets it
 grant insert (listing_id, showing_date, start_time, note) on public.showings to authenticated;  -- group_id and user_id come from the column defaults
 grant update (showing_date, start_time, note) on public.showings to authenticated;
 grant update (liked)                  on public.user_listings to authenticated;  -- is_new only via mark_listing_seen() and like_listing()
@@ -1588,6 +1700,7 @@ to authenticated, service_role;
 -- service_role only (scraper, triggers, maintenance)
 grant execute on function
   public.dissolve_group_if_alone(bigint),
+  public.due_notifications(boolean),
   public.handle_deleted_profile(),
   public.handle_new_user(),
   public.limit_invites_per_pair(),
@@ -1603,6 +1716,7 @@ grant execute on function
   public.purge_search_params_log(),
   public.rls_auto_enable(),
   public.search_params_match_trigger(),
+  public.set_liked_at(),
   public.validate_search_places()
 to service_role;
 

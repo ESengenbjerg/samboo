@@ -3,12 +3,10 @@ import { getListing } from "@/services/listings";
 import { UserListing } from "@/types/listing";
 import { useEffect, useState } from "react";
 
-// This file is currently not in use anywhere
-// TODO: Remove before production if it will not be used
-
 type ListingResult = {
   listingId: string;
   userListing: UserListing | null;
+  failed?: boolean;
 };
 
 // A single listing (joined with the user's user_listing row) by listings.id
@@ -33,7 +31,11 @@ export function useListing(listingId: string | undefined) {
       // Get user_listing joined with its listing (listing_id -> listings.id)
       const { data, error } = await getListing(auth.user.id, id);
       if (cancelled) return;
-      if (error) console.error("Failed to load listing: ", error);
+      if (error) {
+        console.error("Failed to load listing: ", error);
+        setResult({ listingId: id, userListing: null, failed: true });
+        return;
+      }
       setResult({ listingId: id, userListing: data ?? null });
     }
 
@@ -50,5 +52,9 @@ export function useListing(listingId: string | undefined) {
     userListing: current?.userListing ?? null,
     // Loading until we have a result for the current id
     isLoading: !!listingId && !current,
+    // A failed load is not the same as having no row (a group member's listing)
+    error: current?.failed
+      ? "Kunde inte hämta dina kategorier för objektet."
+      : null,
   };
 }

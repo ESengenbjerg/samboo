@@ -52,7 +52,7 @@ export function useSearchParams(userId: string | undefined) {
             maxMonthlyFee: data.max_monthly_fee ?? undefined,
             minLivingArea: data.min_living_area ?? undefined,
             // null counts as true
-            showNewProduction: data.include_new_construction ?? true,
+            showNewConstruction: data.include_new_construction ?? true,
           },
         });
       });
