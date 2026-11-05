@@ -43,6 +43,9 @@ jobs:
 
       - run: npm run typecheck
 
+      # The root tsconfig excludes scripts/, so the backend scripts are checked separately
+      - run: npx tsc --noEmit -p scripts/tsconfig.json
+
       - run: npm run lint
 
       # The app throws at startup without the Supabase variables (public keys only)
