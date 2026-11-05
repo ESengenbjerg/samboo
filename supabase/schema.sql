@@ -245,7 +245,9 @@ create table public.showings (
   constraint showings_group_id_fkey   foreign key (group_id)   references public.groups (id)   on delete cascade,
   constraint showings_user_id_fkey    foreign key (user_id)    references public.profiles (id) on delete cascade,
   constraint showings_listing_id_fkey foreign key (listing_id) references public.listings (id) on delete cascade,
-  constraint showings_note_length check (note is null or char_length(note) <= 500)
+  constraint showings_note_length check (note is null or char_length(note) <= 500),
+  -- Day, month and leap years are already checked by the date type (Gregorian calendar). This only stops absurd years
+  constraint showings_date_range check (showing_date between date '2000-01-01' and date '2099-12-31')
 );
 
 -- Problems reported by the scraper. service_role only (RLS on, no policies).

@@ -587,13 +587,13 @@ paths:
               required: [listing_id, showing_date]
               properties:
                 listing_id: { type: integer, format: int64 }
-                showing_date: { type: string, format: date }
+                showing_date: { type: string, format: date, description: '2000-01-01 – 2099-12-31. An invalid date (e.g. 2027-02-29) gives 400 with code 22008.' }
                 start_time: { type: string, nullable: true, example: '17:30' }
                 note: { type: string, nullable: true, maxLength: 500 }
       responses:
         '201': { description: Created. }
         '400':
-          description: '`Gruppen har redan max antal visningar (50)`, `Du har redan max antal visningar (50)`, or a check constraint (note longer than 500).'
+          description: '`Gruppen har redan max antal visningar (50)`, `Du har redan max antal visningar (50)`, or a check constraint (note longer than 500, date outside 2000-2099).'
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -612,11 +612,16 @@ paths:
             schema:
               type: object
               properties:
-                showing_date: { type: string, format: date }
+                showing_date: { type: string, format: date, description: '2000-01-01 – 2099-12-31. An invalid date (e.g. 2027-02-29) gives 400 with code 22008.' }
                 start_time: { type: string, nullable: true }
                 note: { type: string, nullable: true, maxLength: 500 }
       responses:
         '204': { description: Updated. }
+        '400':
+          description: A check constraint (note longer than 500, date outside 2000-2099), or an invalid date.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
         '429': { $ref: '#/components/responses/RateLimited' }
     delete:
       tags: [Showings]
