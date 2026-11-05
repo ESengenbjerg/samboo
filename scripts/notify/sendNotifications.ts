@@ -130,7 +130,50 @@ for (let i = 0; i < mails.length; i += 100) {
     body: JSON.stringify(batch.map((m) => m.payload)),
   });
 
-  // Resend said no: stop, the next run picks them up
+  // The batch is all-or-nothing: one invalid address rejects the whole batch.
+  // On a validation error, send this batch one by one so only the bad mail fails.
+  if (response.status === 400 || response.status === 422) {
+    console.error(
+      `Batch rejected (${response.status}), sending one by one:`,
+      await response.text(),
+    );
+    process.exitCode = 1;
+
+    let stop = false;
+    for (const m of batch) {
+      await new Promise((r) => setTimeout(r, 600)); // Stay under Resend's rate limit (2 requests/s)
+
+      const single = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${ResendAPI}`,
+          "Content-Type": "application/json",
+          "Idempotency-Key": `notify-${today}-${m.userId}`,
+        },
+        body: JSON.stringify(m.payload),
+      });
+
+      if (!single.ok) {
+        console.error(
+          `Resend failed for user ${m.userId} (${single.status}):`,
+          await single.text(),
+        );
+        failed += 1;
+        continue;
+      }
+
+      if (!(await markNotified([m.userId], m.windowEnd))) {
+        stop = true;
+        break;
+      }
+      sent += 1;
+    }
+
+    if (stop) break;
+    continue;
+  }
+
+  // Any other error (auth, rate limit, Resend down): stop, the next run picks them up
   if (!response.ok) {
     console.error(`Resend failed (${response.status}):`, await response.text());
     failed += batch.length;
@@ -138,10 +181,16 @@ for (let i = 0; i < mails.length; i += 100) {
     break;
   }
 
-  // Mark as mailed RIGHT away, with window_end (not new Date())
+  if (!(await markNotified(userIds, batch[0].windowEnd))) break;
+
+  sent += batch.length;
+}
+
+// Mark as mailed RIGHT away, with window_end (not new Date())
+async function markNotified(userIds: string[], windowEnd: string) {
   const { error: markError } = await supabaseAdmin
     .from("profiles")
-    .update({ last_notified_at: batch[0].windowEnd })
+    .update({ last_notified_at: windowEnd })
     .in("id", userIds);
 
   if (markError) {
@@ -151,10 +200,9 @@ for (let i = 0; i < mails.length; i += 100) {
       userIds,
     );
     process.exitCode = 1;
-    break;
+    return false;
   }
-
-  sent += batch.length;
+  return true;
 }
 
 console.log(`Sent ${sent}, failed ${failed}`);
