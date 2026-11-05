@@ -953,25 +953,25 @@ components:
         created_at: { type: string, format: date-time }
         agency: { type: string }
         external_id: { type: integer, format: int64 }
-        url: { type: string }
-        ld_json: { type: object, description: Raw schema.org data from the agency }
+        url: { type: string, maxLength: 500, pattern: '^https://' }
+        ld_json: { type: object, description: 'Raw schema.org data from the agency. Max 300 000 bytes as text' }
         last_seen_at: { type: string, format: date-time }
         removed_at: { type: string, format: date-time, nullable: true, description: Set when the listing disappeared from the agency's site. Deleted after 14 days. }
         property_type: { $ref: '#/components/schemas/PropertyType' }
-        municipality: { type: string, nullable: true }
-        area: { type: string, nullable: true }
-        price: { type: integer, format: int64, nullable: true }
-        rooms: { type: number, nullable: true }
+        municipality: { type: string, nullable: true, description: 'A name from `municipalities` (null when the agency''s name is unknown)' }
+        area: { type: string, nullable: true, maxLength: 100 }
+        price: { type: integer, format: int64, nullable: true, minimum: 1, maximum: 1000000000 }
+        rooms: { type: number, nullable: true, exclusiveMinimum: true, minimum: 0, maximum: 100 }
         latitude: { type: number, nullable: true }
         longitude: { type: number, nullable: true }
-        monthly_fee: { type: integer, format: int64, nullable: true, description: Apartments only }
-        living_area: { type: number, nullable: true }
+        monthly_fee: { type: integer, format: int64, nullable: true, minimum: 1, maximum: 100000, description: Apartments only }
+        living_area: { type: number, nullable: true, exclusiveMinimum: true, minimum: 0, maximum: 10000 }
         is_new_construction: { type: boolean }
         address: { type: string, nullable: true, maxLength: 300 }
-        image_url: { type: string, nullable: true, maxLength: 500 }
+        image_url: { type: string, nullable: true, maxLength: 500, pattern: '^https://' }
         description: { type: string, nullable: true, maxLength: 5000, description: The app cuts it for the UI }
         floor_level: { type: integer, nullable: true, minimum: -5, maximum: 100, description: Apartments only }
-        plot_area: { type: integer, format: int64, nullable: true, minimum: 0, description: Houses }
+        plot_area: { type: integer, format: int64, nullable: true, minimum: 0, maximum: 10000000, description: Houses }
         build_year: { type: integer, nullable: true, minimum: 1000, maximum: 2100 }
 
     Showing:

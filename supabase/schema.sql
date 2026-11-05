@@ -85,6 +85,7 @@ create table public.listings (
   last_seen_at   timestamptz not null default now(),
   removed_at     timestamptz,
   property_type  text,
+  -- Spelled as in municipalities (matching compares it exactly). The scraper maps the agency's spelling, unknown names become null
   municipality   text,
   area           text,
   price          bigint,
@@ -106,11 +107,23 @@ create table public.listings (
     property_type = any (array['villa', 'radhus', 'lagenhet', 'fritidshus', 'tomt', 'other'])
   ),
   constraint listings_address_length check (address is null or char_length(address) between 1 and 300),
-  constraint listings_image_url_length check (image_url is null or char_length(image_url) <= 500),
   constraint listings_description_length check (description is null or char_length(description) <= 5000),
   constraint listings_floor_level_check check (floor_level is null or floor_level between -5 and 100),
-  constraint listings_plot_area_check check (plot_area is null or plot_area >= 0),
-  constraint listings_build_year_check check (build_year is null or build_year between 1000 and 2100)
+  constraint listings_build_year_check check (build_year is null or build_year between 1000 and 2100),
+  -- Same limits as LIMITS in scripts/scraper/mappers/parse.ts and rowProblem() in scripts/scraper/run.ts. The scraper makes
+  -- bad values null (or skips the row) before the upsert, so these should never fire: they catch a bug in a mapper
+  constraint listings_price_check        check (price is null or price between 1 and 1000000000),
+  constraint listings_rooms_check        check (rooms is null or (rooms > 0 and rooms <= 100)),
+  constraint listings_monthly_fee_check  check (monthly_fee is null or monthly_fee between 1 and 100000),
+  constraint listings_living_area_check  check (living_area is null or (living_area > 0 and living_area <= 10000)),
+  constraint listings_plot_area_check    check (plot_area is null or plot_area between 0 and 10000000),
+  constraint listings_area_length        check (area is null or char_length(area) <= 100),
+  constraint listings_url_check          check (char_length(url) <= 500 and url like 'https://%'),
+  constraint listings_image_url_check    check (image_url is null or (char_length(image_url) <= 500 and image_url like 'https://%')),
+  -- The scraper's limit is 200 kB of JSON.stringify; jsonb::text adds spaces, hence the margin
+  constraint listings_ld_json_size       check (octet_length(ld_json::text) <= 300000),
+  -- The spelling in municipalities, since matching compares it exactly. Follows a renamed municipality
+  constraint listings_municipality_fkey  foreign key (municipality) references public.municipalities (name) on update cascade
 );
 
 -- Sweden's counties (län), 21 in total. Only used to group the municipalities (e.g. in the app's pickers): a search never stores a county.
