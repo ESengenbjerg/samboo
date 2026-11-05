@@ -470,7 +470,7 @@ paths:
           description: |
             `Du har ändrat din sökning för många gånger. Försök igen senare`, `Okänd kommun: <namn>`,
             `Området "<namn>" finns inte i någon av dina valda kommuner`, or a check constraint
-            (min greater than max for price or rooms, unknown property type, negative fee or area,
+            (min greater than max for price or rooms, a value outside its range, unknown property type,
             more than 10 municipalities or 200 areas).
           content:
             application/json:
@@ -919,12 +919,12 @@ components:
           items: { $ref: '#/components/schemas/PropertyType' }
         municipalities: { type: array, maxItems: 10, items: { type: string }, description: Names from `municipalities` }
         areas: { type: array, maxItems: 200, items: { type: string }, description: 'Names (not display_name) from `areas`, each under one of the chosen municipalities' }
-        min_price: { type: integer, format: int64, nullable: true }
-        max_price: { type: integer, format: int64, nullable: true }
-        min_rooms: { type: number, nullable: true }
-        max_rooms: { type: number, nullable: true }
-        max_monthly_fee: { type: integer, format: int64, nullable: true, minimum: 0 }
-        min_living_area: { type: number, nullable: true, minimum: 0 }
+        min_price: { type: integer, format: int64, nullable: true, minimum: 0, maximum: 1000000000 }
+        max_price: { type: integer, format: int64, nullable: true, minimum: 0, maximum: 1000000000 }
+        min_rooms: { type: number, nullable: true, exclusiveMinimum: true, minimum: 0, maximum: 100 }
+        max_rooms: { type: number, nullable: true, exclusiveMinimum: true, minimum: 0, maximum: 100 }
+        max_monthly_fee: { type: integer, format: int64, nullable: true, minimum: 0, maximum: 100000 }
+        min_living_area: { type: number, nullable: true, minimum: 0, maximum: 10000 }
         include_new_construction: { type: boolean, nullable: true, default: true }
 
     SearchParams:

@@ -168,13 +168,22 @@ create table public.search_params (
   min_living_area numeric,
   -- null counts as true: new builds are shown unless the user turns them off
   include_new_construction boolean default true,
-  constraint "SearchParams_pkey" primary key (id),
-  constraint "SearchParams_user_id_key" unique (user_id),
-  constraint "SearchParams_user_id_fkey" foreign key (user_id) references public.profiles (id) on delete cascade,
+  constraint search_params_pkey primary key (id),
+  constraint search_params_user_id_key unique (user_id),
+  constraint search_params_user_id_fkey foreign key (user_id) references public.profiles (id) on delete cascade,
   constraint search_params_price_check check (min_price is null or max_price is null or min_price <= max_price),
   constraint search_params_rooms_check check (min_rooms is null or max_rooms is null or min_rooms <= max_rooms),
-  constraint search_params_monthly_fee_check check (max_monthly_fee is null or max_monthly_fee >= 0),
-  constraint search_params_living_area_check check (min_living_area is null or min_living_area >= 0),
+  -- Same upper limits as listings. Only stops absurd values: the app's own options are far below them
+  constraint search_params_price_range check (
+    (min_price is null or min_price between 0 and 1000000000)
+    and (max_price is null or max_price between 0 and 1000000000)
+  ),
+  constraint search_params_rooms_range check (
+    (min_rooms is null or (min_rooms > 0 and min_rooms <= 100))
+    and (max_rooms is null or (max_rooms > 0 and max_rooms <= 100))
+  ),
+  constraint search_params_monthly_fee_check check (max_monthly_fee is null or max_monthly_fee between 0 and 100000),
+  constraint search_params_living_area_check check (min_living_area is null or min_living_area between 0 and 10000),
   constraint search_params_property_types_check check (
     property_types <@ array['villa', 'radhus', 'lagenhet', 'fritidshus', 'tomt', 'other']
   ),
