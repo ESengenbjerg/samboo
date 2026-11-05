@@ -17,7 +17,7 @@ export type ClientFilter = {
   minRooms?: number;
   maxMonthlyFee?: number;
   minLivingArea?: number;
-  showNewProduction: boolean;
+  showNewConstruction: boolean;
 };
 
 export type InformationInterval = "day" | "week" | "none";

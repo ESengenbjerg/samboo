@@ -14,6 +14,7 @@ import { formatPrice } from "@/utils/format-price";
 import { cva, type VariantProps } from "class-variance-authority";
 import { useState } from "react";
 import { LikeButton } from "./like-button";
+import OnCardTag from "./tags/card-tag";
 
 const fallbackImage = require("@/assets/images/no-image.jpg");
 
@@ -46,6 +47,8 @@ type ObjectCardProps = VariantProps<typeof objectCardVariants> & {
   rooms: number | null;
   imageUrl: string;
   listingId: number;
+  isNew?: boolean;
+  isNewConstruction?: boolean;
   onPress?: () => void;
   className?: string;
 };
@@ -59,6 +62,8 @@ export function ObjectCard({
   rooms,
   imageUrl,
   listingId,
+  isNew,
+  isNewConstruction,
   onPress,
   size,
   className,
@@ -79,13 +84,16 @@ export function ObjectCard({
             style={{ width: "100%", height: "100%" }}
             contentFit="cover"
           />
+          <OnCardTag isNew={isNew} isNewConstruction={isNewConstruction} />
         </View>
 
         {!isSmall ? (
           <>
             <CardHeader className="flex-1 flex-row overflow-hidden justify-between">
               <View className="flex-1">
-                <CardTitle numberOfLines={1} className="max-w-[90%]">{address}</CardTitle>
+                <CardTitle numberOfLines={1} className="max-w-[90%]">
+                  {address}
+                </CardTitle>
                 <CardDescription numberOfLines={1} className="max-w-[90%]">
                   {[area, municipality].filter(Boolean).join(", ")}
                 </CardDescription>
