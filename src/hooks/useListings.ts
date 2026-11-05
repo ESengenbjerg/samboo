@@ -1,11 +1,12 @@
 import { getActiveListings } from "@/services/listings";
-import { Listing } from "@/types/listing";
+import { MatchedListing } from "@/types/listing";
+import { toMatchedListing } from "@/utils/to-matched-listing";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 
 type ListingsResult = {
   userId: string;
-  listings: Listing[];
+  listings: MatchedListing[];
   failed?: boolean;
 };
 
@@ -28,7 +29,7 @@ export function useListings(userId: string | undefined) {
           setResult({ userId, listings: [], failed: true });
           return;
         }
-        setResult({ userId, listings: data.map((row) => row.listings) });
+        setResult({ userId, listings: data.map(toMatchedListing) });
       });
 
       return () => {

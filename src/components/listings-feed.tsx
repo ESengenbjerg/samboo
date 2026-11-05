@@ -11,6 +11,7 @@ import {
 import { Text } from "@/components/ui/text";
 import { Listing } from "@/types/listing";
 import { BasePath, goToObject } from "@/utils/go-to-object";
+import { isNewConstruction } from "@/utils/is-new-construction";
 import { Link } from "expo-router";
 import { useState } from "react";
 import { ScrollView, View } from "react-native";
@@ -18,7 +19,7 @@ import FormError from "./form-error";
 
 type ListingsProps = {
   title: string;
-  listings: Listing[];
+  listings: (Listing & { is_new?: boolean })[];
   path: BasePath;
   isLoading: boolean;
   error: string | null;
@@ -102,6 +103,8 @@ export default function ListingsFeed({
               imageUrl={listing.image_url ?? ""}
               onPress={() => goToObject(listing.id, path)}
               listingId={listing.id}
+              isNew={listing.is_new}
+              isNewConstruction={isNewConstruction(listing)}
               size={view === "grid" ? "small" : "default"}
             />
           ))}

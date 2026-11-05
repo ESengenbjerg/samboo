@@ -22,6 +22,13 @@ export type UserListing = {
   listings: Listing;
 };
 
+// A listing together with my user_listings row data, so the UI can show the "Ny" flag
+// and attach tags (listing_tags.user_listing_id = user_listing_id)
+export type MatchedListing = Listing & {
+  user_listing_id: number;
+  is_new: boolean;
+};
+
 // UserListing with the owner, used when rows from several users are fetched at once
 export type MemberUserListing = UserListing & {
   user_id: string;

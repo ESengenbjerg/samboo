@@ -1,5 +1,6 @@
 import { ClientFilter } from "@/stores/onboarding";
 import { Listing } from "@/types/listing";
+import { isNewConstruction } from "@/utils/is-new-construction";
 
 // TODO: Test with listings feed (/search) once onboarding is complete.
 
@@ -29,8 +30,7 @@ export function applyClientFilter(
     )
       return false;
 
-    if (!filter.showNewProduction && listing.is_new_construction)
-      return false;
+    if (!filter.showNewConstruction && isNewConstruction(listing)) return false;
 
     return true;
   });
