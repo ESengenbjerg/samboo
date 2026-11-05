@@ -6,7 +6,7 @@ import type { PostgrestError } from "@supabase/supabase-js";
 // The listings_select_showings policy lets me read every listing I have a showing for.
 // !inner is a safety net: without it listings could be null and the app would crash
 const SHOWING_COLUMNS =
-  "id, listing_id, showing_date, start_time, note, listings!inner(municipality, area, ld_json)";
+  "id, listing_id, showing_date, start_time, note, listings!inner(address, municipality, area)";
 
 // Today's date in local time as "2026-10-29", to compare with showings.showing_date
 function today() {

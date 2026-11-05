@@ -70,6 +70,7 @@ export function SignUpForm() {
           keyboardType="email-address"
           autoComplete="email"
           autoCapitalize="none"
+          maxLength={254}
           value={email}
           onChangeText={setEmail}
           onSubmitEditing={onEmailSubmitEditing}
@@ -131,7 +132,7 @@ export function SignUpForm() {
           }}
           disabled={isLoading}
         >
-          <Text className="font-normal leading-4 text-background">
+          <Text className="leading-4 text-background">
             Logga in
           </Text>
         </Button>

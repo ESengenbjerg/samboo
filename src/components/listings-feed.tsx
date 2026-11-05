@@ -82,7 +82,11 @@ export default function ListingsFeed({
       )}
 
       {/* Present properties based in column or grid based on user choice */}
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        className="bg-background"
+        contentContainerClassName="pb-8"
+        showsVerticalScrollIndicator={false}
+      >
         <View
           className={`${view === "grid" ? "flex-row gap-2 mb-4 flex-wrap" : "gap-4 mb-4"}`}
         >
@@ -90,13 +94,13 @@ export default function ListingsFeed({
           {listings.map((listing) => (
             <ObjectCard
               key={listing.id}
-              address={listing.ld_json.streetAddress ?? ""}
+              address={listing.address ?? ""}
               area={listing.area ?? ""}
               municipality={listing.municipality ?? ""}
               price={listing.price ?? 0}
               livingArea={listing.living_area ?? 0}
               rooms={listing.rooms ?? 0}
-              imageUrl={listing.ld_json.image ?? ""}
+              imageUrl={listing.image_url ?? ""}
               onPress={() => goToObject(listing.id, path)}
               listingId={listing.id}
               isNew={listing.is_new}

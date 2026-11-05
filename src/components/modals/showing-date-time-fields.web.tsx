@@ -17,7 +17,7 @@ type ShowingDateTimeFieldsProps = {
 
 // Same look as components/ui/input.tsx
 const INPUT_CLASS =
-  "border-input bg-background text-foreground h-10 w-full rounded-md border px-3 text-base";
+  "border-input bg-background text-foreground h-10 w-full rounded-sm border px-3 text-base";
 
 // Web version of the date and time fields. Metro picks this file instead of
 // showing-date-time-fields.tsx on web (the .web.tsx extension), since @react-native-community/datetimepicker renders nothing there.

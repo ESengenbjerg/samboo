@@ -64,6 +64,7 @@ export function SignInForm() {
           keyboardType="email-address"
           autoComplete="email"
           autoCapitalize="none"
+          maxLength={254}
           value={email}
           onChangeText={setEmail}
           onSubmitEditing={() => passwordInputRef.current?.focus()}
@@ -107,7 +108,7 @@ export function SignInForm() {
               router.push("/forgotten-password");
             }}
           >
-            <Text className="font-normal leading-4 text-background">
+            <Text className="leading-4 text-background">
               Glömt lösenord?
             </Text>
           </Button>
@@ -119,7 +120,7 @@ export function SignInForm() {
               router.push("/register");
             }}
           >
-            <Text className="font-normal leading-4 text-background">
+            <Text className="leading-4 text-background">
               Skapa konto
             </Text>
           </Button>

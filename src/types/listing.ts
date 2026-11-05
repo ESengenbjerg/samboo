@@ -10,13 +10,9 @@ export type Listing = {
   rooms: number | null;
   living_area?: number | null;
   monthly_fee?: number | null;
-  // listings.is_new_construction (default false in the database)
-  is_new_construction?: boolean;
-  ld_json: {
-    streetAddress?: string;
-    image?: string;
-    newConstruction?: boolean;
-  };
+  address: string | null;
+  image_url: string | null;
+  is_new_construction: boolean;
 };
 
 export type UserListing = {

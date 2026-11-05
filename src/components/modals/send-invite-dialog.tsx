@@ -78,6 +78,7 @@ export function SendInviteDialog({
                     keyboardType="email-address"
                     autoComplete="email"
                     autoCapitalize="none"
+                    maxLength={254}
                     returnKeyType="next"
                     submitBehavior="submit"
                     textContentType="emailAddress"

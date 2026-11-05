@@ -18,7 +18,7 @@ function toScheduledShowing(row: ShowingRow): ScheduledShowing {
   return {
     id: row.id,
     listingId: row.listing_id,
-    address: row.listings.ld_json.streetAddress ?? "Adress saknas",
+    address: row.listings.address ?? "Adress saknas",
     municipality: row.listings.municipality ?? "",
     area: row.listings.area ?? "",
     startsAt: new Date(year, month - 1, day, hour, minute),
