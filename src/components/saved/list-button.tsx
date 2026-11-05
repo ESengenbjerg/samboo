@@ -1,5 +1,6 @@
 import { Image } from "expo-image";
 import { router } from "expo-router";
+import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { Card } from "../ui/card";
 import { Text } from "../ui/text";
@@ -19,6 +20,10 @@ export default function ListButton({
   numberOfSavedObjects,
   firstObjectImage,
 }: ListButtonProps) {
+  // Fallback image when the list has no image, or the image fails to load
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const showFallback = !firstObjectImage || failedUrl === firstObjectImage;
+
   function onPress() {
     router.push({
       pathname: "/saved/[listId]",
@@ -32,9 +37,8 @@ export default function ListButton({
         <View className="h-full flex-row justify-between">
           <View className="h-full w-[40%] rounded-l-md">
             <Image
-              source={
-                firstObjectImage ? { uri: firstObjectImage } : fallbackImage
-              }
+              source={showFallback ? fallbackImage : { uri: firstObjectImage }}
+              onError={() => setFailedUrl(firstObjectImage ?? null)}
               style={{
                 width: "100%",
                 height: "100%",

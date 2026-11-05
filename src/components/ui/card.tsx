@@ -32,7 +32,7 @@ function CardTitle({
       role="heading"
       variant="bold"
       aria-level={3}
-      className={cn('font-semibold leading-none text-card-foreground', className)}
+      className={cn('leading-none text-card-foreground', className)}
       {...props}
     />
   );

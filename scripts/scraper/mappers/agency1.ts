@@ -39,6 +39,20 @@ function mapPropertyType(type: unknown): PropertyType | null {
   return mapped;
 }
 
+// agency1 writes the street address as "Storgatan 1, Centrum". The area is saved in its own column,
+// so cut the last part, but only when it is the area. "Storgatan 1, lgh 1101" keeps its last part
+function mapAddress(streetAddress: unknown, region: unknown): string | null {
+  const text = toText(streetAddress);
+  if (!text) return null;
+
+  const lastComma = text.lastIndexOf(",");
+  const lastPart = text.slice(lastComma + 1).trim().toLowerCase();
+  const regionText = toText(region)?.toLowerCase();
+  const cut = lastComma !== -1 && !!regionText && lastPart === regionText;
+
+  return toText(cut ? text.slice(0, lastComma) : text, 300);
+}
+
 // The parts of agency1's ld+json (the RealEstateListing object) we read
 export type Agency1LdJson = {
   category?: string | null;
@@ -83,7 +97,10 @@ export function mapListing(
   return {
     property_type: mapPropertyType(facts.listingType ?? data.category),
     municipality: toText(home?.address?.addressLocality),
-    address: toText(home?.address?.streetAddress, 300),
+    address: mapAddress(
+      home?.address?.streetAddress,
+      home?.address?.addressRegion,
+    ),
     area: toPlaceName(home?.address?.addressRegion),
     price: toPrice(data.product?.offers?.price),
     rooms: toNumber(home?.numberOfRooms),

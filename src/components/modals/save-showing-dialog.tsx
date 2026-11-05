@@ -80,6 +80,7 @@ export function SaveShowingDialog({
                 value={note}
                 onChangeText={setNote}
                 placeholder="Lägg till anteckning..."
+                maxLength={500}
                 className="h-24"
               />
             </View>

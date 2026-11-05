@@ -1,13 +1,19 @@
-import { Icon } from '@/components/ui/icon';
-import { NativeOnlyAnimatedView } from '@/components/ui/native-only-animated-view';
-import { cn } from '@/lib/utils';
-import * as DialogPrimitive from '@rn-primitives/dialog';
-import { X } from 'lucide-react-native';
-import * as React from 'react';
-import {   Platform,   Text,   View,   type GestureResponderEvent,   type ViewProps } from 'react-native';
-import { FadeIn, FadeOut, ReduceMotion } from 'react-native-reanimated';
-import { FullWindowOverlay as RNFullWindowOverlay } from 'react-native-screens';
+import { Icon } from "@/components/ui/icon";
+import { NativeOnlyAnimatedView } from "@/components/ui/native-only-animated-view";
 import { useKeyboardHeight } from "@/hooks/useKeyboardHeight";
+import { cn } from "@/lib/utils";
+import * as DialogPrimitive from "@rn-primitives/dialog";
+import { X } from "lucide-react-native";
+import * as React from "react";
+import {
+  Platform,
+  Text,
+  View,
+  type GestureResponderEvent,
+  type ViewProps,
+} from "react-native";
+import { FadeIn, FadeOut, ReduceMotion } from "react-native-reanimated";
+import { FullWindowOverlay as RNFullWindowOverlay } from "react-native-screens";
 
 const Dialog = DialogPrimitive.Root;
 
@@ -96,7 +102,7 @@ function DialogContent({
             <>{children}</>
             <DialogPrimitive.Close
               className={cn(
-                "absolute right-4 top-4 rounded opacity-70 active:opacity-100",
+                "absolute right-4 top-4 rounded-sm opacity-70 active:opacity-100",
                 Platform.select({
                   web: "ring-offset-background focus:ring-ring data-[state=open]:bg-accent transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-offset-2",
                 }),

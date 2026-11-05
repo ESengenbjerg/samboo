@@ -15,8 +15,8 @@ import { formatPrice } from "@/utils/format-price";
 import { isNewConstruction } from "@/utils/is-new-construction";
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import { PlusSquare } from "lucide-react-native";
 import { useState } from "react";
+import { PlusSquare } from "lucide-react-native";
 import { Linking, Pressable, ScrollView, View } from "react-native";
 import FormError from "../form-error";
 import { LikeButton } from "../like-button";
@@ -28,6 +28,23 @@ type ObjectPageProps = {
   listing: Listing | null;
   isLoading: boolean;
 };
+
+const fallbackImage = require("@/assets/images/no-image.jpg");
+
+// Shows the fallback image when the listing has no image, or the image fails to load
+function ListingImage({ imageUrl }: { imageUrl: string | null }) {
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const showFallback = !imageUrl || failedUrl === imageUrl;
+
+  return (
+    <Image
+      source={showFallback ? fallbackImage : { uri: imageUrl }}
+      onError={() => setFailedUrl(imageUrl)}
+      style={{ width: "100%", height: 320 }}
+      contentFit="cover"
+    />
+  );
+}
 
 export default function ObjectPageScreen({
   listing,
@@ -172,24 +189,16 @@ export default function ObjectPageScreen({
       >
         <Text>Tillbaka</Text>
       </Button>
-      <ScrollView className="flex-1">
+      <ScrollView className="flex-1 bg-background" contentContainerClassName="pb-8">
         {/* --- IMAGE --- */}
-        <Image
-          source={
-            listing.ld_json.image
-              ? { uri: listing.ld_json.image }
-              : require("@/assets/images/no-image.jpg")
-          }
-          style={{ width: "100%", height: 320 }}
-          contentFit="cover"
-        />
+        <ListingImage imageUrl={listing.image_url} />
         <View className="px-8 py-6 gap-6">
           {/* --- ADDRESS AND AREA --- */}
           <View className="gap-4">
             <View>
               <View className="flex-row justify-between items-center">
                 <Text variant="h1">
-                  {listing.ld_json.streetAddress ?? "Adress saknas"}
+                  {listing.address ?? "Adress saknas"}
                 </Text>
                 <LikeButton listingId={listing.id} size={24} />
               </View>

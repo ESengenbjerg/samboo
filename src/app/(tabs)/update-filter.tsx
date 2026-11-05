@@ -3,7 +3,10 @@ import { ScrollView } from "react-native";
 
 export default function EditFilterScreen() {
   return (
-    <ScrollView className="bg-background py-6">
+    <ScrollView
+      className="bg-background"
+      contentContainerClassName="pt-6 pb-8"
+    >
       <UpdateFilterForm />
     </ScrollView>
   );

@@ -50,7 +50,11 @@ export default function SettingsScreen() {
   }
 
   return (
-    <ScrollView ref={scrollRef}>
+    <ScrollView
+      ref={scrollRef}
+      className="bg-background"
+      contentContainerClassName="pb-8"
+    >
       <View className="flex-1 px-8 bg-background gap-8">
         <View className="gap-3">
           <Text variant="h1">Kontoinställningar</Text>
