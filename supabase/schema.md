@@ -126,6 +126,7 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 | `purge_old_invites()` | security definer | Deletes pending invites older than 90 days, and accepted/declined/cancelled invites one year after `responded_at`. One year because all invites count towards the 20 per pair limit. Run by pg_cron |
 | `purge_old_showings()` | security definer | Deletes showings whose date passed more than 30 days ago. Run by pg_cron |
 | `purge_search_params_log()` | security definer | Deletes `search_params_log` rows older than 90 days. Run by pg_cron |
+| `dispatch_github_workflow(workflow)` | security definer | Starts a GitHub Actions workflow on `develop` through the `workflow_dispatch` API, with `skip_if_recent = true`. Uses `pg_net` (asynchronous: GitHub's answer lands in `net._http_response`, 204 = started) and the Vault secret `github_dispatch_token`. Run by pg_cron. No role may call it, not even service_role |
 | `rls_auto_enable()` | event trigger function (`ensure_rls`) | Enables RLS on new tables in `public` |
 
 ## Triggers
@@ -143,7 +144,7 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 
 ## Other Supabase features
 
-One storage bucket exists (`avatars`, see "Profile images" below). No custom schemas, Vault secrets or Edge Functions exist. (Edge Functions live outside the database; none were found under Edge Functions in Studio.)
+One storage bucket exists (`avatars`, see "Profile images" below). No custom schemas or Edge Functions exist. One Vault secret exists: `github_dispatch_token`, a GitHub fine-grained PAT (repo samboo only, permission Actions: read and write) used by `dispatch_github_workflow()`. It is created by hand in Studio and expires: when it does, GitHub answers 401 in `net._http_response` and only GitHub's own schedule is left. (Edge Functions live outside the database; none were found under Edge Functions in Studio.)
 
 ### Realtime
 
@@ -168,13 +169,17 @@ Cleanup runs inside the database and no longer depends on the scraper (GitHub Ac
 | `purge-old-invites` | daily 03:30 | `purge_old_invites()` |
 | `purge-search-params-log` | daily 03:45 | `purge_search_params_log()` |
 | `purge-old-showings` | daily 03:50 | `purge_old_showings()` |
+| `dispatch-scrape` | daily 04:20 and 06:20 | `dispatch_github_workflow('scrape.yml')` |
+| `dispatch-purge-avatars` | daily 04:50 and 06:50 | `dispatch_github_workflow('purge-avatars.yml')` |
 | `purge-cron-history` | daily 04:00 | deletes `cron.job_run_details` older than 7 days |
 
 Check results with `select * from cron.job_run_details order by start_time desc limit 20;`.
 
+The two `dispatch-*` jobs are backups for GitHub's own schedule (scrape 02:12, purge-avatars 02:41), which does not always fire. Each workflow first checks whether its main job succeeded in the last 12 hours and skips itself if so, so both triggers can be active at once. A failed run is retried by the next trigger. GitHub's answers: `select id, status_code, content from net._http_response order by created desc limit 10;`.
+
 ## Extensions
 
-`pg_cron`, `pg_stat_statements`, `pgcrypto`, `plpgsql`, `supabase_vault`, `uuid-ossp`.
+`pg_cron`, `pg_net`, `pg_stat_statements`, `pgcrypto`, `plpgsql`, `supabase_vault`, `uuid-ossp`.
 
 ## Group membership
 

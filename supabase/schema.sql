@@ -13,15 +13,16 @@
 --   * pg_cron job state (the jobs themselves are listed in the pg_cron section at the end of this file)
 --   * Role settings: authenticator has pgrst.db_pre_request = 'public.check_request' (see the note at the end of this file)
 --   * Realtime publications (invites and profiles are published, see the Realtime section at the end of this file)
---   * Custom schemas and Vault secrets (none exist)
+--   * Custom schemas (none exist) and Vault secrets. One secret exists: github_dispatch_token (GitHub fine-grained PAT, used by dispatch_github_workflow()). It is created by hand in Studio, never in SQL
 --   * The files themselves in Storage. Only the bucket and its policies are described, in the Storage section below. Deleting avatar files is done by scripts/avatars/purgeOrphanAvatars.ts, not by SQL
 -- 
 
 -- ---------------------------------------------------------------------
 -- Extensions (beyond the Supabase defaults)
 -- ---------------------------------------------------------------------
--- pg_cron, pg_stat_statements 1.11, pgcrypto 1.3, plpgsql 1.0, supabase_vault 0.3.1, uuid-ossp 1.1
+-- pg_cron, pg_net, pg_stat_statements 1.11, pgcrypto 1.3, plpgsql 1.0, supabase_vault 0.3.1, uuid-ossp 1.1
 -- create extension if not exists pg_cron with schema pg_catalog;
+-- create extension if not exists pg_net with schema extensions;
 
 
 -- ---------------------------------------------------------------------
@@ -1130,6 +1131,41 @@ AS $function$
   select count(*)::int from deleted;
 $function$;
 
+-- Starts a GitHub Actions workflow (workflow_dispatch) on develop with skip_if_recent = true. Run by pg_cron as a backup
+-- for GitHub's own schedule, which does not always fire. The workflow skips itself if it already succeeded in the last 12 hours.
+-- pg_net is asynchronous: this returns a request id at once, and GitHub's answer lands in net._http_response later (204 = started).
+-- The token is a fine-grained PAT (repo samboo only, Actions: read and write) stored in Vault as github_dispatch_token.
+CREATE OR REPLACE FUNCTION public.dispatch_github_workflow(workflow text)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  token text;
+begin
+  select decrypted_secret into token
+  from vault.decrypted_secrets
+  where name = 'github_dispatch_token';
+
+  if token is null then
+    raise exception 'Vault secret github_dispatch_token is missing';
+  end if;
+
+  return net.http_post(
+    url := 'https://api.github.com/repos/ESengenbjerg/samboo/actions/workflows/' || workflow || '/dispatches',
+    body := jsonb_build_object('ref', 'develop', 'inputs', jsonb_build_object('skip_if_recent', 'true')),
+    headers := jsonb_build_object(
+      'Authorization', 'Bearer ' || token,
+      'Accept', 'application/vnd.github+json',
+      'X-GitHub-Api-Version', '2022-11-28',
+      'User-Agent', 'samboo-pg-cron',
+      'Content-Type', 'application/json'
+    )
+  );
+end;
+$function$;
+
 -- Files in the avatars bucket that no profile points to (replaced images, abandoned uploads, deleted accounts).
 -- min_age protects an upload that has not yet been saved in the profile. Called by scripts/avatars/purgeOrphanAvatars.ts (service_role),
 -- which deletes the files through the Storage API. Files must NOT be deleted with SQL on storage.objects: that orphans the file in the bucket.
@@ -1684,6 +1720,10 @@ grant execute on function
   public.validate_search_places()
 to service_role;
 
+-- Nobody but the database owner (pg_cron runs as postgres): it reads a Vault secret.
+-- The revoke above does not cover service_role, which gets execute through Supabase's default privileges.
+revoke execute on function public.dispatch_github_workflow(text) from service_role;
+
 -- Called by PostgREST before every Data API request, as the role making the request. It must therefore be executable by all of them.
 -- This is a deliberate exception to the rule above: revoking it would make EVERY request fail.
 grant execute on function public.check_request()
@@ -1724,4 +1764,8 @@ select cron.schedule('purge-old-invites',          '30 3 * * *',  $$select publi
 select cron.schedule('purge-search-params-log',    '45 3 * * *',  $$select public.purge_search_params_log()$$);
 select cron.schedule('purge-old-showings',         '50 3 * * *',  $$select public.purge_old_showings()$$);
 -- cron.job_run_details grows with every run
+-- Backup triggers for GitHub Actions (GitHub's schedule: scrape 02:12, purge-avatars 02:41). Skipped by the workflow if already run
+-- in the last 12 hours. Check GitHub's answers: select id, status_code, content from net._http_response order by created desc limit 10;
+select cron.schedule('dispatch-scrape',            '20 4,6 * * *', $$select public.dispatch_github_workflow('scrape.yml')$$);
+select cron.schedule('dispatch-purge-avatars',     '50 4,6 * * *', $$select public.dispatch_github_workflow('purge-avatars.yml')$$);
 select cron.schedule('purge-cron-history',         '0 4 * * *',   $$delete from cron.job_run_details where end_time < now() - interval '7 days'$$);

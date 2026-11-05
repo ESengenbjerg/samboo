@@ -43,8 +43,9 @@ jobs:
 
       - run: npm run typecheck
 
-      # The root tsconfig excludes scripts/, so the backend scripts are checked separately
-      - run: npx tsc --noEmit -p scripts/tsconfig.json
+      # The root tsconfig excludes scripts/, so the backend is typechecked separately
+      - name: Typecheck backend
+        run: npx tsc --noEmit -p scripts/tsconfig.json
 
       - run: npm run lint
 

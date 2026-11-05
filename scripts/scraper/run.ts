@@ -37,7 +37,7 @@ import { buildScope } from "./scope.ts";
 
 process.loadEnvFile(".env");
 
-// THIS REQUIRES NODE v.25
+// THIS REQUIRES NODE v.24 (native .ts and process.loadEnvFile, see scripts/.nvmrc)
 const { supabaseAdmin } = await import("../lib/supabaseAdmin.ts");
 
 // Agencies are scraped one after another. ADD NEW AGENCIES HERE!!!
