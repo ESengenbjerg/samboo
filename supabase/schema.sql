@@ -929,6 +929,38 @@ begin
 end;
 $function$;
 
+-- Checks the recipient of a new invite: a valid e-mail address (same pattern as the app), and at most 20 different recipients per sender in the last 30 days.
+-- All statuses count (also cancelled), so sending and cancelling does not get around it. A new invite to someone already invited in the period is not a new recipient.
+-- The sender's profile row is locked while counting, so simultaneous inserts cannot go past the limit. raise exception (P0001) so the app shows the message as is.
+CREATE OR REPLACE FUNCTION public.check_invite_recipient()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+begin
+  if new.to_email !~ '^[^\s@]+@[^\s@]+\.[^\s@]+$' then
+    raise exception 'Ange en giltig e-postadress.';
+  end if;
+
+  -- no key update: does not block the foreign key check of other inserts
+  perform 1 from public.profiles where id = new.from_user_id for no key update;
+  if not exists (
+    select 1 from public.invites
+    where from_user_id = new.from_user_id
+      and lower(to_email) = lower(new.to_email)
+      and created_at > now() - interval '30 days'
+  ) and (
+    select count(distinct lower(to_email)) from public.invites
+    where from_user_id = new.from_user_id
+      and created_at > now() - interval '30 days'
+  ) >= 20 then
+    raise exception 'Du har bjudit in för många olika personer. Försök igen senare';
+  end if;
+  return new;
+end;
+$function$;
+
 -- At most 20 invites in total (any status) from one sender to one recipient. Declined invites are kept so they count.
 CREATE OR REPLACE FUNCTION public.limit_invites_per_pair()
  RETURNS trigger
@@ -1413,6 +1445,11 @@ CREATE TRIGGER search_params_limit_changes
   ON public.search_params
   FOR EACH ROW EXECUTE FUNCTION public.limit_search_params_changes();
 
+-- BEFORE triggers fire in alphabetical order: check_recipient runs before limit_per_pair, so an invalid address is rejected first
+CREATE TRIGGER invites_check_recipient
+  BEFORE INSERT ON public.invites
+  FOR EACH ROW EXECUTE FUNCTION public.check_invite_recipient();
+
 CREATE TRIGGER invites_limit_per_pair
   BEFORE INSERT ON public.invites
   FOR EACH ROW EXECUTE FUNCTION public.limit_invites_per_pair();
@@ -1725,6 +1762,7 @@ to authenticated, service_role;
 
 -- service_role only (scraper, triggers, maintenance)
 grant execute on function
+  public.check_invite_recipient(),
   public.dissolve_group_if_alone(bigint),
   public.due_notifications(boolean),
   public.handle_deleted_profile(),

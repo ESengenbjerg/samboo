@@ -410,8 +410,8 @@ paths:
       summary: Send an invite
       description: |
         Only `from_user_id` (must be my id) and `to_email` can be set. Rules:
-        not to my own e-mail; at most one pending invite per recipient;
-        at most 20 invites in total (any status) per recipient.
+        not to my own e-mail; `to_email` must be an e-mail address; at most one pending invite per recipient;
+        at most 20 invites in total (any status) per recipient; at most 20 different recipients in the last 30 days.
         E-mail addresses are compared case-insensitively.
       operationId: invites_insert
       requestBody:
@@ -423,11 +423,11 @@ paths:
               required: [from_user_id, to_email]
               properties:
                 from_user_id: { type: string, format: uuid }
-                to_email: { type: string, maxLength: 254 }
+                to_email: { type: string, maxLength: 254, pattern: '^[^\s@]+@[^\s@]+\.[^\s@]+$' }
       responses:
         '201': { description: Created. }
         '400':
-          description: '`Du har skickat för många inbjudningar till den här personen` (the 20 limit) or a check constraint.'
+          description: '`Ange en giltig e-postadress.`, `Du har bjudit in för många olika personer. Försök igen senare` (20 recipients per 30 days), `Du har skickat för många inbjudningar till den här personen` (20 per recipient), or a check constraint (longer than 254).'
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
