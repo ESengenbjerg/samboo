@@ -1,8 +1,4 @@
-import {
-  ALL_OPTION,
-  PROPERTY_TYPES_OPTIONS,
-  SORT_OPTIONS,
-} from "@/constants/filter-options";
+import { ALL_OPTION, SORT_OPTIONS } from "@/constants/filter-options";
 import { ListingFilters } from "@/hooks/useFilteredListings";
 import { ScrollView } from "react-native";
 import FilterSelect from "./filter-select";
@@ -19,6 +15,7 @@ export default function ListingsFilterBar({
     setPropertyType,
     category,
     setCategory,
+    propertyTypeOptions,
     tagOptions,
     showPropertyTypeFilter,
     showCategoryFilter,
@@ -43,7 +40,7 @@ export default function ListingsFilterBar({
           value={propertyType}
           placeholder="Bostadstyp"
           onValueChange={setPropertyType}
-          options={[ALL_OPTION, ...PROPERTY_TYPES_OPTIONS]}
+          options={[ALL_OPTION, ...propertyTypeOptions]}
           fieldColor="bg-white"
         />
       )}

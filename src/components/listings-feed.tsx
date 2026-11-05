@@ -32,10 +32,11 @@ export default function ListingsFeed({
   const userId = session?.user.id;
 
   const [view, setView] = useState<"column" | "grid">("column");
-  const { visibleListings, tagsError, filters } = useFilteredListings(
-    listings,
-    userId,
-  );
+  const {
+    visibleListings,
+    error: filterError,
+    filters,
+  } = useFilteredListings(listings, userId);
 
   return (
     <View className="flex-1 px-6 bg-background gap-2">
@@ -67,10 +68,14 @@ export default function ListingsFeed({
 
       {isLoading && <Text>Laddar...</Text>}
       {error && <FormError>{error}</FormError>}
-      {tagsError && <FormError>{tagsError}</FormError>}
+      {filterError && <FormError>{filterError}</FormError>}
 
       {!isLoading && !error && visibleListings.length === 0 && (
-        <Text>Inga objekt hittades.</Text>
+        <Text>
+          {listings.length > 0
+            ? "Inga bostäder inom valda filter"
+            : "Inga objekt hittades."}
+        </Text>
       )}
 
       {/* Present properties based in column or grid based on user choice */}

@@ -1,6 +1,5 @@
-import { ALL_VALUE } from "@/constants/filter-options";
+import { ALL_VALUE, PROPERTY_TYPES_OPTIONS } from "@/constants/filter-options";
 import { useListingTags } from "@/hooks/useListingTags";
-import { useSearchParams } from "@/hooks/useSearchParams";
 import { useUserTags } from "@/hooks/useUserTags";
 import { Listing } from "@/types/listing";
 import { SelectOption } from "@/types/select-option";
@@ -17,21 +16,49 @@ export function useFilteredListings(
   userId: string | undefined,
 ) {
   const { tags, error: tagsError } = useUserTags(userId);
-  const { listingTags } = useListingTags(userId);
-  const { scraperFilter } = useSearchParams(userId);
+  const { listingTags, error: listingTagsError } = useListingTags(userId);
 
   const [sort, setSort] = useState<SelectOption>();
-  const [propertyType, setPropertyType] = useState<SelectOption>();
-  const [category, setCategory] = useState<SelectOption>();
+  const [selectedType, setPropertyType] = useState<SelectOption>();
+  const [selectedCategory, setCategory] = useState<SelectOption>();
 
   // Only worth filtering when there is more than one option to choose between
-  const showPropertyTypeFilter = (scraperFilter?.propertyTypes.length ?? 0) > 1;
   const showCategoryFilter = tags.length > 1;
+
+  // Only the property types that exist among the listings
+  const listingTypes = new Set(listings.map((l) => l.property_type));
+  const propertyTypeOptions = PROPERTY_TYPES_OPTIONS.filter((o) =>
+    listingTypes.has(o.value),
+  );
+  const showPropertyTypeFilter = propertyTypeOptions.length > 1;
 
   const tagOptions: SelectOption[] = tags.map((t) => ({
     value: String(t.id),
     label: t.tag_name,
   }));
+
+  // A choice only counts while its filter is visible and still offers that option.
+  // Otherwise it would filter invisibly, with no way for the user to reset it
+  const activeOption = (
+    selected: SelectOption | undefined,
+    visible: boolean,
+    options: SelectOption[],
+  ) =>
+    visible &&
+    (selected?.value === ALL_VALUE ||
+      options.some((o) => o.value === selected?.value))
+      ? selected
+      : undefined;
+  const propertyType = activeOption(
+    selectedType,
+    showPropertyTypeFilter,
+    propertyTypeOptions,
+  );
+  const category = activeOption(
+    selectedCategory,
+    showCategoryFilter,
+    tagOptions,
+  );
 
   // The listings after the filters and the sorting. Listings arrive newest first
   const visibleListings = useMemo(() => {
@@ -73,7 +100,8 @@ export function useFilteredListings(
 
   return {
     visibleListings,
-    tagsError,
+    // One message at a time, so the feed does not stack several errors
+    error: tagsError ?? listingTagsError,
     filters: {
       sort,
       setSort,
@@ -81,6 +109,7 @@ export function useFilteredListings(
       setPropertyType,
       category,
       setCategory,
+      propertyTypeOptions,
       tagOptions,
       showPropertyTypeFilter,
       showCategoryFilter,

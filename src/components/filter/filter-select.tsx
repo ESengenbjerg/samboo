@@ -39,10 +39,10 @@ export default function FilterSelect({
       {label && <Label>{label}</Label>}
       <Select value={value} onValueChange={onValueChange}>
         <SelectTrigger
-          className={`${fieldColor} w-full`}
+          className={`${fieldColor} w-full justify-start`}
           onLayout={onTriggerLayout}
         >
-          <SelectValue numberOfLines={1} placeholder={placeholder ? placeholder : "Välj"} />
+          <SelectValue placeholder={placeholder ? placeholder : "Välj"} />
         </SelectTrigger>
         <SelectContent style={contentStyle}>
           <NativeSelectScrollView>
