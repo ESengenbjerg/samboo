@@ -705,7 +705,7 @@ paths:
     post:
       tags: [Tags]
       summary: Create a tag
-      description: '`user_id` must be my id. `tag_name` is 1-100 characters and unique per user (otherwise 409).'
+      description: '`user_id` must be my id. `tag_name` is 1-100 characters, not only whitespace, and unique per user (otherwise 409). At most 30 tags per user.'
       operationId: user_tags_insert
       requestBody:
         required: true
@@ -716,9 +716,14 @@ paths:
               required: [user_id, tag_name]
               properties:
                 user_id: { type: string, format: uuid }
-                tag_name: { type: string, minLength: 1, maxLength: 100 }
+                tag_name: { type: string, minLength: 1, maxLength: 100, pattern: '\S' }
       responses:
         '201': { description: Created. }
+        '400':
+          description: '`Du har redan max antal kategorier (30)`, or a check constraint (name only whitespace).'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
         '409': { description: I already have a tag with this name. }
         '429': { $ref: '#/components/responses/RateLimited' }
     patch:
@@ -732,9 +737,14 @@ paths:
             schema:
               type: object
               properties:
-                tag_name: { type: string, minLength: 1, maxLength: 100 }
+                tag_name: { type: string, minLength: 1, maxLength: 100, pattern: '\S' }
       responses:
         '204': { description: Updated. }
+        '400':
+          description: A check constraint (name only whitespace).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
         '429': { $ref: '#/components/responses/RateLimited' }
     delete:
       tags: [Tags]

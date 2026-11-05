@@ -208,7 +208,9 @@ create table public.user_tags (
   constraint user_tags_pkey primary key (id),
   constraint user_tags_unique unique (user_id, tag_name),
   constraint user_tags_user_id_fkey foreign key (user_id) references public.profiles (id) on delete cascade,
-  constraint user_tags_name_length check (char_length(tag_name) between 1 and 100)
+  constraint user_tags_name_length check (char_length(tag_name) between 1 and 100),
+  -- At least one character that is not whitespace (also catches tabs and line breaks, not just spaces)
+  constraint user_tags_name_not_blank check (tag_name ~ '\S')
 );
 
 create table public.listing_tags (
@@ -969,6 +971,24 @@ begin
 end;
 $function$;
 
+-- At most 30 tags (categories) per user. The user's profile row is locked while counting, so simultaneous inserts cannot go past the limit.
+-- Only inserts are checked: renaming a tag is an update and is not affected.
+CREATE OR REPLACE FUNCTION public.limit_tags_per_user()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+begin
+  -- no key update: does not block the foreign key check of other inserts
+  perform 1 from public.profiles where id = new.user_id for no key update;
+  if (select count(*) from public.user_tags where user_id = new.user_id) >= 30 then
+    raise exception 'Du har redan max antal kategorier (30)';
+  end if;
+  return new;
+end;
+$function$;
+
 CREATE OR REPLACE FUNCTION public.search_params_match_trigger()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -1399,6 +1419,10 @@ CREATE TRIGGER showings_limit_per_group
   BEFORE INSERT ON public.showings
   FOR EACH ROW EXECUTE FUNCTION public.limit_showings_per_group();
 
+CREATE TRIGGER user_tags_limit_per_user
+  BEFORE INSERT ON public.user_tags
+  FOR EACH ROW EXECUTE FUNCTION public.limit_tags_per_user();
+
 CREATE TRIGGER user_listings_set_liked_at
   BEFORE INSERT OR UPDATE OF liked ON public.user_listings
   FOR EACH ROW EXECUTE FUNCTION public.set_liked_at();
@@ -1707,6 +1731,7 @@ grant execute on function
   public.match_user_listings(uuid),
   public.limit_search_params_changes(),
   public.limit_showings_per_group(),
+  public.limit_tags_per_user(),
   public.move_personal_showings(uuid, bigint),
   public.orphan_avatar_objects(interval),
   public.purge_old_invites(),
