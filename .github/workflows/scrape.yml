@@ -36,6 +36,7 @@ jobs:
     steps:
       - name: Check for a successful scrape in the last 12 hours
         id: check
+        continue-on-error: true # If the check fails, run anyway instead of skipping
         # A manual run from the Actions tab (skip_if_recent = false) always runs
         if: github.event_name == 'schedule' || inputs.skip_if_recent
         env:
