@@ -1,29 +1,19 @@
 import { ObjectCard } from "@/components/object-card";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import {
-  ALL_OPTION,
-  ALL_VALUE,
-  PROPERTY_TYPES_OPTIONS,
-  SORT_OPTIONS,
-} from "@/constants/filter-options";
-import { useListingTags } from "@/hooks/useListingTags";
-import { useSearchParams } from "@/hooks/useSearchParams";
+import { FeedListing, useFilteredListings } from "@/hooks/useFilteredListings";
 import { useSession } from "@/hooks/useSession";
-import { useUserTags } from "@/hooks/useUserTags";
-import { Listing } from "@/types/listing";
-import { SelectOption } from "@/types/select-option";
 import { BasePath, goToObject } from "@/utils/go-to-object";
 import { isNewConstruction } from "@/utils/is-new-construction";
 import { Link } from "expo-router";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { ScrollView, View } from "react-native";
-import FilterSelect from "./filter/filter-select";
+import ListingsFilterBar from "./filter/listings-filter-bar";
 import FormError from "./form-error";
 
 type ListingsProps = {
   title: string;
-  listings: (Listing & { is_new?: boolean; user_listing_id?: number })[];
+  listings: FeedListing[];
   path: BasePath;
   isLoading: boolean;
   error: string | null;
@@ -42,60 +32,10 @@ export default function ListingsFeed({
   const userId = session?.user.id;
 
   const [view, setView] = useState<"column" | "grid">("column");
-  const { tags, error: tagsError } = useUserTags(userId);
-  const { listingTags } = useListingTags(userId);
-  const { scraperFilter } = useSearchParams(userId);
-
-  // Only worth filtering when there is more than one option to choose between
-  const showPropertyTypeFilter = (scraperFilter?.propertyTypes.length ?? 0) > 1;
-  const showCategoryFilter = tags.length > 1;
-
-  const [sort, setSort] = useState<SelectOption>();
-  const [propertyType, setPropertyType] = useState<SelectOption>();
-  const [category, setCategory] = useState<SelectOption>();
-
-  const tagOptions: SelectOption[] = tags.map((t) => ({
-    value: String(t.id),
-    label: t.tag_name,
-  }));
-
-  // The listings after the filters and the sorting. Listings arrive newest first
-  const visibleListings = useMemo(() => {
-    // The user_listing_ids that have the chosen category
-    const taggedIds =
-      category && category.value !== ALL_VALUE
-        ? new Set(
-            listingTags
-              .filter((lt) => String(lt.user_tag_id) === category.value)
-              .map((lt) => lt.user_listing_id),
-          )
-        : null;
-
-    const filtered = listings.filter((l) => {
-      const matchesType =
-        !propertyType ||
-        propertyType.value === ALL_VALUE ||
-        l.property_type === propertyType.value;
-      const matchesCategory =
-        !taggedIds ||
-        (l.user_listing_id !== undefined && taggedIds.has(l.user_listing_id));
-      return matchesType && matchesCategory;
-    });
-
-    switch (sort?.value) {
-      case "oldest":
-        return [...filtered].reverse();
-      case "price-low":
-        // Listings without a price go last
-        return [...filtered].sort(
-          (a, b) => (a.price ?? Infinity) - (b.price ?? Infinity),
-        );
-      case "price-high":
-        return [...filtered].sort((a, b) => (b.price ?? -1) - (a.price ?? -1));
-      default:
-        return filtered;
-    }
-  }, [listings, propertyType, sort, category, listingTags]);
+  const { visibleListings, tagsError, filters } = useFilteredListings(
+    listings,
+    userId,
+  );
 
   return (
     <View className="flex-1 px-6 bg-background gap-2">
@@ -123,38 +63,7 @@ export default function ListingsFeed({
         </Button>
       </View>
 
-      <ScrollView
-        horizontal
-        className="flex-grow-0 flex-shrink-0 pb-6"
-        contentContainerClassName="gap-1"
-        showsHorizontalScrollIndicator={false}
-      >
-        <FilterSelect
-          value={sort}
-          placeholder="Sortera"
-          onValueChange={setSort}
-          options={SORT_OPTIONS}
-          fieldColor="bg-white"
-        />
-        {showPropertyTypeFilter && (
-          <FilterSelect
-            value={propertyType}
-            placeholder="Bostadstyp"
-            onValueChange={setPropertyType}
-            options={[ALL_OPTION, ...PROPERTY_TYPES_OPTIONS]}
-            fieldColor="bg-white"
-          />
-        )}
-        {showCategoryFilter && (
-          <FilterSelect
-            placeholder="Kategorier"
-            value={category}
-            onValueChange={setCategory}
-            options={[ALL_OPTION, ...tagOptions]}
-            fieldColor="bg-white"
-          />
-        )}
-      </ScrollView>
+      <ListingsFilterBar filters={filters} />
 
       {isLoading && <Text>Laddar...</Text>}
       {error && <FormError>{error}</FormError>}
