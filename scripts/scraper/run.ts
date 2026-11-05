@@ -16,6 +16,7 @@ import type {
   Agency,
   IssueKind,
   IssueReason,
+  ListingRow,
   SearchParamsRow,
 } from "../lib/types.ts";
 import * as agency1 from "./agencies/agency1.ts";
@@ -111,6 +112,23 @@ console.log(JSON.stringify(scope, null, 2));
 // }
 
 // ---------------------- SCRAPE + SAVE --------------------------
+// Why the listings table would reject the row as a whole, or null. SAME LIMITS as the check constraints on listings
+// (supabase/schema.sql; the database allows a larger ld_json, since jsonb::text adds spaces). The mappers already make
+// single bad values null, this is for what cannot be nulled. A skipped row is not saved and not marked as removed
+const MAX_URL_LENGTH = 500;
+const MAX_LD_JSON_BYTES = 200_000;
+
+function rowProblem(row: ListingRow): string | null {
+  if (!row.url.startsWith("https://") || row.url.length > MAX_URL_LENGTH) {
+    return `url is not https or longer than ${MAX_URL_LENGTH}`;
+  }
+  const bytes = Buffer.byteLength(JSON.stringify(row.ld_json));
+  if (bytes > MAX_LD_JSON_BYTES) {
+    return `ld_json is ${bytes} bytes, max ${MAX_LD_JSON_BYTES}`;
+  }
+  return null;
+}
+
 // Unexpected errors (a broken db call, a bug). Agency problems go to scrape_issues instead
 let failedAgencies = 0;
 // Issues the admin must hear about now. Makes the run exit non-zero, so GitHub notifies
@@ -161,7 +179,16 @@ try {
         await flag(agency.AGENCY, "failed", reason, String(error), {});
         continue;
       }
-      const { rows, failedUrls } = result;
+      const { failedUrls } = result;
+      // A row the listings table would reject fails the whole batch upsert, so it is skipped like a failed page
+      const rows = result.rows.filter((row) => {
+        const problem = rowProblem(row);
+        if (problem) {
+          console.warn(`${agency.AGENCY}: skipping ${row.url}: ${problem}`);
+          failedUrls.push(row.url);
+        }
+        return !problem;
+      });
 
       if (rows.length > 0) {
         const { error } = await supabaseAdmin

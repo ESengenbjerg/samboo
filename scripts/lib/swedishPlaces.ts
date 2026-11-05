@@ -346,11 +346,20 @@ export function slugify(name: string): string {
 // "Håbo" (Uppsala) and "Habo" (Jönköping) get the same slug, then by slug
 const COUNTY_BY_NAME = new Map<string, string>();
 const COUNTY_BY_SLUG = new Map<string, string>();
+
+// Lowercase name -> the name as spelled in the list
+const NAME_BY_LOWERCASE = new Map<string, string>();
 for (const [county, municipalities] of Object.entries(COUNTIES)) {
   for (const m of municipalities) {
     COUNTY_BY_NAME.set(m.toLowerCase(), county);
     COUNTY_BY_SLUG.set(slugify(m), county);
+    NAME_BY_LOWERCASE.set(m.toLowerCase(), m);
   }
+}
+
+// "göteborg" -> "Göteborg". Null for an unknown municipality. Not by slug, so "Habo" never becomes "Håbo"
+export function municipalityName(name: string): string | null {
+  return NAME_BY_LOWERCASE.get(name.trim().toLowerCase()) ?? null;
 }
 
 // "Partille" -> "Västra Götaland". Null for an unknown municipality
