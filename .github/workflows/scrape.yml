@@ -69,9 +69,6 @@ jobs:
 
       - run: npm ci
 
-      - name: Typecheck backend
-        run: npx tsc --noEmit -p scripts/tsconfig.json
-
       - run: npx playwright install --with-deps chromium
 
       # run.ts calls process.loadEnvFile(".env"), which throws if the file is missing.

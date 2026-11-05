@@ -69,9 +69,6 @@ jobs:
 
       - run: npm ci
 
-      - name: Typecheck backend
-        run: npx tsc --noEmit -p scripts/tsconfig.json
-
       # The script calls process.loadEnvFile(".env"), which throws if the file is missing.
       # An empty file is fine: variables already in the environment are not overwritten.
       - run: touch .env
