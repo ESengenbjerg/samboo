@@ -101,6 +101,7 @@ select cron.schedule('purge-rate-limit-counters', '5 * * * *',    $$select publi
 select cron.schedule('purge-old-invites',         '30 3 * * *',   $$select public.purge_old_invites()$$);
 select cron.schedule('purge-search-params-log',   '45 3 * * *',   $$select public.purge_search_params_log()$$);
 select cron.schedule('purge-old-showings',        '50 3 * * *',   $$select public.purge_old_showings()$$);
+select cron.schedule('purge-old-showing-events',  '55 3 * * *',   $$select public.purge_old_showing_events()$$);
 select cron.schedule('purge-cron-history',        '0 4 * * *',    $$delete from cron.job_run_details where end_time < now() - interval '7 days'$$);
 
 -- Backups for GitHub's own schedule, which does not always fire. Each workflow skips itself if it already succeeded in the last 12 hours.

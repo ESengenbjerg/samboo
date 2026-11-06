@@ -23,7 +23,7 @@ The dump keeps function bodies (including comments inside them) and `COMMENT ON`
 
 ## Security model
 
-- **RLS on every table, policies only for `authenticated`.** `anon` has no table grants and can call no function except `check_request()`. Tables that only scripts and functions use (`scrape_issues`, `search_params_log`, `api_rate_limit`, `seen_listings`) have RLS on and no policies, so only `service_role` and security definer functions reach them.
+- **RLS on every table, policies only for `authenticated`.** `anon` has no table grants and can call no function except `check_request()`. Tables that only scripts and functions use (`scrape_issues`, `search_params_log`, `api_rate_limit`, `seen_listings`, `showing_events`) have RLS on and no policies, so only `service_role` and security definer functions reach them.
 - **`is_active_user()` is the gate.** Nearly every policy and RPC calls it: the profile must exist, be active and have a confirmed e-mail. An already issued JWT stays valid until it expires, but once the profile is deleted or deactivated the function returns `false` and RLS blocks everything. `profiles.is_active` is never set by the app: it is a manual kill switch that is checked live on every request.
 - **Narrow grants, then RLS.** Supabase's default privileges give new tables `ALL` for `anon` and `authenticated`, and new functions `EXECUTE` for `authenticated`. This database revokes that and grants only what the app needs. Direct writes are limited to a few columns (for example `profiles.name`, `user_listings.liked`, `showings.note`). Everything else, such as `profiles.group_id` and `user_listings.is_new`, changes only through functions. **Every new table or function must get its grants revoked and granted explicitly**, otherwise it is open to `authenticated` by default.
 - **Security definer functions to avoid recursion.** A policy that reads another table with its own policy can loop (error 42P17). `can_see_listing()` (used by the `showings` insert policy) and `my_avatar_count()` (used by the storage policy) exist only to break such loops.
@@ -43,7 +43,7 @@ The dump keeps function bodies (including comments inside them) and `COMMENT ON`
 
 The limit triggers and functions lock first (the profile row, the group row or an advisory lock) and count after, so two simultaneous requests cannot both pass the limit.
 
-**STABLE functions must be called with `{ get: true }`.** PostgREST runs STABLE functions in a read-only transaction. Called with POST (the `supabase.rpc` default), `check_request()` tries to write its counter and the call fails with 405 / 25006. `my_group_id()`, `my_group_members()`, `my_pending_invites()` and `my_new_listing_ids()` are STABLE, and so must any new STABLE function the app calls.
+**STABLE functions must be called with `{ get: true }`.** PostgREST runs STABLE functions in a read-only transaction. Called with POST (the `supabase.rpc` default), `check_request()` tries to write its counter and the call fails with 405 / 25006. `my_group_id()`, `my_group_members()`, `my_pending_invites()`, `my_new_listing_ids()`, `my_showing_events()` and `has_new_notifications()` are STABLE, and so must any new STABLE function the app calls.
 
 **Trigger order matters.** BEFORE triggers on the same table fire in alphabetical order. The names are chosen so validation runs before counting: `search_params_check_places` before `search_params_limit_changes` (an invalid search is not logged), and `invites_check_recipient` before `invites_limit_per_pair`.
 
@@ -97,11 +97,28 @@ Showings are planned viewings, entered by hand. They are not an official booking
 - **The 50 limit is checked on insert only.** Moving showings into a group is an update, so nothing is lost, but the group can end up above 50.
 - **Deleted 30 days after the date** by pg_cron.
 
+## In-app notifications
+
+The notifications page and the dot on its icon. Most notifications are not stored: they are worked out from data that already exists, and disappear when the user has handled them.
+
+| Notification | Comes from |
+|---|---|
+| Invite to me | `my_pending_invites()` |
+| Answer to my invite | `invites.status` / `responded_at` (the sender reads own invites) |
+| New listings in my search | `my_new_listing_ids()`, own part (`is_new`) |
+| A group member has liked listings I have not seen | `my_new_listing_ids()`, group part (`seen_listings`) |
+| A showing was created, changed or deleted | `showing_events` (a log, the only stored notification) |
+
+- **`showing_events` is a log, because a deleted showing leaves no trace.** The trigger `showings_log_event` writes one row per change (`created`, `updated`, `deleted`) with the member, the listing and a copy of date and time. One row per group, not per recipient: `my_showing_events()` shows a group's events to its members, never their own. It does not log personal showings (nobody else to tell), moves between owners (`accept_invite()`, `dissolve_group_if_alone()`), saves that change nothing, changes without a signed-in user (pg_cron, scripts, the SQL Editor), or showings deleted together with their group. Rows are deleted after 30 days by pg_cron, with the group, the listing, or the member who made the change (cascade).
+- **One "last visit" per user, no `is_seen` per notification.** `profiles.notifications_seen_at` is set by `mark_notifications_seen()` when the page is left. `has_new_notifications()` (the dot) is true if anything in the table above happened after it, and `my_showing_events().is_unseen` uses the same time. Something older that is still unhandled, like an invite seen but not answered, does not turn the dot on again.
+- **New members** see up to 30 days of the group's earlier showing events, since the time a user joined is not stored.
+- **Not built:** notifications when a member leaves or is removed, showing reminders, and a stored history of every notification.
+
 ## Account deletion
 
 `delete_my_account()` deletes the row in `auth.users`. It is permanent, with no grace period.
 
-- **Cascade:** the profile, search, matches, tags, invites the user sent, and personal showings. Invites sent *to* the user's e-mail are deleted by the function itself, since they have no foreign key.
+- **Cascade:** the profile, search, matches, tags, seen listings, showing events the user caused, invites the user sent, and personal showings. Invites sent *to* the user's e-mail are deleted by the function itself, since they have no foreign key.
 - **Groups:** the trigger `on_profile_deleted` applies the group rule above.
 - **Profile image:** a trigger cannot delete files, so the file becomes an orphan and is removed by the next avatar purge run.
 - `listings` is unaffected (shared data).
