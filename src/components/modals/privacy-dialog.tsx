@@ -25,7 +25,7 @@ export function PrivacyDialog({ open, onOpenChange }: PrivacyDialogProps) {
           <DialogTitle>Dina personuppgifter</DialogTitle>
         </DialogHeader>
         <ScrollView style={{ maxHeight: height * 0.6 }}>
-          <View className="gap-4">
+          <View className="gap-4" onStartShouldSetResponder={() => true}>
             <View className="gap-1">
               <Text variant="bold">Vad vi sparar</Text>
               <Text>
