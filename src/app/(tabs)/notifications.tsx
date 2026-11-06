@@ -4,6 +4,7 @@ import InviteUpdate from "@/components/notifications/invitation-notification";
 import { Card } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
 import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
+import { useNewListingsCount } from "@/hooks/useNewListingsCount";
 import { useSession } from "@/hooks/useSession";
 import { useFocusEffect } from "expo-router";
 import { useCallback } from "react";
@@ -12,8 +13,10 @@ import { ScrollView, View } from "react-native";
 export default function NotificationsScreen() {
   const { session } = useSession();
   const accounts = useConnectedAccounts(session?.user.id);
+  // Refetches by itself every time the page is opened
+  const { newListingsCount } = useNewListingsCount(session?.user.id);
 
-  // Reload invites every time the page is opened, same as the settings tab
+  // Reload invites every time the page is opened
   const { refresh } = accounts;
   useFocusEffect(
     useCallback(() => {
@@ -35,6 +38,8 @@ export default function NotificationsScreen() {
           <Card className="p-4 pb-8">
             <Text variant="bold">Idag</Text>
             <View className="gap-6 flex-1">
+              
+              <FeedUpdate newObjects={newListingsCount} />
               <GroupUpdate
                 memberId={"1822dc2a-fb08-496f-a20c-3ca730195af3"}
                 memberName={"Admin"}
@@ -49,7 +54,6 @@ export default function NotificationsScreen() {
                 memberId={"1822dc2a-fb08-496f-a20c-3ca730195af3"}
                 memberName={"Admin"}
               />
-              <FeedUpdate newObjects={3} />
             </View>
           </Card>
           <Card className="p-4 pb-8">

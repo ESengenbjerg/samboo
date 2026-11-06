@@ -62,6 +62,17 @@ export function markListingSeen(listingId: number) {
   return supabase.rpc("mark_listing_seen", { p_listing_id: listingId });
 }
 
+// How many of my matched listings I have not opened yet (is_new = true), for the
+// notifications page. head: true only returns the count, no rows.
+// !inner leaves out removed listings, so the number matches the "Ny" flags in the feed
+export function getNewListingsCount(userId: string) {
+  return supabase
+    .from("user_listings")
+    .select("id, listings!inner(id)", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("is_new", true)
+    .is("listings.removed_at", null);
+}
 
 // Unlike a listing by listings.id. The row is kept (only liked is changed), see match_user_listings().
 // RLS only lets me update my own rows, user_id is there to be explicit
