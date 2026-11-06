@@ -34,8 +34,8 @@ export default function GroupUpdateNotification({
         <View className="flex-1">
           <Text variant="bold">
             {newCount === 1
-              ? `${memberName} har sparat en bostad!`
-              : `${memberName} har sparat ${newCount} bostäder!`}
+              ? `${memberName} har sparat en bostad du inte sett!`
+              : `${memberName} har sparat ${newCount} bostäder du inte sett!`}
           </Text>
           <Text>
             {newCount === 1
