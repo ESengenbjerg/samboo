@@ -46,3 +46,6 @@ example
 # UX agent reports (generated) – keep the README
 /ux-reports/*
 !/ux-reports/README.md
+
+# Supabase CLI cache (linked project, versions)
+supabase/.temp/

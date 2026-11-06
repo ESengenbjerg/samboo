@@ -9,7 +9,7 @@ info:
 
     This file is written by hand and describes our own rules, which PostgREST's auto-generated spec
     (`GET /rest/v1/` with the apikey header) does not know about. Source of truth for the database is
-    supabase/schema.sql and supabase/schema.md. Update this file when functions, grants or policies change.
+    supabase/schema.sql (a dump) and supabase/setup-extras.sql; the design is explained in docs/database-design.md. Update this file when functions, grants or policies change.
 
     **Common rules**
     - Every call requires a signed-in user with a confirmed e-mail and an active profile (`is_active_user()`).
