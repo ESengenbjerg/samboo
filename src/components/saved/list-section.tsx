@@ -3,7 +3,9 @@ import { Text } from "@/components/ui/text";
 import { MY_LIST_ID, SHARED_LIST_ID } from "@/constants/saved-lists";
 import { useGroupLikedListings } from "@/hooks/useGroupLikedListings";
 import { useLikedListings } from "@/hooks/useLikedListings";
+import { useNewListingIds } from "@/hooks/useNewListingIds";
 import { useSharedLikedListings } from "@/hooks/useSharedLikedListings";
+import { Listing } from "@/types/listing";
 import { nameEndsWithS } from "@/utils/name-ends-with-s";
 import { View } from "react-native";
 
@@ -19,6 +21,15 @@ export default function SavedListSection({ userId }: { userId: string }) {
     isLoading: isLoadingShared,
     error: sharedError,
   } = useSharedLikedListings(userId);
+
+  // The listings I have not opened yet, matched on listings.id in every list
+  const { newListingIds } = useNewListingIds(userId);
+
+  // How many listings in a list are new to me
+  function countNew(list: Listing[]) {
+    return list.filter((l) => newListingIds.has(l.id)).length;
+  }
+
 
   return (
     <View>
@@ -37,6 +48,7 @@ export default function SavedListSection({ userId }: { userId: string }) {
             listId={SHARED_LIST_ID}
             numberOfSavedObjects={sharedListings.length}
             firstObjectImage={sharedListings[0]?.image_url ?? undefined}
+            newObjects={countNew(sharedListings)}
           />
         )}
 
@@ -53,6 +65,7 @@ export default function SavedListSection({ userId }: { userId: string }) {
               listId={l.member.id}
               numberOfSavedObjects={l.listings.length}
               firstObjectImage={l.listings[0]?.image_url ?? undefined}
+              newObjects={countNew(l.listings)}
             />
           ))}
 
