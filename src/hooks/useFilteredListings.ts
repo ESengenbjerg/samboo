@@ -15,7 +15,7 @@ export function useFilteredListings(
   listings: FeedListing[],
   userId: string | undefined,
 ) {
-  const { tags, error: tagsError } = useUserTags(userId);
+  const { tags } = useUserTags(userId);
   const { listingTags, error: listingTagsError } = useListingTags(userId);
 
   const [sort, setSort] = useState<SelectOption>();
@@ -62,13 +62,15 @@ export function useFilteredListings(
 
   // The listings after the filters and the sorting. Listings arrive newest first
   const visibleListings = useMemo(() => {
-    // The user_listing_ids that have the chosen category
+    // The listing ids (listings.id) that have the chosen category. Matching on listings.id
+    // instead of user_listing_id makes it work in every list: in a group member's list the
+    // rows are theirs, and in the shared list there is no user_listing_id at all
     const taggedIds =
       category && category.value !== ALL_VALUE
         ? new Set(
             listingTags
               .filter((lt) => String(lt.user_tag_id) === category.value)
-              .map((lt) => lt.user_listing_id),
+              .map((lt) => lt.user_listings?.listing_id),
           )
         : null;
 
@@ -77,9 +79,7 @@ export function useFilteredListings(
         !propertyType ||
         propertyType.value === ALL_VALUE ||
         l.property_type === propertyType.value;
-      const matchesCategory =
-        !taggedIds ||
-        (l.user_listing_id !== undefined && taggedIds.has(l.user_listing_id));
+      const matchesCategory = !taggedIds || taggedIds.has(l.id);
       return matchesType && matchesCategory;
     });
 
@@ -100,8 +100,9 @@ export function useFilteredListings(
 
   return {
     visibleListings,
-    // One message at a time, so the feed does not stack several errors
-    error: tagsError ?? listingTagsError,
+    // Only relevant when the category filter is shown. If useUserTags fails, tags is
+    // empty and the filter is hidden, so only the listing_tags error can show here
+    error: showCategoryFilter ? listingTagsError : null,
     filters: {
       sort,
       setSort,

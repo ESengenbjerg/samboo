@@ -25,11 +25,12 @@ export function deleteUserTag(tagId: number) {
   return supabase.from("user_tags").delete().eq("id", tagId);
 }
 
-// All my tag applications, to show tags on cards. RLS limits it to my own user_listings
+// All my tag applications, to show tags on cards. RLS limits it to my own user_listings.
+// listing_id comes through the foreign key to user_listings, so callers can match on listings.id
 export function getListingTags() {
   return supabase
     .from("listing_tags")
-    .select("id, user_tag_id, user_listing_id")
+    .select("id, user_tag_id, user_listing_id, user_listings(listing_id)")
     .overrideTypes<ListingTag[]>();
 }
 
