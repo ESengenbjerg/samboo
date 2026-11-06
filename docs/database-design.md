@@ -1,14 +1,16 @@
 # Database design
 
+# Info
+
 Why the Supabase database is built the way it is. The facts live elsewhere:
 
-| File | What | Updated |
-|---|---|---|
-| [supabase/schema.sql](../supabase/schema.sql) | The database as it is: a `pg_dump` of the `public` schema | Dumped again after every database change |
-| [supabase/setup-extras.sql](../supabase/setup-extras.sql) | What the dump does not contain: the trigger on `auth.users`, the RLS event trigger, role settings, the `avatars` bucket and its policies, pg_cron jobs | By hand, when one of those changes |
-| This file | Design decisions, and rules that span several tables or functions | When a decision changes |
-| [docs/openapi.yml](openapi.yml) | The API the app uses | With every change to functions, grants or policies |
-| [docs/removed_listings.md](removed_listings.md) | How the scraper marks listings as removed | With the scraper |
+| File                                                      | What                                                                                                                                                   | Updated                                            |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------- |
+| [supabase/schema.sql](../supabase/schema.sql)             | The database as it is: a `pg_dump` of the `public` schema                                                                                              | Dumped again after every database change           |
+| [supabase/setup-extras.sql](../supabase/setup-extras.sql) | What the dump does not contain: the trigger on `auth.users`, the RLS event trigger, role settings, the `avatars` bucket and its policies, pg_cron jobs | By hand, when one of those changes                 |
+| This file                                                 | Design decisions, and rules that span several tables or functions                                                                                      | When a decision changes                            |
+| [docs/openapi.yml](openapi.yml)                           | The API the app uses                                                                                                                                   | With every change to functions, grants or policies |
+| [docs/removed_listings.md](removed_listings.md)           | How the scraper marks listings as removed                                                                                                              | With the scraper                                   |
 
 New project: run `schema.sql`, then `setup-extras.sql`, then `node scripts/places/seedPlaces.ts`.
 
@@ -31,15 +33,15 @@ The dump keeps function bodies (including comments inside them) and `COMMENT ON`
 
 ## Rate limits and abuse guards
 
-| Limit | Where | Why |
-|---|---|---|
-| 100 write requests per signed-in user per 5 minutes (HTTP 429) | `check_request()`, run by PostgREST before every request (`pgrst.db_pre_request`) | Stops scripted abuse through the API. Reads cannot be counted: they run in a read-only transaction |
-| 5 search changes per user per 24 hours | `limit_search_params_changes()` | Every change re-runs matching and may widen what the scraper fetches |
-| Max 10 municipalities per search | `search_params_place_limit` | Nobody can make the scraper cover the whole country |
-| 20 invites per sender and recipient, 20 different recipients per 30 days | `limit_invites_per_pair()`, `check_invite_recipient()` | Spam protection. Cancelled and declined invites still count, so they are kept for a year |
-| 10 members per group, 50 showings per owner, 30 tags per user | `accept_invite()`, `limit_showings_per_group()`, `limit_tags_per_user()` | Keeps lists and queries small |
-| 5 files per avatar folder, 2 MB per file | Storage policy and bucket | Upload abuse |
-| `statement_timeout`: 3 s for `anon`, 8 s for `authenticated` | Role settings in `setup-extras.sql` | No single request can keep the database busy |
+| Limit                                                                    | Where                                                                             | Why                                                                                                |
+| ------------------------------------------------------------------------ | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| 100 write requests per signed-in user per 5 minutes (HTTP 429)           | `check_request()`, run by PostgREST before every request (`pgrst.db_pre_request`) | Stops scripted abuse through the API. Reads cannot be counted: they run in a read-only transaction |
+| 5 search changes per user per 24 hours                                   | `limit_search_params_changes()`                                                   | Every change re-runs matching and may widen what the scraper fetches                               |
+| Max 10 municipalities per search                                         | `search_params_place_limit`                                                       | Nobody can make the scraper cover the whole country                                                |
+| 20 invites per sender and recipient, 20 different recipients per 30 days | `limit_invites_per_pair()`, `check_invite_recipient()`                            | Spam protection. Cancelled and declined invites still count, so they are kept for a year           |
+| 10 members per group, 50 showings per owner, 30 tags per user            | `accept_invite()`, `limit_showings_per_group()`, `limit_tags_per_user()`          | Keeps lists and queries small                                                                      |
+| 5 files per avatar folder, 2 MB per file                                 | Storage policy and bucket                                                         | Upload abuse                                                                                       |
+| `statement_timeout`: 3 s for `anon`, 8 s for `authenticated`             | Role settings in `setup-extras.sql`                                               | No single request can keep the database busy                                                       |
 
 The limit triggers and functions lock first (the profile row, the group row or an advisory lock) and count after, so two simultaneous requests cannot both pass the limit.
 
@@ -63,6 +65,7 @@ The limit triggers and functions lock first (the profile row, the group row or a
   - `my_new_listing_ids()` returns what is new to me: my own rows with `is_new = true`, plus listings a group member has liked that I have no row for and have not seen. The app uses it for the flag in every list and for the group notifications.
 
   Only functions read and write it (RLS on, no grants to the app). Rows go away with the user or the listing (cascade). When the table was added, it was filled with all rows with `is_new = false` and with every existing group like outside the member's own search, so nobody got a flood of "new" listings.
+
 - **Removed listings** get `removed_at` and are shown as "Hittas inte" (not found). They are deleted 14 days later by pg_cron. See [removed_listings.md](removed_listings.md).
 - **`listings` constraints mirror the scraper's limits** (`LIMITS` in `scripts/scraper/mappers/parse.ts`). The scraper makes bad values null before the upsert, because one failing check fails the whole batch. The constraints catch a bug in a mapper.
 
@@ -72,11 +75,11 @@ A group is just an id. Membership is `profiles.group_id`, and there is no member
 
 A user leaves a group in three ways, and all of them end in the same rule, `dissolve_group_if_alone()`:
 
-| Way | Function |
-|---|---|
-| I leave | `leave_group()` |
-| Someone else in my group removes me | `remove_group_member(target)` |
-| I delete my account | `delete_my_account()` → trigger `on_profile_deleted` |
+| Way                                 | Function                                             |
+| ----------------------------------- | ---------------------------------------------------- |
+| I leave                             | `leave_group()`                                      |
+| Someone else in my group removes me | `remove_group_member(target)`                        |
+| I delete my account                 | `delete_my_account()` → trigger `on_profile_deleted` |
 
 - **No roles.** Any member can remove any other member. This handles an invite to the wrong person who will not leave. A malicious member can do no lasting damage: the others can leave and form a new group.
 - **Dissolving:** if at most 1 member remains, the group is deleted and the last member gets `group_id = null`. A group of 2 therefore ends when one removes the other.
@@ -101,13 +104,13 @@ Showings are planned viewings, entered by hand. They are not an official booking
 
 The notifications page and the dot on its icon. Most notifications are not stored: they are worked out from data that already exists, and disappear when the user has handled them.
 
-| Notification | Comes from |
-|---|---|
-| Invite to me | `my_pending_invites()` |
-| Answer to my invite | `invites.status` / `responded_at` (the sender reads own invites) |
-| New listings in my search | `my_new_listing_ids()`, own part (`is_new`) |
-| A group member has liked listings I have not seen | `my_new_listing_ids()`, group part (`seen_listings`) |
-| A showing was created, changed or deleted | `showing_events` (a log, the only stored notification) |
+| Notification                                      | Comes from                                                       |
+| ------------------------------------------------- | ---------------------------------------------------------------- |
+| Invite to me                                      | `my_pending_invites()`                                           |
+| Answer to my invite                               | `invites.status` / `responded_at` (the sender reads own invites) |
+| New listings in my search                         | `my_new_listing_ids()`, own part (`is_new`)                      |
+| A group member has liked listings I have not seen | `my_new_listing_ids()`, group part (`seen_listings`)             |
+| A showing was created, changed or deleted         | `showing_events` (a log, the only stored notification)           |
 
 - **`showing_events` is a log, because a deleted showing leaves no trace.** The trigger `showings_log_event` writes one row per change (`created`, `updated`, `deleted`) with the member, the listing and a copy of date and time. One row per group, not per recipient: `my_showing_events()` shows a group's events to its members, never their own. It does not log personal showings (nobody else to tell), moves between owners (`accept_invite()`, `dissolve_group_if_alone()`), saves that change nothing, changes without a signed-in user (pg_cron, scripts, the SQL Editor), or showings deleted together with their group. Rows are deleted after 30 days by pg_cron, with the group, the listing, or the member who made the change (cascade).
 - **One "last visit" per user, no `is_seen` per notification.** `profiles.notifications_seen_at` is set by `mark_notifications_seen()` when the page is left. `has_new_notifications()` (the dot) is true if anything in the table above happened after it, and `my_showing_events().is_unseen` uses the same time. Something older that is still unhandled, like an invite seen but not answered, does not turn the dot on again.
@@ -118,7 +121,7 @@ The notifications page and the dot on its icon. Most notifications are not store
 
 `delete_my_account()` deletes the row in `auth.users`. It is permanent, with no grace period.
 
-- **Cascade:** the profile, search, matches, tags, seen listings, showing events the user caused, invites the user sent, and personal showings. Invites sent *to* the user's e-mail are deleted by the function itself, since they have no foreign key.
+- **Cascade:** the profile, search, matches, tags, seen listings, showing events the user caused, invites the user sent, and personal showings. Invites sent _to_ the user's e-mail are deleted by the function itself, since they have no foreign key.
 - **Groups:** the trigger `on_profile_deleted` applies the group rule above.
 - **Profile image:** a trigger cannot delete files, so the file becomes an orphan and is removed by the next avatar purge run.
 - `listings` is unaffected (shared data).
