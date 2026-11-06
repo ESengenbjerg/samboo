@@ -1855,8 +1855,11 @@ select cron.schedule('purge-old-invites',          '30 3 * * *',  $$select publi
 select cron.schedule('purge-search-params-log',    '45 3 * * *',  $$select public.purge_search_params_log()$$);
 select cron.schedule('purge-old-showings',         '50 3 * * *',  $$select public.purge_old_showings()$$);
 -- cron.job_run_details grows with every run
--- Backup triggers for GitHub Actions (GitHub's schedule: scrape 02:12, purge-avatars 02:41). Skipped by the workflow if already run
--- in the last 12 hours. Check GitHub's answers: select id, status_code, content from net._http_response order by created desc limit 10;
+-- Backup triggers for GitHub Actions (GitHub's schedule: scrape 02:12, purge-avatars 02:41, notify 05:07 and 06:07). Scrape and
+-- purge-avatars are skipped by the workflow if already run in the last 12 hours. Notify needs no such check: the run before 07 Swedish
+-- time exits at once, and due_notifications() skips users already mailed today.
+-- Check GitHub's answers: select id, status_code, content from net._http_response order by created desc limit 10;
 select cron.schedule('dispatch-scrape',            '20 4,6 * * *', $$select public.dispatch_github_workflow('scrape.yml')$$);
 select cron.schedule('dispatch-purge-avatars',     '50 4,6 * * *', $$select public.dispatch_github_workflow('purge-avatars.yml')$$);
+select cron.schedule('dispatch-notify',            '20 5,6 * * *', $$select public.dispatch_github_workflow('notify.yml')$$);
 select cron.schedule('purge-cron-history',         '0 4 * * *',   $$delete from cron.job_run_details where end_time < now() - interval '7 days'$$);
