@@ -29,12 +29,24 @@ export type MatchedListing = Listing & {
   is_new: boolean;
 };
 
-// UserListing with the owner, used when rows from several users are fetched at once
+// UserListing with the owner, used when rows from several users are fetched at once.
+// liked_at is when the owner liked it (null for likes made before the column existed)
 export type MemberUserListing = UserListing & {
   user_id: string;
+  liked_at: string | null;
+};
+
+// A listing in a group member's liked list, with when the member liked it
+export type MemberLikedListing = Listing & {
+  liked_at: string | null;
 };
 
 // Only the listing id of a liked user_listings row (listings.id = user_listings.listing_id)
 export type LikedListingId = {
+  listing_id: number;
+};
+
+// Only the listing id of one of my user_listings rows that I have not opened yet (is_new = true)
+export type NewListingId = {
   listing_id: number;
 };
