@@ -4,8 +4,6 @@ import { buildMail, type DueRow } from "./template.ts";
 
 const force = process.argv.includes("--force");
 // Use: node scripts/notify/sendNotifications.ts --force
-// To force run a notification before 7 AM
-const dryRun = process.argv.includes("--dry-run");
 
 // Fetch credentials
 process.loadEnvFile(".env");
@@ -80,21 +78,6 @@ const mails = rows.map((row) => {
     },
   };
 });
-
-// Dry run = print and stop
-if (dryRun) {
-  for (const m of mails) {
-    console.log("To:", m.payload.to.join(", "));
-    console.log("Subject:", m.payload.subject);
-    console.log(m.payload.text);
-    console.log("----------------------");
-  }
-
-  console.log(
-    `Dry run: ${mails.length} mails built, nothing sent, nothing marked`,
-  );
-  process.exit(0);
-}
 
 // Send in batches of 100 mails
 if (!ResendAPI) {
