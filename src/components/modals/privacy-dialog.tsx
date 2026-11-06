@@ -88,7 +88,7 @@ export function PrivacyDialog({ open, onOpenChange }: PrivacyDialogProps) {
             </View>
           </View>
         </ScrollView>
-        <DialogFooter>
+        <DialogFooter className="justify-center">
           <DialogClose asChild>
             <Button>
               <Text>Stäng</Text>
