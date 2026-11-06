@@ -53,3 +53,28 @@ export const PROPERTY_TYPES_OPTIONS: SelectOption[] = PROPERTY_TYPES.map(
     label: PROPERTY_TYPE_LABELS[type],
   }),
 );
+
+// "Alla" resets a feed filter. FilterSelect has no way to clear a chosen value
+export const ALL_VALUE = "all";
+export const ALL_OPTION: SelectOption = { value: ALL_VALUE, label: "Alla" };
+
+export const SORT_VALUES = [
+  "newest",
+  "oldest",
+  "price-low",
+  "price-high",
+] as const;
+
+export type SortValue = (typeof SORT_VALUES)[number];
+
+export const SORT_LABELS: Record<SortValue, string> = {
+  newest: "Nyast",
+  oldest: "Äldst",
+  "price-low": "Lägst pris",
+  "price-high": "Högst pris",
+};
+
+export const SORT_OPTIONS: SelectOption[] = SORT_VALUES.map((value) => ({
+  value,
+  label: SORT_LABELS[value],
+}));
