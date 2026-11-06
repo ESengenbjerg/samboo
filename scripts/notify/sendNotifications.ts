@@ -127,8 +127,7 @@ for (let i = 0; i < mails.length; i += 100) {
   // On a validation error, send this batch one by one so only the bad mail fails.
   if (response.status === 400 || response.status === 422) {
     console.error(
-      `Batch rejected (${response.status}), ${await resendError(response)}sending one by one:`,
-      await response.text(),
+      `Batch rejected (${response.status}, ${await resendError(response)}), sending one by one:`,
     );
     process.exitCode = 1;
 
@@ -149,7 +148,6 @@ for (let i = 0; i < mails.length; i += 100) {
       if (!single.ok) {
         console.error(
           `Resend failed for user ${m.userId} (${single.status}, ${await resendError(single)}):`,
-          await single.text(),
         );
         failed += 1;
         continue;
@@ -170,7 +168,6 @@ for (let i = 0; i < mails.length; i += 100) {
   if (!response.ok) {
     console.error(
       `Resend failed (${response.status}, ${await resendError(response)}):`,
-      await response.text(),
     );
     failed += batch.length;
     process.exitCode = 1;
