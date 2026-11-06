@@ -1075,7 +1075,8 @@ begin
 end;
 $function$;
 
--- Account deletion, part 2: called by the app. Deletes the signed-in user from auth.users; everything else follows via ON DELETE CASCADE and the trigger above.
+-- Account deletion, part 2: called by the app. Deletes invites sent TO the user's e-mail (GDPR: the address must not remain), then the signed-in user from auth.users; everything else follows via ON DELETE CASCADE and the trigger above.
+-- Only deletion through this function cleans up those invites; deleting a user in the Supabase Dashboard does not.
 CREATE OR REPLACE FUNCTION public.delete_my_account()
  RETURNS void
  LANGUAGE plpgsql
@@ -1086,6 +1087,9 @@ begin
   if auth.uid() is null then
     raise exception 'Not signed in';
   end if;
+  -- Invites sent TO this user's e-mail. Invites sent BY the user go via ON DELETE CASCADE on from_user_id
+  delete from public.invites
+  where lower(to_email) = (select lower(email) from auth.users where id = auth.uid());
   delete from auth.users where id = auth.uid();
 end;
 $function$;

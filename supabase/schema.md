@@ -101,7 +101,7 @@ Besides the table-level grants in [schema.sql](schema.sql), `authenticated` has 
 | `my_pending_invites()` | RPC, security definer | Pending invites addressed to my email, with `from_name` and `from_email` of the sender. The recipient cannot read the sender's profile directly, so the app uses this to show who invited |
 | `my_group_members()` | RPC, security definer, STABLE | The other members of my group (`id`, `name`, `avatar_path`, `email`), sorted by name. Empty if I have no group or my account is not active. Inactive members are included, as with the policy `profiles_select`. The e-mail is only in `auth.users`, so the app needs this to show it (e.g. to see if the wrong person was invited) |
 | `decline_invite(invite_id)` | RPC, security definer | Marks a pending invite addressed to my email as `declined` and sets `responded_at`. Requires an active account. Fails with `Inbjudan finns inte eller är inte din` if it is not mine or no longer pending |
-| `delete_my_account()` | RPC, security definer | Deletes the signed-in user from `auth.users`. Everything else follows via cascade and the `on_profile_deleted` trigger. Fails with `Not signed in` without a session |
+| `delete_my_account()` | RPC, security definer | Deletes invites sent to the signed-in user's e-mail, then the user from `auth.users`. Everything else follows via cascade and the `on_profile_deleted` trigger. Fails with `Not signed in` without a session |
 | `handle_deleted_profile()` | trigger, security definer | After a profile is deleted: if at most 1 member remains in its group, the group is dissolved (same rule as `leave_group()`, via `dissolve_group_if_alone()`) |
 | `leave_group()` | RPC, security definer | Leaves the group. Locks the group row and checks membership again, then applies the shared group rule (see "Group membership") |
 | `remove_group_member(target)` | RPC, security definer | Removes another member of my group (`group_id = null`), then applies the shared group rule. Any member can remove any other member. Requires an active account. Fails with `Använd "Lämna grupp" för att lämna din egen grupp` for myself, `Du är inte med i någon grupp` if I have no group, and `Personen är inte längre med i din grupp` if the target is in another group or does not exist |
@@ -238,18 +238,17 @@ Bucket `avatars`, **public**: anyone with an image URL can open it without signi
 
 ## What happens when a user deletes their account
 
-The app calls `delete_my_account()`, which deletes the row in `auth.users`. This is permanent, with no grace period. Then:
+The app calls `delete_my_account()`, which first deletes `invites` sent *to* the user's email (`to_email`, compared ignoring upper/lower case), then the row in `auth.users`. This is permanent, with no grace period. Then:
 
 - **Cascade:** `profiles` → `search_params`, `user_listings` (→ `listing_tags`), `user_tags`, and `invites` the user sent. Sessions and identities in `auth` go with the user.
 - **Groups:** the `on_profile_deleted` trigger applies the shared group rule (see "Group membership"). With at most 1 left, the group is dissolved. With 2 or more left, the group stays and the user just disappears from it.
 - **The shared list** (`shared_likes()`) is computed from the members' likes, so it recalculates on its own. The deleted user's likes disappear with their `user_listings`.
-- **Left behind:** `invites` sent *to* the user's email (`to_email`). Known gap, to be handled in a later GDPR issue.
+- **Invites:** sent by the user go via cascade, sent to the user are deleted by `delete_my_account()`, so the user's email remains nowhere. Only deletion through `delete_my_account()` does this: deleting a user in the Supabase Dashboard leaves the invites sent to them until `purge_old_invites()` removes them.
 - **Profile image:** the file in the `avatars` bucket is not removed by the deletion (a trigger cannot delete files). It becomes an orphan and is removed by `purgeOrphanAvatars.ts` (see "Profile images").
 - `listings` is unaffected (shared data).
 - An already-issued JWT stays valid until it expires, but `is_active_user()` returns `false` once the profile is gone, so RLS blocks everything.
 
 ## Observations to follow up
 
-- `invites.to_email` for deleted users is not cleaned up (GDPR, later issue).
 - `profiles.is_active` is read in only three places: `is_active_user()`, `handle_new_user()` (the insert) and `my_pending_invites()`. The policies call the function `is_active_user()`, not the column, so removing the column means rewriting those three functions and not the policies. It is never set to `false` by the app; it works as a manual kill switch that is checked live on every request.
 - The scraper's `PropertyType` in `scripts/lib/types.ts` lacks `fritidshus`, which the database allows.
