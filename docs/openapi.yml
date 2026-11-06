@@ -324,7 +324,7 @@ paths:
         Deletes the signed-in user from `auth.users`. No grace period. Cascades to profile, search, matches,
         tags, sent invites and my own showings (the group's showings stay with the group).
         The group is dissolved if at most 1 member remains.
-        Invites sent to my e-mail by others are not removed (known gap, GDPR follow-up).
+        Invites sent to my e-mail by others are deleted too, so my e-mail remains nowhere.
         An already issued JWT stays valid until it expires, but every request is blocked by RLS after deletion.
       operationId: delete_my_account
       responses:

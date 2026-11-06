@@ -37,7 +37,11 @@ export function subscribeToConnectedAccounts(
   onChange: () => void,
 ) {
   const channel = supabase
-    .channel(`connected-accounts:${userId}`)
+    // Unique name: several screens may listen at once, and a reused name returns the already subscribed channel
+    .channel(
+      `connected-accounts:${userId}:${Math.random().toString(36).slice(2)}`,
+    )
+
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "invites" },
