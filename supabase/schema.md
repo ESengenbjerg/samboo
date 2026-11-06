@@ -175,11 +175,12 @@ Cleanup runs inside the database and no longer depends on the scraper (GitHub Ac
 | `purge-old-showings` | daily 03:50 | `purge_old_showings()` |
 | `dispatch-scrape` | daily 04:20 and 06:20 | `dispatch_github_workflow('scrape.yml')` |
 | `dispatch-purge-avatars` | daily 04:50 and 06:50 | `dispatch_github_workflow('purge-avatars.yml')` |
+| `dispatch-notify` | daily 05:20 and 06:20 | `dispatch_github_workflow('notify.yml')` |
 | `purge-cron-history` | daily 04:00 | deletes `cron.job_run_details` older than 7 days |
 
 Check results with `select * from cron.job_run_details order by start_time desc limit 20;`.
 
-The two `dispatch-*` jobs are backups for GitHub's own schedule (scrape 02:12, purge-avatars 02:41), which does not always fire. Each workflow first checks whether its main job succeeded in the last 12 hours and skips itself if so, so both triggers can be active at once. A failed run is retried by the next trigger. GitHub's answers: `select id, status_code, content from net._http_response order by created desc limit 10;`.
+The `dispatch-*` jobs are backups for GitHub's own schedule (scrape 02:12, purge-avatars 02:41, notify 05:07 and 06:07), which does not always fire. Scrape and purge-avatars first check whether their main job succeeded in the last 12 hours and skip themselves if so, so both triggers can be active at once. A failed run is retried by the next trigger. Notify has no such check and does not need one: the run that lands before 07 Swedish time exits at once (05:20 UTC in winter, 06:20 UTC in summer), and `due_notifications()` skips users already mailed today, so a second run sends nothing. `notify.yml` declares the `skip_if_recent` input only because the dispatch always sends it. GitHub's answers: `select id, status_code, content from net._http_response order by created desc limit 10;`.
 
 ## Extensions
 
