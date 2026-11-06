@@ -470,6 +470,70 @@ $$;
 ALTER FUNCTION "public"."handle_new_user"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."has_new_notifications"() RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+  with me as (
+    select p.id, p.group_id, coalesce(p.notifications_seen_at, '-infinity'::timestamptz) as since
+    from public.profiles p
+    where p.id = (select auth.uid())
+      and public.is_active_user()
+  )
+  select coalesce((
+    select
+      -- a) An invite to me
+      exists (
+        select 1 from public.my_pending_invites() i
+        where i.created_at > me.since
+      )
+      -- b) An answer to an invite I sent
+      or exists (
+        select 1 from public.invites i
+        where i.from_user_id = me.id
+          and i.status = any (array['accepted', 'declined'])
+          and i.responded_at > me.since
+      )
+      -- c) A new match I have not opened
+      or exists (
+        select 1
+        from public.user_listings ul
+        join public.listings l on l.id = ul.listing_id
+        where ul.user_id = me.id
+          and ul.is_new
+          and l.removed_at is null
+          and ul.created_at > me.since
+      )
+      -- d) A group member liked something that is new to me
+      or exists (
+        select 1
+        from public.user_listings ul
+        join public.profiles p on p.id = ul.user_id
+        where p.group_id = me.group_id
+          and ul.user_id <> me.id
+          and ul.liked
+          and ul.liked_at > me.since
+          and ul.listing_id in (select n.listing_id from public.my_new_listing_ids() n)
+      )
+      -- e) Another member changed one of the group's showings
+      or exists (
+        select 1 from public.showing_events e
+        where e.group_id = me.group_id
+          and e.actor_id <> me.id
+          and e.created_at > me.since
+      )
+    from me
+  ), false);
+$$;
+
+
+ALTER FUNCTION "public"."has_new_notifications"() OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."has_new_notifications"() IS 'true if something has happened since I last opened the notifications page (notifications_seen_at): an invite to me, an answer to my invite, a new match I have not opened, a group like that is new to me, or another member''s change to a showing. For the dot on the notifications icon. Read-only, call with GET.';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."in_my_group"("target" "uuid") RETURNS boolean
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
@@ -556,6 +620,10 @@ begin
   insert into public.user_listings (user_id, listing_id, liked, is_new)
   values (auth.uid(), p_listing_id, true, false)
   on conflict (user_id, listing_id) do update set liked = true, is_new = false;
+
+  insert into public.seen_listings (user_id, listing_id)
+  values (auth.uid(), p_listing_id)
+  on conflict (user_id, listing_id) do nothing;
 end;
 $$;
 
@@ -654,6 +722,58 @@ $$;
 ALTER FUNCTION "public"."limit_tags_per_user"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."log_showing_event"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+declare
+  v_actor uuid := auth.uid();
+begin
+  -- Only changes made by a signed-in user with a profile. Skips pg_cron (purge_old_showings()), scripts, the SQL Editor
+  -- and account deletion (the profile is already gone when handle_deleted_profile() runs)
+  if v_actor is null or not exists (select 1 from public.profiles where id = v_actor) then
+    return null;
+  end if;
+
+  if tg_op = 'INSERT' then
+    if new.group_id is null then
+      return null;  -- personal showing: nobody else to tell
+    end if;
+    insert into public.showing_events (group_id, actor_id, listing_id, action, showing_date, start_time)
+    values (new.group_id, v_actor, new.listing_id, 'created', new.showing_date, new.start_time);
+
+  elsif tg_op = 'UPDATE' then
+    -- A move between owners (move_personal_showings() in accept_invite(), dissolve_group_if_alone()) is not a change of the showing
+    if new.group_id is null or old.group_id is distinct from new.group_id then
+      return null;
+    end if;
+    -- Saving without changing anything is not a change
+    if (old.showing_date, old.start_time, old.note) is not distinct from (new.showing_date, new.start_time, new.note) then
+      return null;
+    end if;
+    insert into public.showing_events (group_id, actor_id, listing_id, action, showing_date, start_time)
+    values (new.group_id, v_actor, new.listing_id, 'updated', new.showing_date, new.start_time);
+
+  elsif tg_op = 'DELETE' then
+    if old.group_id is null then
+      return null;
+    end if;
+    -- Deleted together with its group (cascade): the group row is already gone and nobody is left to tell
+    if not exists (select 1 from public.groups where id = old.group_id) then
+      return null;
+    end if;
+    insert into public.showing_events (group_id, actor_id, listing_id, action, showing_date, start_time)
+    values (old.group_id, v_actor, old.listing_id, 'deleted', old.showing_date, old.start_time);
+  end if;
+
+  return null;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."log_showing_event"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."mark_listing_seen"("p_listing_id" bigint) RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
@@ -663,16 +783,55 @@ begin
     raise exception 'Ditt konto är inte aktivt';
   end if;
 
+  -- My own match: same as before
   update public.user_listings
   set is_new = false
   where user_id = auth.uid()
     and listing_id = p_listing_id
     and is_new;
+
+  -- Remember it, also without a user_listings row (a group member's listing outside my search).
+  -- Only listings visible to me (same rule as like_listing()); anything else is silently ignored, as before
+  insert into public.seen_listings (user_id, listing_id)
+  select auth.uid(), p_listing_id
+  where exists (
+    select 1 from public.user_listings ul
+    where ul.listing_id = p_listing_id
+      and public.shares_group_with(ul.user_id)
+  )
+  on conflict (user_id, listing_id) do nothing;
 end;
 $$;
 
 
 ALTER FUNCTION "public"."mark_listing_seen"("p_listing_id" bigint) OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."mark_listing_seen"("p_listing_id" bigint) IS 'Called by the app when the listing page opens. Sets is_new = false on my own user_listings row (if any) and records the listing in seen_listings, also when I have no row (a group member''s listing outside my search).';
+
+
+
+CREATE OR REPLACE FUNCTION "public"."mark_notifications_seen"() RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+begin
+  if not public.is_active_user() then
+    raise exception 'Ditt konto är inte aktivt';
+  end if;
+
+  update public.profiles
+  set notifications_seen_at = now()
+  where id = auth.uid();
+end;
+$$;
+
+
+ALTER FUNCTION "public"."mark_notifications_seen"() OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."mark_notifications_seen"() IS 'Sets my notifications_seen_at to now. Call it when the user leaves the notifications page (or after its data has loaded), so the page can still highlight what was new.';
+
 
 
 CREATE OR REPLACE FUNCTION "public"."match_user_listings"("p_user_id" "uuid" DEFAULT NULL::"uuid") RETURNS integer
@@ -683,6 +842,7 @@ declare
   inserted integer;
 begin
   with matches as (
+    -- Every (user, listing) pair that currently matches a search
     select sp.user_id, l.id as listing_id
     from public.search_params sp
     join public.listings l on (
@@ -709,6 +869,8 @@ begin
       and l.removed_at is null
   ),
   stale as (
+    -- Rows that no longer match. Liked and tagged listings are kept, and so are removed listings ("Hittas inte" until purged).
+    -- What the user has seen is kept in seen_listings, so it is not lost here
     delete from public.user_listings ul
     where (p_user_id is null or ul.user_id = p_user_id)
       and exists (select 1 from public.search_params sp where sp.user_id = ul.user_id)
@@ -724,8 +886,11 @@ begin
       )
     returning ul.id
   )
+  -- A listing the user has already opened (seen_listings) does not become "new" again when it matches again
   insert into public.user_listings (user_id, listing_id, is_new, liked)
-  select m.user_id, m.listing_id, true, false
+  select m.user_id, m.listing_id,
+         not exists (select 1 from public.seen_listings s where s.user_id = m.user_id and s.listing_id = m.listing_id),
+         false
   from matches m
   on conflict (user_id, listing_id) do nothing;
 
@@ -821,6 +986,49 @@ $$;
 ALTER FUNCTION "public"."my_group_members"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."my_new_listing_ids"() RETURNS TABLE("listing_id" bigint)
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+  -- 1) My own matches I have not opened: exactly what getNewListingIds() returned before
+  select ul.listing_id
+  from public.user_listings ul
+  join public.listings l on l.id = ul.listing_id
+  where public.is_active_user()
+    and ul.user_id = (select auth.uid())
+    and ul.is_new
+    and l.removed_at is null
+
+  union
+
+  -- 2) Listings a member of my group has liked, that I have no row for and have never opened
+  select ul.listing_id
+  from public.user_listings ul
+  join public.profiles p on p.id = ul.user_id
+  join public.listings l on l.id = ul.listing_id
+  where public.is_active_user()
+    and p.group_id = public.my_group_id()
+    and ul.user_id <> (select auth.uid())
+    and ul.liked
+    and l.removed_at is null
+    and not exists (
+      select 1 from public.user_listings mine
+      where mine.user_id = (select auth.uid()) and mine.listing_id = ul.listing_id
+    )
+    and not exists (
+      select 1 from public.seen_listings s
+      where s.user_id = (select auth.uid()) and s.listing_id = ul.listing_id
+    )
+$$;
+
+
+ALTER FUNCTION "public"."my_new_listing_ids"() OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."my_new_listing_ids"() IS 'The listing ids that are new to me: my own matches with is_new = true, plus listings a group member has liked that I have no user_listings row for and have never opened (seen_listings). Removed listings are left out. Read-only, call with GET. Same shape as the old user_listings query ({ listing_id }), so the app''s Set of ids works unchanged.';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."my_pending_invites"() RETURNS TABLE("id" bigint, "created_at" timestamp with time zone, "from_user_id" "uuid", "from_name" "text", "from_email" "text")
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
@@ -838,6 +1046,34 @@ $$;
 
 
 ALTER FUNCTION "public"."my_pending_invites"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."my_showing_events"() RETURNS TABLE("id" bigint, "created_at" timestamp with time zone, "action" "text", "actor_id" "uuid", "actor_name" "text", "listing_id" bigint, "address" "text", "showing_date" "date", "start_time" time without time zone, "is_unseen" boolean)
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+  select
+    e.id, e.created_at, e.action, e.actor_id, p.name, e.listing_id, l.address, e.showing_date, e.start_time,
+    e.created_at > coalesce(
+      (select me.notifications_seen_at from public.profiles me where me.id = (select auth.uid())),
+      '-infinity'::timestamptz
+    )
+  from public.showing_events e
+  join public.profiles p on p.id = e.actor_id
+  join public.listings l on l.id = e.listing_id
+  where public.is_active_user()
+    and e.group_id = public.my_group_id()
+    and e.actor_id <> (select auth.uid())   -- never my own changes
+  order by e.created_at desc, e.id desc
+  limit 100;
+$$;
+
+
+ALTER FUNCTION "public"."my_showing_events"() OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."my_showing_events"() IS 'Changes to my group''s showings made by the other members in the last 30 days, newest first (max 100), with the member''s name and the listing''s address. is_unseen = newer than my notifications_seen_at. Empty without a group. Read-only, call with GET.';
+
 
 
 CREATE OR REPLACE FUNCTION "public"."orphan_avatar_objects"("min_age" interval DEFAULT '01:00:00'::interval) RETURNS TABLE("object_name" "text")
@@ -870,6 +1106,26 @@ $$;
 
 
 ALTER FUNCTION "public"."purge_old_invites"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."purge_old_showing_events"() RETURNS integer
+    LANGUAGE "sql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+  with deleted as (
+    delete from public.showing_events
+    where created_at < now() - interval '30 days'
+    returning 1
+  )
+  select count(*)::int from deleted;
+$$;
+
+
+ALTER FUNCTION "public"."purge_old_showing_events"() OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."purge_old_showing_events"() IS 'Deletes showing_events older than 30 days. Run daily by pg_cron (purge-old-showing-events).';
+
 
 
 CREATE OR REPLACE FUNCTION "public"."purge_old_showings"() RETURNS integer
@@ -1380,6 +1636,7 @@ CREATE TABLE IF NOT EXISTS "public"."profiles" (
     "avatar_path" "text",
     "notification_frequency" "text" DEFAULT 'day'::"text" NOT NULL,
     "last_notified_at" timestamp with time zone,
+    "notifications_seen_at" timestamp with time zone,
     CONSTRAINT "profiles_avatar_path_check" CHECK ((("avatar_path" IS NULL) OR (("char_length"("avatar_path") <= 200) AND ("avatar_path" ~ (('^'::"text" || ("id")::"text") || '/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$'::"text"))))),
     CONSTRAINT "profiles_name_length" CHECK ((("char_length"("name") >= 1) AND ("char_length"("name") <= 100))),
     CONSTRAINT "profiles_notification_frequency_check" CHECK (("notification_frequency" = ANY (ARRAY['day'::"text", 'week'::"text", 'none'::"text"])))
@@ -1387,6 +1644,10 @@ CREATE TABLE IF NOT EXISTS "public"."profiles" (
 
 
 ALTER TABLE "public"."profiles" OWNER TO "postgres";
+
+
+COMMENT ON COLUMN "public"."profiles"."notifications_seen_at" IS 'When the user last opened the notifications page. Anything newer counts as unseen (has_new_notifications(), my_showing_events().is_unseen). null = never opened. Set only by mark_notifications_seen().';
+
 
 
 CREATE TABLE IF NOT EXISTS "public"."scrape_issues" (
@@ -1436,6 +1697,51 @@ ALTER TABLE "public"."search_params_log" OWNER TO "postgres";
 
 ALTER TABLE "public"."search_params_log" ALTER COLUMN "id" ADD GENERATED ALWAYS AS IDENTITY (
     SEQUENCE NAME "public"."search_params_log_id_seq"
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+
+CREATE TABLE IF NOT EXISTS "public"."seen_listings" (
+    "user_id" "uuid" NOT NULL,
+    "listing_id" bigint NOT NULL,
+    "seen_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+ALTER TABLE "public"."seen_listings" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."seen_listings" IS 'Listings a user has opened (or liked). Written by mark_listing_seen() and like_listing(), never by the app. Unlike user_listings.is_new it survives the user_listings row being deleted by match_user_listings(), and also covers a group member''s listings outside my search. Read by match_user_listings() (a listing I have seen is not new again) and my_new_listing_ids().';
+
+
+
+CREATE TABLE IF NOT EXISTS "public"."showing_events" (
+    "id" bigint NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "group_id" bigint NOT NULL,
+    "actor_id" "uuid" NOT NULL,
+    "listing_id" bigint NOT NULL,
+    "action" "text" NOT NULL,
+    "showing_date" "date" NOT NULL,
+    "start_time" time without time zone,
+    CONSTRAINT "showing_events_action_check" CHECK (("action" = ANY (ARRAY['created'::"text", 'updated'::"text", 'deleted'::"text"])))
+);
+
+
+ALTER TABLE "public"."showing_events" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."showing_events" IS 'Log of changes to group showings (created, updated, deleted) for the notifications page. Written only by the trigger showings_log_event, read by the app through my_showing_events(). Kept 30 days (purge_old_showing_events()). Personal showings, moves between owners and changes without a signed-in user (pg_cron, scripts) are not logged.';
+
+
+
+ALTER TABLE "public"."showing_events" ALTER COLUMN "id" ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME "public"."showing_events_id_seq"
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -1620,6 +1926,16 @@ ALTER TABLE ONLY "public"."search_params"
 
 
 
+ALTER TABLE ONLY "public"."seen_listings"
+    ADD CONSTRAINT "seen_listings_pkey" PRIMARY KEY ("user_id", "listing_id");
+
+
+
+ALTER TABLE ONLY "public"."showing_events"
+    ADD CONSTRAINT "showing_events_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."showings"
     ADD CONSTRAINT "showings_group_listing_unique" UNIQUE ("group_id", "listing_id");
 
@@ -1679,6 +1995,22 @@ CREATE INDEX "search_params_log_user_changed_idx" ON "public"."search_params_log
 
 
 
+CREATE INDEX "seen_listings_listing_id_idx" ON "public"."seen_listings" USING "btree" ("listing_id");
+
+
+
+CREATE INDEX "showing_events_actor_id_idx" ON "public"."showing_events" USING "btree" ("actor_id");
+
+
+
+CREATE INDEX "showing_events_group_created_idx" ON "public"."showing_events" USING "btree" ("group_id", "created_at" DESC);
+
+
+
+CREATE INDEX "showing_events_listing_id_idx" ON "public"."showing_events" USING "btree" ("listing_id");
+
+
+
 CREATE INDEX "showings_listing_id_idx" ON "public"."showings" USING "btree" ("listing_id");
 
 
@@ -1712,6 +2044,10 @@ CREATE OR REPLACE TRIGGER "search_params_match" AFTER INSERT OR UPDATE OF "prope
 
 
 CREATE OR REPLACE TRIGGER "showings_limit_per_group" BEFORE INSERT ON "public"."showings" FOR EACH ROW EXECUTE FUNCTION "public"."limit_showings_per_group"();
+
+
+
+CREATE OR REPLACE TRIGGER "showings_log_event" AFTER INSERT OR DELETE OR UPDATE ON "public"."showings" FOR EACH ROW EXECUTE FUNCTION "public"."log_showing_event"();
 
 
 
@@ -1770,6 +2106,31 @@ ALTER TABLE ONLY "public"."search_params_log"
 
 ALTER TABLE ONLY "public"."search_params"
     ADD CONSTRAINT "search_params_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."seen_listings"
+    ADD CONSTRAINT "seen_listings_listing_id_fkey" FOREIGN KEY ("listing_id") REFERENCES "public"."listings"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."seen_listings"
+    ADD CONSTRAINT "seen_listings_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."showing_events"
+    ADD CONSTRAINT "showing_events_actor_id_fkey" FOREIGN KEY ("actor_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."showing_events"
+    ADD CONSTRAINT "showing_events_group_id_fkey" FOREIGN KEY ("group_id") REFERENCES "public"."groups"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."showing_events"
+    ADD CONSTRAINT "showing_events_listing_id_fkey" FOREIGN KEY ("listing_id") REFERENCES "public"."listings"("id") ON DELETE CASCADE;
 
 
 
@@ -1921,6 +2282,12 @@ CREATE POLICY "search_params_update" ON "public"."search_params" FOR UPDATE TO "
 
 
 
+ALTER TABLE "public"."seen_listings" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."showing_events" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "public"."showings" ENABLE ROW LEVEL SECURITY;
 
 
@@ -1994,7 +2361,6 @@ ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."profiles";
 
 
 GRANT USAGE ON SCHEMA "public" TO "postgres";
-GRANT USAGE ON SCHEMA "public" TO "anon";
 GRANT USAGE ON SCHEMA "public" TO "authenticated";
 GRANT USAGE ON SCHEMA "public" TO "service_role";
 
@@ -2194,7 +2560,6 @@ GRANT ALL ON FUNCTION "public"."check_invite_recipient"() TO "service_role";
 REVOKE ALL ON FUNCTION "public"."check_request"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."check_request"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."check_request"() TO "service_role";
-GRANT ALL ON FUNCTION "public"."check_request"() TO "anon";
 GRANT ALL ON FUNCTION "public"."check_request"() TO "authenticator";
 
 
@@ -2232,6 +2597,12 @@ GRANT ALL ON FUNCTION "public"."handle_deleted_profile"() TO "service_role";
 
 REVOKE ALL ON FUNCTION "public"."handle_new_user"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."handle_new_user"() TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."has_new_notifications"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."has_new_notifications"() TO "service_role";
+GRANT ALL ON FUNCTION "public"."has_new_notifications"() TO "authenticated";
 
 
 
@@ -2279,9 +2650,20 @@ GRANT ALL ON FUNCTION "public"."limit_tags_per_user"() TO "service_role";
 
 
 
+REVOKE ALL ON FUNCTION "public"."log_showing_event"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."log_showing_event"() TO "service_role";
+
+
+
 REVOKE ALL ON FUNCTION "public"."mark_listing_seen"("p_listing_id" bigint) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."mark_listing_seen"("p_listing_id" bigint) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."mark_listing_seen"("p_listing_id" bigint) TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."mark_notifications_seen"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."mark_notifications_seen"() TO "service_role";
+GRANT ALL ON FUNCTION "public"."mark_notifications_seen"() TO "authenticated";
 
 
 
@@ -2313,9 +2695,21 @@ GRANT ALL ON FUNCTION "public"."my_group_members"() TO "authenticated";
 
 
 
+REVOKE ALL ON FUNCTION "public"."my_new_listing_ids"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."my_new_listing_ids"() TO "service_role";
+GRANT ALL ON FUNCTION "public"."my_new_listing_ids"() TO "authenticated";
+
+
+
 REVOKE ALL ON FUNCTION "public"."my_pending_invites"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."my_pending_invites"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."my_pending_invites"() TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."my_showing_events"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."my_showing_events"() TO "service_role";
+GRANT ALL ON FUNCTION "public"."my_showing_events"() TO "authenticated";
 
 
 
@@ -2326,6 +2720,11 @@ GRANT ALL ON FUNCTION "public"."orphan_avatar_objects"("min_age" interval) TO "s
 
 REVOKE ALL ON FUNCTION "public"."purge_old_invites"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."purge_old_invites"() TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."purge_old_showing_events"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."purge_old_showing_events"() TO "service_role";
 
 
 
@@ -2432,7 +2831,6 @@ GRANT SELECT ON TABLE "public"."areas" TO "authenticated";
 
 
 
-GRANT ALL ON SEQUENCE "public"."areas_id_seq" TO "anon";
 GRANT ALL ON SEQUENCE "public"."areas_id_seq" TO "authenticated";
 GRANT ALL ON SEQUENCE "public"."areas_id_seq" TO "service_role";
 
@@ -2443,7 +2841,6 @@ GRANT SELECT ON TABLE "public"."counties" TO "authenticated";
 
 
 
-GRANT ALL ON SEQUENCE "public"."counties_id_seq" TO "anon";
 GRANT ALL ON SEQUENCE "public"."counties_id_seq" TO "authenticated";
 GRANT ALL ON SEQUENCE "public"."counties_id_seq" TO "service_role";
 
@@ -2497,7 +2894,6 @@ GRANT SELECT ON TABLE "public"."municipalities" TO "authenticated";
 
 
 
-GRANT ALL ON SEQUENCE "public"."municipalities_id_seq" TO "anon";
 GRANT ALL ON SEQUENCE "public"."municipalities_id_seq" TO "authenticated";
 GRANT ALL ON SEQUENCE "public"."municipalities_id_seq" TO "service_role";
 
@@ -2537,9 +2933,21 @@ GRANT ALL ON TABLE "public"."search_params_log" TO "service_role";
 
 
 
-GRANT ALL ON SEQUENCE "public"."search_params_log_id_seq" TO "anon";
 GRANT ALL ON SEQUENCE "public"."search_params_log_id_seq" TO "authenticated";
 GRANT ALL ON SEQUENCE "public"."search_params_log_id_seq" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."seen_listings" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."showing_events" TO "service_role";
+
+
+
+GRANT ALL ON SEQUENCE "public"."showing_events_id_seq" TO "authenticated";
+GRANT ALL ON SEQUENCE "public"."showing_events_id_seq" TO "service_role";
 
 
 
@@ -2564,7 +2972,6 @@ GRANT INSERT("note"),UPDATE("note") ON TABLE "public"."showings" TO "authenticat
 
 
 
-GRANT ALL ON SEQUENCE "public"."showings_id_seq" TO "anon";
 GRANT ALL ON SEQUENCE "public"."showings_id_seq" TO "authenticated";
 GRANT ALL ON SEQUENCE "public"."showings_id_seq" TO "service_role";
 
@@ -2601,7 +3008,6 @@ GRANT ALL ON SEQUENCE "public"."user_tags_id_seq" TO "service_role";
 
 
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "postgres";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "service_role";
 
@@ -2620,7 +3026,6 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUN
 
 
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "postgres";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
 
