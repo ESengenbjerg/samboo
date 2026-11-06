@@ -11,7 +11,7 @@ type InvitationUpdateProps = {
   accounts: ConnectedAccounts;
 };
 
-export default function InviteUpdate({ accounts }: InvitationUpdateProps) {
+export default function InviteUpdateNotification({ accounts }: InvitationUpdateProps) {
   const { receivedInvites, isSubmitting, actionError } = accounts;
   const { answeredInvite, onAnswer } = useAnswerInvite(accounts);
 

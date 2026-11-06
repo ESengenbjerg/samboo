@@ -8,7 +8,7 @@ type FeedUpdateProps = {
   newObjects: number;
 };
 
-export default function FeedUpdate({ newObjects }: FeedUpdateProps) {
+export default function FeedUpdateNotification({ newObjects }: FeedUpdateProps) {
   // Nothing to show if there are no new listings
   if (newObjects === 0) return null;
 
