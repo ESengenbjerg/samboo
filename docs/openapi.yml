@@ -410,8 +410,8 @@ paths:
       summary: Send an invite
       description: |
         Only `from_user_id` (must be my id) and `to_email` can be set. Rules:
-        not to my own e-mail; at most one pending invite per recipient;
-        at most 20 invites in total (any status) per recipient.
+        not to my own e-mail; `to_email` must be an e-mail address; at most one pending invite per recipient;
+        at most 20 invites in total (any status) per recipient; at most 20 different recipients in the last 30 days.
         E-mail addresses are compared case-insensitively.
       operationId: invites_insert
       requestBody:
@@ -423,11 +423,11 @@ paths:
               required: [from_user_id, to_email]
               properties:
                 from_user_id: { type: string, format: uuid }
-                to_email: { type: string, maxLength: 254 }
+                to_email: { type: string, maxLength: 254, pattern: '^[^\s@]+@[^\s@]+\.[^\s@]+$' }
       responses:
         '201': { description: Created. }
         '400':
-          description: '`Du har skickat för många inbjudningar till den här personen` (the 20 limit) or a check constraint.'
+          description: '`Ange en giltig e-postadress.`, `Du har bjudit in för många olika personer. Försök igen senare` (20 recipients per 30 days), `Du har skickat för många inbjudningar till den här personen` (20 per recipient), or a check constraint (longer than 254).'
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -470,7 +470,7 @@ paths:
           description: |
             `Du har ändrat din sökning för många gånger. Försök igen senare`, `Okänd kommun: <namn>`,
             `Området "<namn>" finns inte i någon av dina valda kommuner`, or a check constraint
-            (min greater than max for price or rooms, unknown property type, negative fee or area,
+            (min greater than max for price or rooms, a value outside its range, unknown property type,
             more than 10 municipalities or 200 areas).
           content:
             application/json:
@@ -587,13 +587,13 @@ paths:
               required: [listing_id, showing_date]
               properties:
                 listing_id: { type: integer, format: int64 }
-                showing_date: { type: string, format: date }
+                showing_date: { type: string, format: date, description: '2000-01-01 – 2099-12-31. An invalid date (e.g. 2027-02-29) gives 400 with code 22008.' }
                 start_time: { type: string, nullable: true, example: '17:30' }
                 note: { type: string, nullable: true, maxLength: 500 }
       responses:
         '201': { description: Created. }
         '400':
-          description: '`Gruppen har redan max antal visningar (50)`, `Du har redan max antal visningar (50)`, or a check constraint (note longer than 500).'
+          description: '`Gruppen har redan max antal visningar (50)`, `Du har redan max antal visningar (50)`, or a check constraint (note longer than 500, date outside 2000-2099).'
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -612,11 +612,16 @@ paths:
             schema:
               type: object
               properties:
-                showing_date: { type: string, format: date }
+                showing_date: { type: string, format: date, description: '2000-01-01 – 2099-12-31. An invalid date (e.g. 2027-02-29) gives 400 with code 22008.' }
                 start_time: { type: string, nullable: true }
                 note: { type: string, nullable: true, maxLength: 500 }
       responses:
         '204': { description: Updated. }
+        '400':
+          description: A check constraint (note longer than 500, date outside 2000-2099), or an invalid date.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
         '429': { $ref: '#/components/responses/RateLimited' }
     delete:
       tags: [Showings]
@@ -705,7 +710,7 @@ paths:
     post:
       tags: [Tags]
       summary: Create a tag
-      description: '`user_id` must be my id. `tag_name` is 1-100 characters and unique per user (otherwise 409).'
+      description: '`user_id` must be my id. `tag_name` is 1-100 characters, not only whitespace, and unique per user (otherwise 409). At most 30 tags per user.'
       operationId: user_tags_insert
       requestBody:
         required: true
@@ -716,9 +721,14 @@ paths:
               required: [user_id, tag_name]
               properties:
                 user_id: { type: string, format: uuid }
-                tag_name: { type: string, minLength: 1, maxLength: 100 }
+                tag_name: { type: string, minLength: 1, maxLength: 100, pattern: '\S' }
       responses:
         '201': { description: Created. }
+        '400':
+          description: '`Du har redan max antal kategorier (30)`, or a check constraint (name only whitespace).'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
         '409': { description: I already have a tag with this name. }
         '429': { $ref: '#/components/responses/RateLimited' }
     patch:
@@ -732,9 +742,14 @@ paths:
             schema:
               type: object
               properties:
-                tag_name: { type: string, minLength: 1, maxLength: 100 }
+                tag_name: { type: string, minLength: 1, maxLength: 100, pattern: '\S' }
       responses:
         '204': { description: Updated. }
+        '400':
+          description: A check constraint (name only whitespace).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
         '429': { $ref: '#/components/responses/RateLimited' }
     delete:
       tags: [Tags]
@@ -904,12 +919,12 @@ components:
           items: { $ref: '#/components/schemas/PropertyType' }
         municipalities: { type: array, maxItems: 10, items: { type: string }, description: Names from `municipalities` }
         areas: { type: array, maxItems: 200, items: { type: string }, description: 'Names (not display_name) from `areas`, each under one of the chosen municipalities' }
-        min_price: { type: integer, format: int64, nullable: true }
-        max_price: { type: integer, format: int64, nullable: true }
-        min_rooms: { type: number, nullable: true }
-        max_rooms: { type: number, nullable: true }
-        max_monthly_fee: { type: integer, format: int64, nullable: true, minimum: 0 }
-        min_living_area: { type: number, nullable: true, minimum: 0 }
+        min_price: { type: integer, format: int64, nullable: true, minimum: 0, maximum: 1000000000 }
+        max_price: { type: integer, format: int64, nullable: true, minimum: 0, maximum: 1000000000 }
+        min_rooms: { type: number, nullable: true, exclusiveMinimum: true, minimum: 0, maximum: 100 }
+        max_rooms: { type: number, nullable: true, exclusiveMinimum: true, minimum: 0, maximum: 100 }
+        max_monthly_fee: { type: integer, format: int64, nullable: true, minimum: 0, maximum: 100000 }
+        min_living_area: { type: number, nullable: true, minimum: 0, maximum: 10000 }
         include_new_construction: { type: boolean, nullable: true, default: true }
 
     SearchParams:
@@ -938,25 +953,25 @@ components:
         created_at: { type: string, format: date-time }
         agency: { type: string }
         external_id: { type: integer, format: int64 }
-        url: { type: string }
-        ld_json: { type: object, description: Raw schema.org data from the agency }
+        url: { type: string, maxLength: 500, pattern: '^https://' }
+        ld_json: { type: object, description: 'Raw schema.org data from the agency. Max 300 000 bytes as text' }
         last_seen_at: { type: string, format: date-time }
         removed_at: { type: string, format: date-time, nullable: true, description: Set when the listing disappeared from the agency's site. Deleted after 14 days. }
         property_type: { $ref: '#/components/schemas/PropertyType' }
-        municipality: { type: string, nullable: true }
-        area: { type: string, nullable: true }
-        price: { type: integer, format: int64, nullable: true }
-        rooms: { type: number, nullable: true }
+        municipality: { type: string, nullable: true, description: 'A name from `municipalities` (null when the agency''s name is unknown)' }
+        area: { type: string, nullable: true, maxLength: 100 }
+        price: { type: integer, format: int64, nullable: true, minimum: 1, maximum: 1000000000 }
+        rooms: { type: number, nullable: true, exclusiveMinimum: true, minimum: 0, maximum: 100 }
         latitude: { type: number, nullable: true }
         longitude: { type: number, nullable: true }
-        monthly_fee: { type: integer, format: int64, nullable: true, description: Apartments only }
-        living_area: { type: number, nullable: true }
+        monthly_fee: { type: integer, format: int64, nullable: true, minimum: 1, maximum: 100000, description: Apartments only }
+        living_area: { type: number, nullable: true, exclusiveMinimum: true, minimum: 0, maximum: 10000 }
         is_new_construction: { type: boolean }
         address: { type: string, nullable: true, maxLength: 300 }
-        image_url: { type: string, nullable: true, maxLength: 500 }
+        image_url: { type: string, nullable: true, maxLength: 500, pattern: '^https://' }
         description: { type: string, nullable: true, maxLength: 5000, description: The app cuts it for the UI }
         floor_level: { type: integer, nullable: true, minimum: -5, maximum: 100, description: Apartments only }
-        plot_area: { type: integer, format: int64, nullable: true, minimum: 0, description: Houses }
+        plot_area: { type: integer, format: int64, nullable: true, minimum: 0, maximum: 10000000, description: Houses }
         build_year: { type: integer, nullable: true, minimum: 1000, maximum: 2100 }
 
     Showing:

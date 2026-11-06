@@ -85,6 +85,7 @@ create table public.listings (
   last_seen_at   timestamptz not null default now(),
   removed_at     timestamptz,
   property_type  text,
+  -- Spelled as in municipalities (matching compares it exactly). The scraper maps the agency's spelling, unknown names become null
   municipality   text,
   area           text,
   price          bigint,
@@ -106,11 +107,23 @@ create table public.listings (
     property_type = any (array['villa', 'radhus', 'lagenhet', 'fritidshus', 'tomt', 'other'])
   ),
   constraint listings_address_length check (address is null or char_length(address) between 1 and 300),
-  constraint listings_image_url_length check (image_url is null or char_length(image_url) <= 500),
   constraint listings_description_length check (description is null or char_length(description) <= 5000),
   constraint listings_floor_level_check check (floor_level is null or floor_level between -5 and 100),
-  constraint listings_plot_area_check check (plot_area is null or plot_area >= 0),
-  constraint listings_build_year_check check (build_year is null or build_year between 1000 and 2100)
+  constraint listings_build_year_check check (build_year is null or build_year between 1000 and 2100),
+  -- Same limits as LIMITS in scripts/scraper/mappers/parse.ts and rowProblem() in scripts/scraper/run.ts. The scraper makes
+  -- bad values null (or skips the row) before the upsert, so these should never fire: they catch a bug in a mapper
+  constraint listings_price_check        check (price is null or price between 1 and 1000000000),
+  constraint listings_rooms_check        check (rooms is null or (rooms > 0 and rooms <= 100)),
+  constraint listings_monthly_fee_check  check (monthly_fee is null or monthly_fee between 1 and 100000),
+  constraint listings_living_area_check  check (living_area is null or (living_area > 0 and living_area <= 10000)),
+  constraint listings_plot_area_check    check (plot_area is null or plot_area between 0 and 10000000),
+  constraint listings_area_length        check (area is null or char_length(area) <= 100),
+  constraint listings_url_check          check (char_length(url) <= 500 and url like 'https://%'),
+  constraint listings_image_url_check    check (image_url is null or (char_length(image_url) <= 500 and image_url like 'https://%')),
+  -- The scraper's limit is 200 kB of JSON.stringify; jsonb::text adds spaces, hence the margin
+  constraint listings_ld_json_size       check (octet_length(ld_json::text) <= 300000),
+  -- The spelling in municipalities, since matching compares it exactly. Follows a renamed municipality
+  constraint listings_municipality_fkey  foreign key (municipality) references public.municipalities (name) on update cascade
 );
 
 -- Sweden's counties (län), 21 in total. Only used to group the municipalities (e.g. in the app's pickers): a search never stores a county.
@@ -168,13 +181,22 @@ create table public.search_params (
   min_living_area numeric,
   -- null counts as true: new builds are shown unless the user turns them off
   include_new_construction boolean default true,
-  constraint "SearchParams_pkey" primary key (id),
-  constraint "SearchParams_user_id_key" unique (user_id),
-  constraint "SearchParams_user_id_fkey" foreign key (user_id) references public.profiles (id) on delete cascade,
+  constraint search_params_pkey primary key (id),
+  constraint search_params_user_id_key unique (user_id),
+  constraint search_params_user_id_fkey foreign key (user_id) references public.profiles (id) on delete cascade,
   constraint search_params_price_check check (min_price is null or max_price is null or min_price <= max_price),
   constraint search_params_rooms_check check (min_rooms is null or max_rooms is null or min_rooms <= max_rooms),
-  constraint search_params_monthly_fee_check check (max_monthly_fee is null or max_monthly_fee >= 0),
-  constraint search_params_living_area_check check (min_living_area is null or min_living_area >= 0),
+  -- Same upper limits as listings. Only stops absurd values: the app's own options are far below them
+  constraint search_params_price_range check (
+    (min_price is null or min_price between 0 and 1000000000)
+    and (max_price is null or max_price between 0 and 1000000000)
+  ),
+  constraint search_params_rooms_range check (
+    (min_rooms is null or (min_rooms > 0 and min_rooms <= 100))
+    and (max_rooms is null or (max_rooms > 0 and max_rooms <= 100))
+  ),
+  constraint search_params_monthly_fee_check check (max_monthly_fee is null or max_monthly_fee between 0 and 100000),
+  constraint search_params_living_area_check check (min_living_area is null or min_living_area between 0 and 10000),
   constraint search_params_property_types_check check (
     property_types <@ array['villa', 'radhus', 'lagenhet', 'fritidshus', 'tomt', 'other']
   ),
@@ -208,7 +230,9 @@ create table public.user_tags (
   constraint user_tags_pkey primary key (id),
   constraint user_tags_unique unique (user_id, tag_name),
   constraint user_tags_user_id_fkey foreign key (user_id) references public.profiles (id) on delete cascade,
-  constraint user_tags_name_length check (char_length(tag_name) between 1 and 100)
+  constraint user_tags_name_length check (char_length(tag_name) between 1 and 100),
+  -- At least one character that is not whitespace (also catches tabs and line breaks, not just spaces)
+  constraint user_tags_name_not_blank check (tag_name ~ '\S')
 );
 
 create table public.listing_tags (
@@ -243,7 +267,9 @@ create table public.showings (
   constraint showings_group_id_fkey   foreign key (group_id)   references public.groups (id)   on delete cascade,
   constraint showings_user_id_fkey    foreign key (user_id)    references public.profiles (id) on delete cascade,
   constraint showings_listing_id_fkey foreign key (listing_id) references public.listings (id) on delete cascade,
-  constraint showings_note_length check (note is null or char_length(note) <= 500)
+  constraint showings_note_length check (note is null or char_length(note) <= 500),
+  -- Day, month and leap years are already checked by the date type (Gregorian calendar). This only stops absurd years
+  constraint showings_date_range check (showing_date between date '2000-01-01' and date '2099-12-31')
 );
 
 -- Problems reported by the scraper. service_role only (RLS on, no policies).
@@ -925,6 +951,38 @@ begin
 end;
 $function$;
 
+-- Checks the recipient of a new invite: a valid e-mail address (same pattern as the app), and at most 20 different recipients per sender in the last 30 days.
+-- All statuses count (also cancelled), so sending and cancelling does not get around it. A new invite to someone already invited in the period is not a new recipient.
+-- The sender's profile row is locked while counting, so simultaneous inserts cannot go past the limit. raise exception (P0001) so the app shows the message as is.
+CREATE OR REPLACE FUNCTION public.check_invite_recipient()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+begin
+  if new.to_email !~ '^[^\s@]+@[^\s@]+\.[^\s@]+$' then
+    raise exception 'Ange en giltig e-postadress.';
+  end if;
+
+  -- no key update: does not block the foreign key check of other inserts
+  perform 1 from public.profiles where id = new.from_user_id for no key update;
+  if not exists (
+    select 1 from public.invites
+    where from_user_id = new.from_user_id
+      and lower(to_email) = lower(new.to_email)
+      and created_at > now() - interval '30 days'
+  ) and (
+    select count(distinct lower(to_email)) from public.invites
+    where from_user_id = new.from_user_id
+      and created_at > now() - interval '30 days'
+  ) >= 20 then
+    raise exception 'Du har bjudit in för många olika personer. Försök igen senare';
+  end if;
+  return new;
+end;
+$function$;
+
 -- At most 20 invites in total (any status) from one sender to one recipient. Declined invites are kept so they count.
 CREATE OR REPLACE FUNCTION public.limit_invites_per_pair()
  RETURNS trigger
@@ -964,6 +1022,24 @@ begin
     if (select count(*) from public.showings where user_id = new.user_id) >= 50 then
       raise exception 'Du har redan max antal visningar (50)';
     end if;
+  end if;
+  return new;
+end;
+$function$;
+
+-- At most 30 tags (categories) per user. The user's profile row is locked while counting, so simultaneous inserts cannot go past the limit.
+-- Only inserts are checked: renaming a tag is an update and is not affected.
+CREATE OR REPLACE FUNCTION public.limit_tags_per_user()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+begin
+  -- no key update: does not block the foreign key check of other inserts
+  perform 1 from public.profiles where id = new.user_id for no key update;
+  if (select count(*) from public.user_tags where user_id = new.user_id) >= 30 then
+    raise exception 'Du har redan max antal kategorier (30)';
   end if;
   return new;
 end;
@@ -1391,6 +1467,11 @@ CREATE TRIGGER search_params_limit_changes
   ON public.search_params
   FOR EACH ROW EXECUTE FUNCTION public.limit_search_params_changes();
 
+-- BEFORE triggers fire in alphabetical order: check_recipient runs before limit_per_pair, so an invalid address is rejected first
+CREATE TRIGGER invites_check_recipient
+  BEFORE INSERT ON public.invites
+  FOR EACH ROW EXECUTE FUNCTION public.check_invite_recipient();
+
 CREATE TRIGGER invites_limit_per_pair
   BEFORE INSERT ON public.invites
   FOR EACH ROW EXECUTE FUNCTION public.limit_invites_per_pair();
@@ -1398,6 +1479,10 @@ CREATE TRIGGER invites_limit_per_pair
 CREATE TRIGGER showings_limit_per_group
   BEFORE INSERT ON public.showings
   FOR EACH ROW EXECUTE FUNCTION public.limit_showings_per_group();
+
+CREATE TRIGGER user_tags_limit_per_user
+  BEFORE INSERT ON public.user_tags
+  FOR EACH ROW EXECUTE FUNCTION public.limit_tags_per_user();
 
 CREATE TRIGGER user_listings_set_liked_at
   BEFORE INSERT OR UPDATE OF liked ON public.user_listings
@@ -1699,6 +1784,7 @@ to authenticated, service_role;
 
 -- service_role only (scraper, triggers, maintenance)
 grant execute on function
+  public.check_invite_recipient(),
   public.dissolve_group_if_alone(bigint),
   public.due_notifications(boolean),
   public.handle_deleted_profile(),
@@ -1707,6 +1793,7 @@ grant execute on function
   public.match_user_listings(uuid),
   public.limit_search_params_changes(),
   public.limit_showings_per_group(),
+  public.limit_tags_per_user(),
   public.move_personal_showings(uuid, bigint),
   public.orphan_avatar_objects(interval),
   public.purge_old_invites(),
