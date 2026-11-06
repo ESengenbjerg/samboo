@@ -3,7 +3,7 @@
 A readable overview of the Supabase database. The runnable counterpart is [schema.sql](schema.sql).
 Both files are documentation only and never change the database. To update them after a database change, run the queries in [SQL-queries.txt](SQL-queries.txt) in the Studio SQL Editor.
 
-Setting up a new project: run [schema.sql](schema.sql), then seed the counties and municipalities with `node scripts/places/seedPlaces.ts` (the app and the search validation need them). `areas` is entered by hand and may start empty.
+Setting up a new project: run [schema.sql](schema.sql), then seed the counties and municipalities with `node scripts/places/seedPlaces.ts` (the app and the search validation need them). `areas` is entered by hand and may start empty. For a demo project without e-mail or scraping, `node scripts/seed/seedDemo.ts` then adds two users and 50 listings with `agency = 'seed'` (see README.md, "Testa med demodata"). The demo users are marked with `app_metadata.demo_seed = true`, which is the only thing the script deletes users by.
 
 ## Overview
 
