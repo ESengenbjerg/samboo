@@ -69,7 +69,7 @@ export default function NotificationsScreen() {
               <View className="gap-6 flex-1">
                 <InviteUpdateNotification accounts={accounts} />
                 <FeedUpdateNotification newObjects={newListingIds.size} />
-                <MemberUpdates updates={today} />
+                <MemberUpdates updates={yesterday} />
               </View>
             </Card>
           )}
@@ -80,7 +80,7 @@ export default function NotificationsScreen() {
               <View className="gap-6 flex-1">
                 <InviteUpdateNotification accounts={accounts} />
                 <FeedUpdateNotification newObjects={newListingIds.size} />
-                <MemberUpdates updates={today} />
+                <MemberUpdates updates={earlier} />
               </View>
             </Card>
           )}

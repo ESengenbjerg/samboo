@@ -11,7 +11,9 @@ type InvitationUpdateProps = {
   accounts: ConnectedAccounts;
 };
 
-export default function InviteUpdateNotification({ accounts }: InvitationUpdateProps) {
+export default function InviteUpdateNotification({
+  accounts,
+}: InvitationUpdateProps) {
   const { receivedInvites, isSubmitting, actionError } = accounts;
   const { answeredInvite, onAnswer } = useAnswerInvite(accounts);
 
@@ -23,7 +25,7 @@ export default function InviteUpdateNotification({ accounts }: InvitationUpdateP
         <>
           <Separator />
           <View className="flex-row justify-between items-center">
-            <Text>
+            <Text variant="bold">
               {answeredInvite === "accepted"
                 ? "Inbjudan godkänd!"
                 : "Inbjudan nekad."}
@@ -56,16 +58,16 @@ export default function InviteUpdateNotification({ accounts }: InvitationUpdateP
       {receivedInvites.map((i) => (
         <View key={i.id} className="gap-6">
           <Separator />
-          <View className="flex-row justify-between items-center gap-2">
+          <View className="justify-between gap-2">
             <View className="flex-1">
               <Text variant="bold">Koppla konto</Text>
               <Text>{i.from_name} har bjudit in dig till sin grupp.</Text>
-              <Text>({i.from_email}) </Text>
+              <Text>Från: {i.from_email}</Text>
             </View>
-            <View className="gap-2">
+            <View className="flex-row gap-2">
               <Button
                 size="sm"
-                variant="outline"
+                variant="secondary"
                 onPress={() => onAnswer(i.id, "accepted")}
                 disabled={isSubmitting}
                 className="max-h-7 justify-between"
@@ -75,7 +77,7 @@ export default function InviteUpdateNotification({ accounts }: InvitationUpdateP
               </Button>
               <Button
                 size="sm"
-                variant="outline"
+                variant="destructive"
                 onPress={() => onAnswer(i.id, "declined")}
                 disabled={isSubmitting}
                 className="max-h-7 justify-between"

@@ -22,7 +22,7 @@ export default function GroupUpdateNotification({
       pathname: "/saved/[listId]",
       params: {
         listId: memberId,
-        title: `${nameEndsWithS(memberName)} lista.`,
+        title: `${nameEndsWithS(memberName)} lista`,
       },
     });
   }
