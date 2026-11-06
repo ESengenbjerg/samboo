@@ -1,7 +1,4 @@
-import {
-  default as FeedUpdate,
-  default as FeedUpdateNotification,
-} from "@/components/notifications/feed-update-notification";
+import { default as FeedUpdateNotification } from "@/components/notifications/feed-update-notification";
 import GroupUpdateNotification from "@/components/notifications/group-update-notification";
 import InviteUpdateNotification from "@/components/notifications/invitation-update-notification";
 import { Card } from "@/components/ui/card";
@@ -67,28 +64,26 @@ export default function NotificationsScreen() {
           </Card>
 
           {yesterday.length > 0 && (
-          <Card className="p-4 pb-8">
-            <Text variant="bold">Igår</Text>
-            <View className="gap-6 flex-1">
-              <InviteUpdateNotification accounts={accounts} />
-              <FeedUpdateNotification newObjects={newListingIds.size} />
-              <MemberUpdates updates={today} />
-            </View>
-          </Card>
-          )}
-          
-          {earlier.length > 0 && (
-          <Card className="p-4 pb-8">
-            <Text variant="bold">Tidigare</Text>
-            <View className="gap-6 flex-1">
-              <InviteUpdateNotification accounts={accounts} />
-              <FeedUpdateNotification newObjects={newListingIds.size} />
-              <MemberUpdates updates={today} />
-            </View>
-          </Card>
+            <Card className="p-4 pb-8">
+              <Text variant="bold">Igår</Text>
+              <View className="gap-6 flex-1">
+                <InviteUpdateNotification accounts={accounts} />
+                <FeedUpdateNotification newObjects={newListingIds.size} />
+                <MemberUpdates updates={today} />
+              </View>
+            </Card>
           )}
 
-          
+          {earlier.length > 0 && (
+            <Card className="p-4 pb-8">
+              <Text variant="bold">Tidigare</Text>
+              <View className="gap-6 flex-1">
+                <InviteUpdateNotification accounts={accounts} />
+                <FeedUpdateNotification newObjects={newListingIds.size} />
+                <MemberUpdates updates={today} />
+              </View>
+            </Card>
+          )}
         </View>
       </ScrollView>
     </View>
