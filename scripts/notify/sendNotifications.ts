@@ -5,6 +5,16 @@ import { buildMail, type DueRow } from "./template.ts";
 const force = process.argv.includes("--force");
 // Use: node scripts/notify/sendNotifications.ts --force
 
+// Resend's error body can contain e-mail addresses, and the Actions log is public: log only the error name
+async function resendError(res: Response) {
+  try {
+    const body = (await res.json()) as { name?: string };
+    return body.name ?? "unknown_error";
+  } catch {
+    return "unreadable_error";
+  }
+}
+
 // Fetch credentials
 process.loadEnvFile(".env");
 
@@ -117,7 +127,7 @@ for (let i = 0; i < mails.length; i += 100) {
   // On a validation error, send this batch one by one so only the bad mail fails.
   if (response.status === 400 || response.status === 422) {
     console.error(
-      `Batch rejected (${response.status}), sending one by one:`,
+      `Batch rejected (${response.status}), ${await resendError(response)}sending one by one:`,
       await response.text(),
     );
     process.exitCode = 1;
@@ -138,7 +148,7 @@ for (let i = 0; i < mails.length; i += 100) {
 
       if (!single.ok) {
         console.error(
-          `Resend failed for user ${m.userId} (${single.status}):`,
+          `Resend failed for user ${m.userId} (${single.status}, ${await resendError(single)}):`,
           await single.text(),
         );
         failed += 1;
@@ -158,7 +168,10 @@ for (let i = 0; i < mails.length; i += 100) {
 
   // Any other error (auth, rate limit, Resend down): stop, the next run picks them up
   if (!response.ok) {
-    console.error(`Resend failed (${response.status}):`, await response.text());
+    console.error(
+      `Resend failed (${response.status}, ${await resendError(response)}):`,
+      await response.text(),
+    );
     failed += batch.length;
     process.exitCode = 1;
     break;
