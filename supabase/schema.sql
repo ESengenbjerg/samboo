@@ -2361,7 +2361,6 @@ ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."profiles";
 
 
 GRANT USAGE ON SCHEMA "public" TO "postgres";
-GRANT USAGE ON SCHEMA "public" TO "anon";
 GRANT USAGE ON SCHEMA "public" TO "authenticated";
 GRANT USAGE ON SCHEMA "public" TO "service_role";
 
@@ -2561,7 +2560,6 @@ GRANT ALL ON FUNCTION "public"."check_invite_recipient"() TO "service_role";
 REVOKE ALL ON FUNCTION "public"."check_request"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."check_request"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."check_request"() TO "service_role";
-GRANT ALL ON FUNCTION "public"."check_request"() TO "anon";
 GRANT ALL ON FUNCTION "public"."check_request"() TO "authenticator";
 
 
@@ -2833,7 +2831,6 @@ GRANT SELECT ON TABLE "public"."areas" TO "authenticated";
 
 
 
-GRANT ALL ON SEQUENCE "public"."areas_id_seq" TO "anon";
 GRANT ALL ON SEQUENCE "public"."areas_id_seq" TO "authenticated";
 GRANT ALL ON SEQUENCE "public"."areas_id_seq" TO "service_role";
 
@@ -2844,7 +2841,6 @@ GRANT SELECT ON TABLE "public"."counties" TO "authenticated";
 
 
 
-GRANT ALL ON SEQUENCE "public"."counties_id_seq" TO "anon";
 GRANT ALL ON SEQUENCE "public"."counties_id_seq" TO "authenticated";
 GRANT ALL ON SEQUENCE "public"."counties_id_seq" TO "service_role";
 
@@ -2898,7 +2894,6 @@ GRANT SELECT ON TABLE "public"."municipalities" TO "authenticated";
 
 
 
-GRANT ALL ON SEQUENCE "public"."municipalities_id_seq" TO "anon";
 GRANT ALL ON SEQUENCE "public"."municipalities_id_seq" TO "authenticated";
 GRANT ALL ON SEQUENCE "public"."municipalities_id_seq" TO "service_role";
 
@@ -2938,7 +2933,6 @@ GRANT ALL ON TABLE "public"."search_params_log" TO "service_role";
 
 
 
-GRANT ALL ON SEQUENCE "public"."search_params_log_id_seq" TO "anon";
 GRANT ALL ON SEQUENCE "public"."search_params_log_id_seq" TO "authenticated";
 GRANT ALL ON SEQUENCE "public"."search_params_log_id_seq" TO "service_role";
 
@@ -2952,7 +2946,6 @@ GRANT ALL ON TABLE "public"."showing_events" TO "service_role";
 
 
 
-GRANT ALL ON SEQUENCE "public"."showing_events_id_seq" TO "anon";
 GRANT ALL ON SEQUENCE "public"."showing_events_id_seq" TO "authenticated";
 GRANT ALL ON SEQUENCE "public"."showing_events_id_seq" TO "service_role";
 
@@ -2979,7 +2972,6 @@ GRANT INSERT("note"),UPDATE("note") ON TABLE "public"."showings" TO "authenticat
 
 
 
-GRANT ALL ON SEQUENCE "public"."showings_id_seq" TO "anon";
 GRANT ALL ON SEQUENCE "public"."showings_id_seq" TO "authenticated";
 GRANT ALL ON SEQUENCE "public"."showings_id_seq" TO "service_role";
 
@@ -3016,7 +3008,6 @@ GRANT ALL ON SEQUENCE "public"."user_tags_id_seq" TO "service_role";
 
 
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "postgres";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "service_role";
 
@@ -3035,7 +3026,6 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUN
 
 
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "postgres";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "anon";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "authenticated";
 ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
 
