@@ -1,20 +1,42 @@
-import FeedUpdate from "@/components/notifications/feed-notification";
-import GroupUpdate from "@/components/notifications/group-notification";
-import InviteUpdate from "@/components/notifications/invitation-notification";
+import {
+  default as FeedUpdate,
+  default as FeedUpdateNotification,
+} from "@/components/notifications/feed-update-notification";
+import GroupUpdateNotification from "@/components/notifications/group-update-notification";
+import InviteUpdateNotification from "@/components/notifications/invitation-update-notification";
 import { Card } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
 import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
-import { useNewListingsCount } from "@/hooks/useNewListingsCount";
+import { useGroupUpdates } from "@/hooks/useGroupUpdates";
+import { useNewListingIds } from "@/hooks/useNewListingIds";
 import { useSession } from "@/hooks/useSession";
+import { MemberUpdate } from "@/types/notifications";
 import { useFocusEffect } from "expo-router";
 import { useCallback } from "react";
 import { ScrollView, View } from "react-native";
 
+// One GroupUpdate per member with something new
+function MemberUpdates({ updates }: { updates: MemberUpdate[] }) {
+  return updates.map((u) => (
+    <GroupUpdateNotification
+      key={u.member.id}
+      memberId={u.member.id}
+      memberName={u.member.name}
+      newCount={u.newCount}
+    />
+  ));
+}
+
 export default function NotificationsScreen() {
   const { session } = useSession();
-  const accounts = useConnectedAccounts(session?.user.id);
+  const userId = session?.user.id;
+  const accounts = useConnectedAccounts(userId);
+
+  // Fetched once and used by both the feedUpdateNotification and the groupUpdateNotification
   // Refetches by itself every time the page is opened
-  const { newListingsCount } = useNewListingsCount(session?.user.id);
+  const { newListingIds } = useNewListingIds(session?.user.id);
+  const { updatesByDay } = useGroupUpdates(userId, newListingIds);
+  const { today, yesterday, earlier } = updatesByDay;
 
   // Reload invites every time the page is opened
   const { refresh } = accounts;
@@ -38,44 +60,35 @@ export default function NotificationsScreen() {
           <Card className="p-4 pb-8">
             <Text variant="bold">Idag</Text>
             <View className="gap-6 flex-1">
-              
-              <FeedUpdate newObjects={newListingsCount} />
-              <GroupUpdate
-                memberId={"1822dc2a-fb08-496f-a20c-3ca730195af3"}
-                memberName={"Admin"}
-              />
-              <InviteUpdate accounts={accounts} />
+              <InviteUpdateNotification accounts={accounts} />
+              <FeedUpdateNotification newObjects={newListingIds.size} />
+              <MemberUpdates updates={today} />
             </View>
           </Card>
+
+          {yesterday.length > 0 && (
           <Card className="p-4 pb-8">
             <Text variant="bold">Igår</Text>
             <View className="gap-6 flex-1">
-              <GroupUpdate
-                memberId={"1822dc2a-fb08-496f-a20c-3ca730195af3"}
-                memberName={"Admin"}
-              />
+              <InviteUpdateNotification accounts={accounts} />
+              <FeedUpdateNotification newObjects={newListingIds.size} />
+              <MemberUpdates updates={today} />
             </View>
           </Card>
+          )}
+          
+          {earlier.length > 0 && (
           <Card className="p-4 pb-8">
             <Text variant="bold">Tidigare</Text>
             <View className="gap-6 flex-1">
-              <GroupUpdate
-                memberId={"1822dc2a-fb08-496f-a20c-3ca730195af3"}
-                memberName={"Admin"}
-              />
-              <FeedUpdate newObjects={3} />
-              <GroupUpdate
-                memberId={"1822dc2a-fb08-496f-a20c-3ca730195af3"}
-                memberName={"Admin"}
-              />
-              <FeedUpdate newObjects={3} />
-              <GroupUpdate
-                memberId={"1822dc2a-fb08-496f-a20c-3ca730195af3"}
-                memberName={"Admin"}
-              />
-              <FeedUpdate newObjects={3} />
+              <InviteUpdateNotification accounts={accounts} />
+              <FeedUpdateNotification newObjects={newListingIds.size} />
+              <MemberUpdates updates={today} />
             </View>
           </Card>
+          )}
+
+          
         </View>
       </ScrollView>
     </View>

@@ -30,7 +30,7 @@ export default function GroupUpdateNotification({
   return (
     <>
       <Separator />
-      <View className="flex-row justify-between items-center">
+      <View className="flex-row justify-between items-center gap-2">
         <View className="flex-1">
           <Text variant="bold">
             {newCount === 1
