@@ -556,6 +556,10 @@ begin
   insert into public.user_listings (user_id, listing_id, liked, is_new)
   values (auth.uid(), p_listing_id, true, false)
   on conflict (user_id, listing_id) do update set liked = true, is_new = false;
+
+  insert into public.seen_listings (user_id, listing_id)
+  values (auth.uid(), p_listing_id)
+  on conflict (user_id, listing_id) do nothing;
 end;
 $$;
 
@@ -663,16 +667,32 @@ begin
     raise exception 'Ditt konto är inte aktivt';
   end if;
 
+  -- My own match: same as before
   update public.user_listings
   set is_new = false
   where user_id = auth.uid()
     and listing_id = p_listing_id
     and is_new;
+
+  -- Remember it, also without a user_listings row (a group member's listing outside my search).
+  -- Only listings visible to me (same rule as like_listing()); anything else is silently ignored, as before
+  insert into public.seen_listings (user_id, listing_id)
+  select auth.uid(), p_listing_id
+  where exists (
+    select 1 from public.user_listings ul
+    where ul.listing_id = p_listing_id
+      and public.shares_group_with(ul.user_id)
+  )
+  on conflict (user_id, listing_id) do nothing;
 end;
 $$;
 
 
 ALTER FUNCTION "public"."mark_listing_seen"("p_listing_id" bigint) OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."mark_listing_seen"("p_listing_id" bigint) IS 'Called by the app when the listing page opens. Sets is_new = false on my own user_listings row (if any) and records the listing in seen_listings, also when I have no row (a group member''s listing outside my search).';
+
 
 
 CREATE OR REPLACE FUNCTION "public"."match_user_listings"("p_user_id" "uuid" DEFAULT NULL::"uuid") RETURNS integer
@@ -683,6 +703,7 @@ declare
   inserted integer;
 begin
   with matches as (
+    -- Every (user, listing) pair that currently matches a search
     select sp.user_id, l.id as listing_id
     from public.search_params sp
     join public.listings l on (
@@ -709,6 +730,8 @@ begin
       and l.removed_at is null
   ),
   stale as (
+    -- Rows that no longer match. Liked and tagged listings are kept, and so are removed listings ("Hittas inte" until purged).
+    -- What the user has seen is kept in seen_listings, so it is not lost here
     delete from public.user_listings ul
     where (p_user_id is null or ul.user_id = p_user_id)
       and exists (select 1 from public.search_params sp where sp.user_id = ul.user_id)
@@ -724,8 +747,11 @@ begin
       )
     returning ul.id
   )
+  -- A listing the user has already opened (seen_listings) does not become "new" again when it matches again
   insert into public.user_listings (user_id, listing_id, is_new, liked)
-  select m.user_id, m.listing_id, true, false
+  select m.user_id, m.listing_id,
+         not exists (select 1 from public.seen_listings s where s.user_id = m.user_id and s.listing_id = m.listing_id),
+         false
   from matches m
   on conflict (user_id, listing_id) do nothing;
 
@@ -819,6 +845,49 @@ $$;
 
 
 ALTER FUNCTION "public"."my_group_members"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."my_new_listing_ids"() RETURNS TABLE("listing_id" bigint)
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+  -- 1) My own matches I have not opened: exactly what getNewListingIds() returned before
+  select ul.listing_id
+  from public.user_listings ul
+  join public.listings l on l.id = ul.listing_id
+  where public.is_active_user()
+    and ul.user_id = (select auth.uid())
+    and ul.is_new
+    and l.removed_at is null
+
+  union
+
+  -- 2) Listings a member of my group has liked, that I have no row for and have never opened
+  select ul.listing_id
+  from public.user_listings ul
+  join public.profiles p on p.id = ul.user_id
+  join public.listings l on l.id = ul.listing_id
+  where public.is_active_user()
+    and p.group_id = public.my_group_id()
+    and ul.user_id <> (select auth.uid())
+    and ul.liked
+    and l.removed_at is null
+    and not exists (
+      select 1 from public.user_listings mine
+      where mine.user_id = (select auth.uid()) and mine.listing_id = ul.listing_id
+    )
+    and not exists (
+      select 1 from public.seen_listings s
+      where s.user_id = (select auth.uid()) and s.listing_id = ul.listing_id
+    )
+$$;
+
+
+ALTER FUNCTION "public"."my_new_listing_ids"() OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."my_new_listing_ids"() IS 'The listing ids that are new to me: my own matches with is_new = true, plus listings a group member has liked that I have no user_listings row for and have never opened (seen_listings). Removed listings are left out. Read-only, call with GET. Same shape as the old user_listings query ({ listing_id }), so the app''s Set of ids works unchanged.';
+
 
 
 CREATE OR REPLACE FUNCTION "public"."my_pending_invites"() RETURNS TABLE("id" bigint, "created_at" timestamp with time zone, "from_user_id" "uuid", "from_name" "text", "from_email" "text")
@@ -1445,6 +1514,20 @@ ALTER TABLE "public"."search_params_log" ALTER COLUMN "id" ADD GENERATED ALWAYS 
 
 
 
+CREATE TABLE IF NOT EXISTS "public"."seen_listings" (
+    "user_id" "uuid" NOT NULL,
+    "listing_id" bigint NOT NULL,
+    "seen_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+ALTER TABLE "public"."seen_listings" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."seen_listings" IS 'Listings a user has opened (or liked). Written by mark_listing_seen() and like_listing(), never by the app. Unlike user_listings.is_new it survives the user_listings row being deleted by match_user_listings(), and also covers a group member''s listings outside my search. Read by match_user_listings() (a listing I have seen is not new again) and my_new_listing_ids().';
+
+
+
 CREATE TABLE IF NOT EXISTS "public"."showings" (
     "id" bigint NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
@@ -1620,6 +1703,11 @@ ALTER TABLE ONLY "public"."search_params"
 
 
 
+ALTER TABLE ONLY "public"."seen_listings"
+    ADD CONSTRAINT "seen_listings_pkey" PRIMARY KEY ("user_id", "listing_id");
+
+
+
 ALTER TABLE ONLY "public"."showings"
     ADD CONSTRAINT "showings_group_listing_unique" UNIQUE ("group_id", "listing_id");
 
@@ -1676,6 +1764,10 @@ CREATE UNIQUE INDEX "scrape_issues_one_open" ON "public"."scrape_issues" USING "
 
 
 CREATE INDEX "search_params_log_user_changed_idx" ON "public"."search_params_log" USING "btree" ("user_id", "changed_at");
+
+
+
+CREATE INDEX "seen_listings_listing_id_idx" ON "public"."seen_listings" USING "btree" ("listing_id");
 
 
 
@@ -1770,6 +1862,16 @@ ALTER TABLE ONLY "public"."search_params_log"
 
 ALTER TABLE ONLY "public"."search_params"
     ADD CONSTRAINT "search_params_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."seen_listings"
+    ADD CONSTRAINT "seen_listings_listing_id_fkey" FOREIGN KEY ("listing_id") REFERENCES "public"."listings"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."seen_listings"
+    ADD CONSTRAINT "seen_listings_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
 
 
 
@@ -1919,6 +2021,9 @@ CREATE POLICY "search_params_select" ON "public"."search_params" FOR SELECT TO "
 
 CREATE POLICY "search_params_update" ON "public"."search_params" FOR UPDATE TO "authenticated" USING (("public"."is_active_user"() AND ("user_id" = ( SELECT "auth"."uid"() AS "uid")))) WITH CHECK (("user_id" = ( SELECT "auth"."uid"() AS "uid")));
 
+
+
+ALTER TABLE "public"."seen_listings" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."showings" ENABLE ROW LEVEL SECURITY;
@@ -2313,6 +2418,12 @@ GRANT ALL ON FUNCTION "public"."my_group_members"() TO "authenticated";
 
 
 
+REVOKE ALL ON FUNCTION "public"."my_new_listing_ids"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."my_new_listing_ids"() TO "service_role";
+GRANT ALL ON FUNCTION "public"."my_new_listing_ids"() TO "authenticated";
+
+
+
 REVOKE ALL ON FUNCTION "public"."my_pending_invites"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."my_pending_invites"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."my_pending_invites"() TO "authenticated";
@@ -2540,6 +2651,10 @@ GRANT ALL ON TABLE "public"."search_params_log" TO "service_role";
 GRANT ALL ON SEQUENCE "public"."search_params_log_id_seq" TO "anon";
 GRANT ALL ON SEQUENCE "public"."search_params_log_id_seq" TO "authenticated";
 GRANT ALL ON SEQUENCE "public"."search_params_log_id_seq" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."seen_listings" TO "service_role";
 
 
 

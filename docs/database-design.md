@@ -23,7 +23,7 @@ The dump keeps function bodies (including comments inside them) and `COMMENT ON`
 
 ## Security model
 
-- **RLS on every table, policies only for `authenticated`.** `anon` has no table grants and can call no function except `check_request()`. Tables that only scripts use (`scrape_issues`, `search_params_log`, `api_rate_limit`) have RLS on and no policies, so only `service_role` and security definer functions reach them.
+- **RLS on every table, policies only for `authenticated`.** `anon` has no table grants and can call no function except `check_request()`. Tables that only scripts and functions use (`scrape_issues`, `search_params_log`, `api_rate_limit`, `seen_listings`) have RLS on and no policies, so only `service_role` and security definer functions reach them.
 - **`is_active_user()` is the gate.** Nearly every policy and RPC calls it: the profile must exist, be active and have a confirmed e-mail. An already issued JWT stays valid until it expires, but once the profile is deleted or deactivated the function returns `false` and RLS blocks everything. `profiles.is_active` is never set by the app: it is a manual kill switch that is checked live on every request.
 - **Narrow grants, then RLS.** Supabase's default privileges give new tables `ALL` for `anon` and `authenticated`, and new functions `EXECUTE` for `authenticated`. This database revokes that and grants only what the app needs. Direct writes are limited to a few columns (for example `profiles.name`, `user_listings.liked`, `showings.note`). Everything else, such as `profiles.group_id` and `user_listings.is_new`, changes only through functions. **Every new table or function must get its grants revoked and granted explicitly**, otherwise it is open to `authenticated` by default.
 - **Security definer functions to avoid recursion.** A policy that reads another table with its own policy can loop (error 42P17). `can_see_listing()` (used by the `showings` insert policy) and `my_avatar_count()` (used by the storage policy) exist only to break such loops.
@@ -43,7 +43,7 @@ The dump keeps function bodies (including comments inside them) and `COMMENT ON`
 
 The limit triggers and functions lock first (the profile row, the group row or an advisory lock) and count after, so two simultaneous requests cannot both pass the limit.
 
-**STABLE functions must be called with `{ get: true }`.** PostgREST runs STABLE functions in a read-only transaction. Called with POST (the `supabase.rpc` default), `check_request()` tries to write its counter and the call fails with 405 / 25006. `my_group_id()`, `my_group_members()` and `my_pending_invites()` are STABLE, and so must any new STABLE function the app calls.
+**STABLE functions must be called with `{ get: true }`.** PostgREST runs STABLE functions in a read-only transaction. Called with POST (the `supabase.rpc` default), `check_request()` tries to write its counter and the call fails with 405 / 25006. `my_group_id()`, `my_group_members()`, `my_pending_invites()` and `my_new_listing_ids()` are STABLE, and so must any new STABLE function the app calls.
 
 **Trigger order matters.** BEFORE triggers on the same table fire in alphabetical order. The names are chosen so validation runs before counting: `search_params_check_places` before `search_params_limit_changes` (an invalid search is not logged), and `invites_check_recipient` before `invites_limit_per_pair`.
 
@@ -58,6 +58,11 @@ The limit triggers and functions lock first (the profile row, the group row or a
   - New construction is shown unless the user turns it off.
 - **Places are reference data.** `municipalities` (290) is the one source of truth for municipality names. The app, the scraper's mapping and `validate_search_places()` all read it, and `listings.municipality` has a foreign key to it. `areas` is entered by hand, only for municipalities we can check ourselves. `listings.area` is free text from the agencies and is not the source of `areas`.
 - **`is_new`** belongs to the app (the "NYTT" flag). It is cleared by `mark_listing_seen()` when the listing page opens, and by `like_listing()`. It is not used for mails, see below.
+- **`seen_listings` remembers what a user has opened**, because `is_new` cannot do that alone. `is_new` lives on a `user_listings` row, and that row is missing for a group member's listing outside my search, and is deleted by `match_user_listings()` when the listing stops matching. `mark_listing_seen()` and `like_listing()` always write a row (user, listing), whether or not a `user_listings` row exists. The table is used in two places:
+  - `match_user_listings()` creates a new row with `is_new = false` if the listing is already seen, so a listing does not get "NYTT" again after a search change.
+  - `my_new_listing_ids()` returns what is new to me: my own rows with `is_new = true`, plus listings a group member has liked that I have no row for and have not seen. The app uses it for the flag in every list and for the group notifications.
+
+  Only functions read and write it (RLS on, no grants to the app). Rows go away with the user or the listing (cascade). When the table was added, it was filled with all rows with `is_new = false` and with every existing group like outside the member's own search, so nobody got a flood of "new" listings.
 - **Removed listings** get `removed_at` and are shown as "Hittas inte" (not found). They are deleted 14 days later by pg_cron. See [removed_listings.md](removed_listings.md).
 - **`listings` constraints mirror the scraper's limits** (`LIMITS` in `scripts/scraper/mappers/parse.ts`). The scraper makes bad values null before the upsert, because one failing check fails the whole batch. The constraints catch a bug in a mapper.
 

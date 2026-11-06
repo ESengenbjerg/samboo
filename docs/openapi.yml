@@ -247,7 +247,7 @@ paths:
       summary: Like a listing
       description: |
         Sets `liked = true` on my `user_listings` row for the listing (the row is created if missing).
-        A like counts as seen, so `is_new` is set to false as well.
+        A like counts as seen, so `is_new` is set to false as well, and the listing is recorded as seen (see `mark_listing_seen`).
         Only allowed for listings that are already visible to me, i.e. matched to me or to someone in my group.
         There is no unlike function: to remove a like, update `user_listings.liked` to false directly.
       operationId: like_listing
@@ -274,9 +274,12 @@ paths:
       tags: [Listings]
       summary: Mark a listing as seen
       description: |
-        Sets `is_new = false` on my `user_listings` row for the listing. Call it when the listing page opens,
-        whichever list it was opened from (my results, my likes, a group member's likes).
-        Does nothing if I have no row for the listing (a group member's listing outside my search) or it is already seen.
+        Call it when the listing page opens, whichever list it was opened from (my results, my likes, a group member's likes).
+        Sets `is_new = false` on my `user_listings` row for the listing, if I have one.
+        It also records the listing as seen in the database (table `seen_listings`, not readable by the app), also when I have
+        no row (a group member's listing outside my search). That is what makes it disappear from `my_new_listing_ids`,
+        and it keeps the listing from becoming "new" again if it stops matching my search and later matches again.
+        Listings that are not visible to me are silently ignored.
         This is the only way to change `is_new`; it cannot be written directly.
       operationId: mark_listing_seen
       requestBody:
@@ -295,6 +298,31 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /rpc/my_new_listing_ids:
+    get:
+      tags: [Listings]
+      summary: The listings that are new to me
+      description: |
+        The ids (`listings.id`) of the listings I have not opened yet, for the "Ny" flag in every list and for the notifications page:
+          * my own matches with `is_new = true` (same as reading `user_listings` before), and
+          * listings that a member of my group has liked, that I have no `user_listings` row for and have never opened.
+        Removed listings are left out. Check a card with `ids.has(listing.id)`.
+        Opening a listing (`mark_listing_seen`) or liking it removes it from the list.
+        Must be called with GET (`supabase.rpc('my_new_listing_ids', undefined, { get: true })`), see the common rules.
+      operationId: my_new_listing_ids
+      responses:
+        '200':
+          description: List of ids (empty if nothing is new).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    listing_id: { type: integer, format: int64 }
         '429': { $ref: '#/components/responses/RateLimited' }
 
   /rpc/shared_likes:
@@ -942,7 +970,7 @@ components:
         created_at: { type: string, format: date-time }
         user_id: { type: string, format: uuid }
         listing_id: { type: integer, format: int64 }
-        is_new: { type: boolean, description: 'true until the user has opened the listing page or liked it. Drives the "NEW" flag on my own results only' }
+        is_new: { type: boolean, description: 'true until the user has opened the listing page or liked it. A new match for a listing the user has already opened starts as false. Only says something about my own rows: use my_new_listing_ids for the "NEW" flag in every list' }
         liked: { type: boolean }
         liked_at: { type: string, format: date-time, nullable: true, description: When liked last became true. Set by the database, read-only }
 
