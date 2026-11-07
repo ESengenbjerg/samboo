@@ -2,7 +2,6 @@ import AnsweredInviteNotification from "@/components/notifications/answered-invi
 import { default as FeedUpdateNotification } from "@/components/notifications/feed-update-notification";
 import GroupUpdateNotification from "@/components/notifications/group-update-notification";
 import InviteUpdateNotification from "@/components/notifications/invitation-update-notification";
-import { Card } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
 import { useAnsweredInvites } from "@/hooks/useAnsweredInvites";
 import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
@@ -74,41 +73,37 @@ export default function NotificationsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View className="gap-2">
-          {/* <Card className="p-4 pb-8"> */}
-            <Text variant="h3" className="pt-4">Idag</Text>
-            <View className="gap-6 flex-1">
-              <InviteUpdateNotification accounts={accounts} />
-              <AnsweredInvites invites={answeredByDay.today} />
-              <FeedUpdateNotification newObjects={newMatchesCount} />
-              <MemberUpdates updates={updatesByDay.today} />
-            </View>
-          {/* </Card> */}
+          <Text variant="h3" className="pt-4">
+            Idag
+          </Text>
+          <View className="gap-6">
+            <InviteUpdateNotification accounts={accounts} />
+            <AnsweredInvites invites={answeredByDay.today} />
+            <FeedUpdateNotification newObjects={newMatchesCount} />
+            <MemberUpdates updates={updatesByDay.today} />
+          </View>
 
           {hasYesterday && (
             <>
-            {/* <Card className="p-4 pb-8"> */}
-              <Text variant="h3" className="pt-8">Igår</Text>
-              <View className="gap-6 flex-1">
-                <InviteUpdateNotification accounts={accounts} />
+              <Text variant="h3" className="pt-8">
+                Igår
+              </Text>
+              <View className="gap-6">
                 <AnsweredInvites invites={answeredByDay.yesterday} />
-                <FeedUpdateNotification newObjects={newMatchesCount} />
                 <MemberUpdates updates={updatesByDay.yesterday} />
               </View>
-            {/* </Card> */}
             </>
           )}
 
           {hasEarlier && (
             <>
-            {/* <Card className="p-4 pb-8"> */}
-              <Text variant="h3" className="pt-8">Tidigare</Text>
-              <View className="gap-6 flex-1">
-                <InviteUpdateNotification accounts={accounts} />
+              <Text variant="h3" className="pt-8">
+                Tidigare
+              </Text>
+              <View className="gap-6">
                 <AnsweredInvites invites={answeredByDay.earlier} />
-                <FeedUpdateNotification newObjects={newMatchesCount} />
                 <MemberUpdates updates={updatesByDay.earlier} />
               </View>
-            {/* </Card> */}
             </>
           )}
         </View>
