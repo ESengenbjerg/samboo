@@ -96,6 +96,7 @@ create policy avatars_delete_own on storage.objects
 -- Check runs:            select * from cron.job_run_details order by start_time desc limit 20;
 -- Check GitHub answers:  select id, status_code, content from net._http_response order by created desc limit 10;  (204 = started)
 
+select cron.schedule('clean-stale-listings',      '10 3 * * *',   $$select public.clean_stale_listings()$$);
 select cron.schedule('purge-removed-listings',    '15 3 * * *',   $$select public.purge_removed_listings()$$);
 select cron.schedule('purge-rate-limit-counters', '5 * * * *',    $$select public.purge_rate_limit_counters()$$);
 select cron.schedule('purge-old-invites',         '30 3 * * *',   $$select public.purge_old_invites()$$);

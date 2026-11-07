@@ -39,7 +39,7 @@ What you can try: onboarding, profile picture, accepting or declining the invite
 
 Run `node scripts/seed/seedDemo.ts` again to start over. The script removes the old demo data and creates it again, with dates counted from today. `--remove` only removes the demo data. The script refuses to run if the database has users other than the demo accounts.
 
-The daily cleanup deletes removed listings 14 days after they were removed. The two "Hittas inte" listings are created as removed 2 days ago, so they disappear about 12 days after the script ran. Run the script again to get them back.
+The daily cleanup deletes removed listings 10 days after they were removed. The two "Hittas inte" listings are created as removed 2 days ago, so they disappear about 8 days after the script ran. Run the script again to get them back.
 
 ### What does not work without your own e-mail (SMTP)
 
