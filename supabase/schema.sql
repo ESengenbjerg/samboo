@@ -282,7 +282,7 @@ CREATE OR REPLACE FUNCTION "public"."clean_stale_listings"() RETURNS integer
     select l.agency, max(l.last_seen_at) as seen_at
     from public.listings l
     where l.removed_at is null
-      and not exists (                                   -- NEW
+      and not exists (
         select 1 from public.scrape_issues i
         where i.agency = l.agency and i.status = 'open'
       )
@@ -2629,7 +2629,6 @@ GRANT ALL ON FUNCTION "public"."check_request"() TO "authenticator";
 
 
 REVOKE ALL ON FUNCTION "public"."clean_stale_listings"() FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."clean_stale_listings"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."clean_stale_listings"() TO "service_role";
 
 
