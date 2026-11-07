@@ -58,13 +58,12 @@ export default function InviteUpdateNotification({
       {receivedInvites.map((i) => (
         <View key={i.id} className="gap-6">
           <Separator />
-          <View className="justify-between gap-2">
+          <View className="flex-row justify-between items-center gap-2">
             <View className="flex-1">
               <Text variant="bold">Koppla konto</Text>
-              <Text>{i.from_name} har bjudit in dig till sin grupp.</Text>
-              <Text>Från: {i.from_email}</Text>
+              <Text>{i.from_name} ({i.from_email}) har bjudit in dig till sin grupp.</Text>
             </View>
-            <View className="flex-row gap-2">
+            <View className="gap-1">
               <Button
                 size="sm"
                 variant="secondary"
