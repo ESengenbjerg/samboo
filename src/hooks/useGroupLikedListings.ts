@@ -1,14 +1,14 @@
 import { getGroupMembers } from "@/services/groups";
 import { getLikedListingsForUsers } from "@/services/listings";
 import { GroupMember } from "@/types/connected-accounts";
-import { Listing } from "@/types/listing";
+import { MemberLikedListing } from "@/types/listing";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 
-// One group member and the listings they have liked
+// One group member and the listings they have liked, with when they liked them
 export type MemberLikedList = {
   member: GroupMember;
-  listings: Listing[];
+  listings: MemberLikedListing[];
 };
 
 type GroupLikedListingsResult = {
@@ -60,7 +60,7 @@ export function useGroupLikedListings(userId: string | undefined) {
           member,
           listings: data
             .filter((row) => row.user_id === member.id)
-            .map((row) => row.listings),
+            .map((row) => ({ ...row.listings, liked_at: row.liked_at })),
         }));
         setResult({ userId: id, lists });
       }

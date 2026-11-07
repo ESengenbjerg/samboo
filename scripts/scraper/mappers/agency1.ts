@@ -2,11 +2,13 @@ import type { MappedListing, PropertyType } from "../../lib/types.ts";
 import {
   toArea,
   toFee,
-  toInteger,
+  toHttpsUrl,
+  toMunicipality,
   toNumber,
   toPlaceName,
-  toPrice,
+  toPositive,
   toText,
+  withinLimits,
 } from "./parse.ts";
 
 // Maps agency1's ld+json to the normalized columns on the listings table.
@@ -37,6 +39,20 @@ function mapPropertyType(type: unknown): PropertyType | null {
     return "other";
   }
   return mapped;
+}
+
+// agency1 writes the street address as "Storgatan 1, Centrum". The area is saved in its own column,
+// so cut the last part, but only when it is the area. "Storgatan 1, lgh 1101" keeps its last part
+function mapAddress(streetAddress: unknown, region: unknown): string | null {
+  const text = toText(streetAddress);
+  if (!text) return null;
+
+  const lastComma = text.lastIndexOf(",");
+  const lastPart = text.slice(lastComma + 1).trim().toLowerCase();
+  const regionText = toText(region)?.toLowerCase();
+  const cut = lastComma !== -1 && !!regionText && lastPart === regionText;
+
+  return toText(cut ? text.slice(0, lastComma) : text, 300);
 }
 
 // The parts of agency1's ld+json (the RealEstateListing object) we read
@@ -82,20 +98,23 @@ export function mapListing(
   const home = data.product?.isRelatedTo;
   return {
     property_type: mapPropertyType(facts.listingType ?? data.category),
-    municipality: toText(home?.address?.addressLocality),
-    address: toText(home?.address?.streetAddress, 300),
+    municipality: toMunicipality(home?.address?.addressLocality),
+    address: mapAddress(
+      home?.address?.streetAddress,
+      home?.address?.addressRegion,
+    ),
     area: toPlaceName(home?.address?.addressRegion),
-    price: toPrice(data.product?.offers?.price),
-    rooms: toNumber(home?.numberOfRooms),
-    image_url: toText(data.product?.image?.[0], 500),
+    price: withinLimits("price", toPositive(data.product?.offers?.price)),
+    rooms: withinLimits("rooms", toPositive(home?.numberOfRooms)),
+    image_url: toHttpsUrl(data.product?.image?.[0], 500),
     description: toText(data.product?.description, 5000, true),
-    floor_level: toInteger(home?.floorLevel, -5, 100),
-    plot_area: toArea(facts.plotArea),
+    floor_level: withinLimits("floor_level", toNumber(home?.floorLevel)),
+    plot_area: withinLimits("plot_area", toArea(facts.plotArea)),
     latitude: toNumber(home?.geo?.latitude),
     longitude: toNumber(home?.geo?.longitude),
-    monthly_fee: toFee(facts.monthlyFee),
-    living_area: toPrice(home?.floorSize?.value),
-    build_year: toInteger(home?.yearBuilt, 1000, 2100),
+    monthly_fee: withinLimits("monthly_fee", toFee(facts.monthlyFee)),
+    living_area: withinLimits("living_area", toPositive(home?.floorSize?.value)),
+    build_year: withinLimits("build_year", toNumber(home?.yearBuilt)),
     is_new_construction: facts.isNewConstruction,
   };
 }

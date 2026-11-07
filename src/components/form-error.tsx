@@ -7,7 +7,7 @@ type FormErrorProps = {
 export default function FormError({ children }: FormErrorProps) {
   return (
     <>
-      <Text className="bg-destructive rounded min-h-10 text-center px-10 py-2 text-background sm:self-start">
+      <Text className="bg-destructive rounded-sm min-h-10 text-center px-10 py-2 text-background sm:self-start">
         {children}
       </Text>
     </>

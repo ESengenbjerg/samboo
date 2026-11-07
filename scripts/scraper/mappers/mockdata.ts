@@ -1,10 +1,12 @@
 import type { MappedListing, PropertyType } from "../../lib/types.ts";
 import {
-  toInteger,
+  toHttpsUrl,
+  toMunicipality,
   toNumber,
   toPlaceName,
-  toPrice,
+  toPositive,
   toText,
+  withinLimits,
 } from "./parse.ts";
 
 // Maps mockdata's ld+json to the normalized columns on the listings table.
@@ -58,20 +60,20 @@ export type MockdataLdJson = {
 export function mapListing(data: MockdataLdJson): MappedListing {
   return {
     property_type: mapPropertyType(data.category),
-    municipality: toText(data.municipality),
+    municipality: toMunicipality(data.municipality),
     area: toPlaceName(data.district ?? data.addressLocality),
     address: toText(data.streetAddress, 300),
-    price: toPrice(data.price),
-    rooms: toNumber(data.rooms),
-    floor_level: toInteger(data.floorLevel, -5, 100),
-    plot_area: toInteger(data.plotArea, 0, Number.MAX_SAFE_INTEGER),
-    image_url: toText(data.image, 500),
+    price: withinLimits("price", toPositive(data.price)),
+    rooms: withinLimits("rooms", toPositive(data.rooms)),
+    floor_level: withinLimits("floor_level", toNumber(data.floorLevel)),
+    plot_area: withinLimits("plot_area", toNumber(data.plotArea)),
+    image_url: toHttpsUrl(data.image, 500),
     description: toText(data.description, 5000, true),
     latitude: toNumber(data.geo?.latitude),
     longitude: toNumber(data.geo?.longitude),
-    monthly_fee: toPrice(data.monthlyFee),
-    living_area: toPrice(data.livingArea),
-    build_year: toInteger(data.buildYear, 1000, 2100),
+    monthly_fee: withinLimits("monthly_fee", toPositive(data.monthlyFee)),
+    living_area: withinLimits("living_area", toPositive(data.livingArea)),
+    build_year: withinLimits("build_year", toNumber(data.buildYear)),
     is_new_construction: data.newProduction === true,
   };
 }

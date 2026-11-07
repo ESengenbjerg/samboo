@@ -1,5 +1,9 @@
 import { getCurrentUser } from "@/services/auth";
-import { createInvite, inviteErrorMessage } from "@/services/invites";
+import {
+  createInvite,
+  inviteErrorMessage,
+  validateInviteEmails,
+} from "@/services/invites";
 import { saveOnboarding } from "@/services/onboarding";
 import { useOnboardingStore } from "@/stores/onboarding";
 import { router } from "expo-router";
@@ -31,7 +35,7 @@ export default function ConnectAccountForm() {
       // Fetch user input from previous onboarding steps
       // The profile image is already uploaded in the profile step
 
-      const { profileName, scraperFilter, clientFilter } =
+      const { profileName, scraperFilter, clientFilter, informationInterval } =
         useOnboardingStore.getState();
 
       // If a step is missing, redirect to /profile to start from beginning
@@ -41,7 +45,13 @@ export default function ConnectAccountForm() {
         return false;
       }
 
-      await saveOnboarding(user.id, profileName, scraperFilter, clientFilter);
+      await saveOnboarding(
+        user.id,
+        profileName,
+        scraperFilter,
+        clientFilter,
+        informationInterval,
+      );
 
       // Everything is sabed. Tge caller decides when the user is moved to /search
       return true;
@@ -56,35 +66,58 @@ export default function ConnectAccountForm() {
 
   // Save onboarding, then send invites to other users
   async function onInvite(emails: string[]) {
+    // Check all before saving or sending anything
+    const validationError = validateInviteEmails(emails);
+
+    if (validationError) {
+      setError(validationError);
+      return emails;
+    }
+
     const finished = await finish();
-    if (!finished) return;
+    if (!finished) return emails;
 
     setIsLoading(true);
+
+    // Declared outside try, so catch knows which were not tried yet
+    const failed: string[] = [];
+    let tried = 0;
+    let lastError: string | null = null;
 
     try {
       // Get user from Supabase
       const user = await getCurrentUser();
       if (!user) throw new Error("Not signed in.");
 
+      // Keep going on errors, so one rejected address does not stop the rest
       for (const email of emails) {
         const { error: inviteError } = await createInvite(user.id, email);
+        tried++;
 
         if (inviteError) {
           console.log("Invite error:", inviteError);
-          setError(inviteErrorMessage(inviteError));
-          return;
+          failed.push(email);
+          lastError = inviteErrorMessage(inviteError);
         }
       }
-
-      // All invites sent: close dialog and show success view
-      setInvitationDialogOpen(false);
-      setInviteSent(true);
     } catch (e) {
       console.log("Invite error", e);
-      setError("Något gick fel, försök igen.");
+      // The ones not tried yet were not sent either
+      failed.push(...emails.slice(tried));
+      lastError = "Något gick fel, försök igen.";
     } finally {
       setIsLoading(false);
     }
+
+    if (lastError) {
+      setError(lastError);
+      return failed;
+    }
+
+    // All invites sent: close dialog and show success view
+    setInvitationDialogOpen(false);
+    setInviteSent(true);
+    return [];
   }
 
   async function onSkip() {
@@ -130,19 +163,25 @@ export default function ConnectAccountForm() {
       {invitationDialogOpen && (
         <SendInviteDialog
           open={invitationDialogOpen}
-          onOpenChange={setInvitationDialogOpen}
+          onOpenChange={(open) => {
+            setInvitationDialogOpen(open);
+            if (!open) setError(null);
+          }}
           onAction={onInvite}
           isLoading={isLoading}
           error={error}
         />
       )}
 
-      {error && <FormError>{error}</FormError>}
+      {error && !invitationDialogOpen && <FormError>{error}</FormError>}
 
       <View className="gap-2 items-start">
         <Button
           variant="secondary"
-          onPress={() => setInvitationDialogOpen(true)}
+          onPress={() => {
+            setError(null);
+            setInvitationDialogOpen(true);
+          }}
           disabled={isLoading}
           className="px-10"
         >

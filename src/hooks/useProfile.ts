@@ -1,10 +1,12 @@
 import { getAvatarUrl, getProfile } from "@/services/profiles";
+import { InformationInterval } from "@/stores/onboarding";
 import { useEffect, useState } from "react";
 
 type Profile = {
   name: string | null;
   avatarPath: string | null;
   avatarUrl: string | null;
+  notificationFrequency: InformationInterval;
 };
 
 type ProfileResult = {
@@ -37,6 +39,7 @@ export function useProfile(userId: string | undefined) {
               name: data.name,
               avatarPath: data.avatar_path,
               avatarUrl: getAvatarUrl(data.avatar_path),
+              notificationFrequency: data.notification_frequency,
             }
           : null,
       });

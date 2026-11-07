@@ -7,6 +7,15 @@ export function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
+export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export function validateInviteEmails(emails: string[]): string | null {
+  if (emails.length === 0) return "Ange minst en e-postadress.";
+  const invalid = emails.find((e) => !EMAIL_PATTERN.test(normalizeEmail(e)));
+  if (invalid) return `Ogiltig e-postadress: ${invalid}`;
+  return null;
+}
+
 export function createInvite(fromUserId: string, toEmail: string) {
   return supabase
     .from("invites")

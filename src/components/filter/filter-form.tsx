@@ -83,8 +83,8 @@ export default function FilterForm({
       (o) => Number(o.value) === savedClientFilter?.minLivingArea,
     ),
   );
-  const [showNewProduction, setShowNewProduction] = useState(
-    savedClientFilter?.showNewProduction ?? true,
+  const [showNewConstruction, setShowNewConstruction] = useState(
+    savedClientFilter?.showNewConstruction ?? true,
   );
   const [informationInterval, setInformationInterval] =
     useState<InformationInterval>(savedInformationInterval);
@@ -144,7 +144,7 @@ export default function FilterForm({
       minRooms: rooms ? Number(rooms.value) : undefined,
       maxMonthlyFee: monthlyFee ? Number(monthlyFee.value) : undefined,
       minLivingArea: livingArea ? Number(livingArea.value) : undefined,
-      showNewProduction,
+      showNewConstruction: showNewConstruction,
     };
 
     onSave(scraperFilter, clientFilter, informationInterval);
@@ -243,8 +243,8 @@ export default function FilterForm({
       <View className="flex-row items-center justify-between">
         <Label containerClassName="mb-0">Visa nyproduktion</Label>
         <Switch
-          checked={showNewProduction}
-          onCheckedChange={setShowNewProduction}
+          checked={showNewConstruction}
+          onCheckedChange={setShowNewConstruction}
         />
       </View>
 

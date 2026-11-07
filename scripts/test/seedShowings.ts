@@ -3,7 +3,7 @@
 // Uses the admin client (bypasses RLS), but the trigger limit_showings_per_group() still runs, so it never goes above 50.
 // The showings go to the user's group if the user is in one, otherwise to the user.
 // Safe to run again: it only adds what is missing up to 50, on listings that do not have a showing yet.
-// Usage: node scripts/users/seedShowings.ts
+// Usage: node scripts/test/seedShowings.ts
 
 process.loadEnvFile(".env");
 

@@ -1,0 +1,31 @@
+import { useSession } from "@/hooks/useSession";
+import { useNotificationsStore } from "@/stores/notifications";
+import { usePathname } from "expo-router";
+import { useEffect } from "react";
+
+const NOTIFICATIONS_PATH = "/notifications";
+
+// Whether to show the dot on the bell in the header. The header stays mounted between the
+// tabs, so it checks again every time the route changes instead of on focus.
+// Never shown on the notifications page itself
+export function useNotificationDot() {
+  const { session } = useSession();
+  const userId = session?.user.id;
+  const pathname = usePathname();
+  const isOnNotificationsPage = pathname === NOTIFICATIONS_PATH;
+
+  const hasNew = useNotificationsStore((s) => s.hasNew);
+  const refresh = useNotificationsStore((s) => s.refresh);
+  const reset = useNotificationsStore((s) => s.reset);
+
+  useEffect(() => {
+    // Logged out: never keep the previous user's dot
+    if (!userId) {
+      reset();
+      return;
+    }
+    if (!isOnNotificationsPage) refresh();
+  }, [userId, pathname, isOnNotificationsPage, refresh, reset]);
+
+  return { showDot: hasNew && !isOnNotificationsPage };
+}

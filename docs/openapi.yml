@@ -9,7 +9,7 @@ info:
 
     This file is written by hand and describes our own rules, which PostgREST's auto-generated spec
     (`GET /rest/v1/` with the apikey header) does not know about. Source of truth for the database is
-    supabase/schema.sql and supabase/schema.md. Update this file when functions, grants or policies change.
+    supabase/schema.sql (a dump) and supabase/setup-extras.sql; the design is explained in docs/database-design.md. Update this file when functions, grants or policies change.
 
     **Common rules**
     - Every call requires a signed-in user with a confirmed e-mail and an active profile (`is_active_user()`).
@@ -50,6 +50,7 @@ tags:
   - name: Search
   - name: Showings
   - name: Tags
+  - name: Notifications
 
 paths:
   # ---------------------------------------------------------------------
@@ -247,7 +248,7 @@ paths:
       summary: Like a listing
       description: |
         Sets `liked = true` on my `user_listings` row for the listing (the row is created if missing).
-        A like counts as seen, so `is_new` is set to false as well.
+        A like counts as seen, so `is_new` is set to false as well, and the listing is recorded as seen (see `mark_listing_seen`).
         Only allowed for listings that are already visible to me, i.e. matched to me or to someone in my group.
         There is no unlike function: to remove a like, update `user_listings.liked` to false directly.
       operationId: like_listing
@@ -274,9 +275,12 @@ paths:
       tags: [Listings]
       summary: Mark a listing as seen
       description: |
-        Sets `is_new = false` on my `user_listings` row for the listing. Call it when the listing page opens,
-        whichever list it was opened from (my results, my likes, a group member's likes).
-        Does nothing if I have no row for the listing (a group member's listing outside my search) or it is already seen.
+        Call it when the listing page opens, whichever list it was opened from (my results, my likes, a group member's likes).
+        Sets `is_new = false` on my `user_listings` row for the listing, if I have one.
+        It also records the listing as seen in the database (table `seen_listings`, not readable by the app), also when I have
+        no row (a group member's listing outside my search). That is what makes it disappear from `my_new_listing_ids`,
+        and it keeps the listing from becoming "new" again if it stops matching my search and later matches again.
+        Listings that are not visible to me are silently ignored.
         This is the only way to change `is_new`; it cannot be written directly.
       operationId: mark_listing_seen
       requestBody:
@@ -295,6 +299,31 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /rpc/my_new_listing_ids:
+    get:
+      tags: [Listings]
+      summary: The listings that are new to me
+      description: |
+        The ids (`listings.id`) of the listings I have not opened yet, for the "Ny" flag in every list and for the notifications page:
+          * my own matches with `is_new = true` (same as reading `user_listings` before), and
+          * listings that a member of my group has liked, that I have no `user_listings` row for and have never opened.
+        Removed listings are left out. Check a card with `ids.has(listing.id)`.
+        Opening a listing (`mark_listing_seen`) or liking it removes it from the list.
+        Must be called with GET (`supabase.rpc('my_new_listing_ids', undefined, { get: true })`), see the common rules.
+      operationId: my_new_listing_ids
+      responses:
+        '200':
+          description: List of ids (empty if nothing is new).
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    listing_id: { type: integer, format: int64 }
         '429': { $ref: '#/components/responses/RateLimited' }
 
   /rpc/shared_likes:
@@ -316,6 +345,69 @@ paths:
                 items: { $ref: '#/components/schemas/Listing' }
         '429': { $ref: '#/components/responses/RateLimited' }
 
+  /rpc/my_showing_events:
+    get:
+      tags: [Notifications]
+      summary: Changes to my group's showings made by the others
+      description: |
+        Showings created, changed or deleted by the other members of my group in the last 30 days, newest first (max 100).
+        My own changes are never included. Empty if I have no group.
+        `is_unseen` is true for events newer than the last time I opened the notifications page (`mark_notifications_seen`).
+        Personal showings, moves when someone joins or a group is dissolved, and changes that do not change date, time or note
+        are not included. A change of the note gives `updated` with the same date and time.
+        Must be called with GET (`supabase.rpc('my_showing_events', undefined, { get: true })`), see the common rules.
+      operationId: my_showing_events
+      responses:
+        '200':
+          description: List of events (empty if none).
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ShowingEvent' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /rpc/has_new_notifications:
+    get:
+      tags: [Notifications]
+      summary: Is there anything new since I last opened the notifications page? (the dot)
+      description: |
+        `true` if any of these happened after my `notifications_seen_at` (at any time, if I have never opened the page):
+          * an invite to me (as in `my_pending_invites`)
+          * an answer (accepted or declined) to an invite I sent (`invites.responded_at`)
+          * a new match I have not opened (`user_listings.created_at`, `is_new = true`)
+          * a group member liked a listing that is new to me (`liked_at`, and the listing is in `my_new_listing_ids`)
+          * another member changed one of the group's showings (as in `my_showing_events`)
+        Only says whether something happened since the last visit. Something older that is still unhandled
+        (for example an invite I saw but did not answer) does not turn the dot on again.
+        Must be called with GET, see the common rules.
+      operationId: has_new_notifications
+      responses:
+        '200':
+          description: '`true` or `false`.'
+          content:
+            application/json:
+              schema: { type: boolean }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /rpc/mark_notifications_seen:
+    post:
+      tags: [Notifications]
+      summary: I have seen the notifications page
+      description: |
+        Sets my `notifications_seen_at` to now: `has_new_notifications` becomes false and every `is_unseen` in
+        `my_showing_events` becomes false. Call it when the user leaves the notifications page (or after its data has loaded),
+        not before loading, otherwise the page cannot highlight what was new. Refresh the dot afterwards.
+      operationId: mark_notifications_seen
+      responses:
+        '200': { $ref: '#/components/responses/VoidOk' }
+        '400':
+          description: '`Ditt konto är inte aktivt`.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
   /rpc/delete_my_account:
     post:
       tags: [Account]
@@ -324,7 +416,7 @@ paths:
         Deletes the signed-in user from `auth.users`. No grace period. Cascades to profile, search, matches,
         tags, sent invites and my own showings (the group's showings stay with the group).
         The group is dissolved if at most 1 member remains.
-        Invites sent to my e-mail by others are not removed (known gap, GDPR follow-up).
+        Invites sent to my e-mail by others are deleted too, so my e-mail remains nowhere.
         An already issued JWT stays valid until it expires, but every request is blocked by RLS after deletion.
       operationId: delete_my_account
       responses:
@@ -356,8 +448,9 @@ paths:
       tags: [Account]
       summary: Update my profile
       description: |
-        Filter on my own id (`?id=eq.<uid>`). Only `name`, `onboarding_completed_at` and `avatar_path`
-        can be written. `group_id` and `is_active` can only change through functions.
+        Filter on my own id (`?id=eq.<uid>`). Only `name`, `onboarding_completed_at`, `avatar_path` and
+        `notification_frequency` can be written. `group_id` and `is_active` can only change through functions,
+        `last_notified_at` only by the notification script, `notifications_seen_at` only through `mark_notifications_seen`.
       operationId: profiles_update
       requestBody:
         required: true
@@ -366,7 +459,7 @@ paths:
             schema: { $ref: '#/components/schemas/ProfileUpdate' }
       responses:
         '204': { description: Updated. }
-        '400': { description: 'Constraint violated (name not 1-100 characters, avatar_path not `<own user id>/<name>.<jpg|jpeg|png|webp>` or longer than 200).' }
+        '400': { description: 'Constraint violated (name not 1-100 characters, avatar_path not `<own user id>/<name>.<jpg|jpeg|png|webp>` or longer than 200, notification_frequency not day/week/none).' }
         '429': { $ref: '#/components/responses/RateLimited' }
 
   /groups:
@@ -409,8 +502,8 @@ paths:
       summary: Send an invite
       description: |
         Only `from_user_id` (must be my id) and `to_email` can be set. Rules:
-        not to my own e-mail; at most one pending invite per recipient;
-        at most 20 invites in total (any status) per recipient.
+        not to my own e-mail; not to someone already in my group; `to_email` must be an e-mail address; at most one pending invite per recipient;
+        at most 20 invites in total (any status) per recipient; at most 20 different recipients in the last 30 days.
         E-mail addresses are compared case-insensitively.
       operationId: invites_insert
       requestBody:
@@ -422,11 +515,11 @@ paths:
               required: [from_user_id, to_email]
               properties:
                 from_user_id: { type: string, format: uuid }
-                to_email: { type: string, maxLength: 254 }
+                to_email: { type: string, maxLength: 254, pattern: '^[^\s@]+@[^\s@]+\.[^\s@]+$' }
       responses:
         '201': { description: Created. }
         '400':
-          description: '`Du har skickat för många inbjudningar till den här personen` (the 20 limit) or a check constraint.'
+          description: '`Ange en giltig e-postadress.`, `Personen är redan kopplad till dig.` (the recipient is already in my group), `Du har bjudit in för många olika personer. Försök igen senare` (20 recipients per 30 days), `Du har skickat för många inbjudningar till den här personen` (20 per recipient), or a check constraint (longer than 254).'
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -469,7 +562,7 @@ paths:
           description: |
             `Du har ändrat din sökning för många gånger. Försök igen senare`, `Okänd kommun: <namn>`,
             `Området "<namn>" finns inte i någon av dina valda kommuner`, or a check constraint
-            (min greater than max for price or rooms, unknown property type, negative fee or area,
+            (min greater than max for price or rooms, a value outside its range, unknown property type,
             more than 10 municipalities or 200 areas).
           content:
             application/json:
@@ -541,7 +634,7 @@ paths:
       summary: Read listings matched to me or to someone in my group, or that my group (or I) have a showing for
       description: |
         Shared scraped data, read only. Listings where `removed_at` is set have disappeared from the agency's site:
-        show them as "Hittas inte". They are deleted 14 days after `removed_at` (daily cleanup by pg_cron).
+        show them as "Hittas inte". They are deleted 10 days after `removed_at` (daily cleanup by pg_cron).
         `ld_json` is the raw schema.org data from the agency.
       operationId: listings_select
       responses:
@@ -561,6 +654,7 @@ paths:
         Planned showings entered by hand (not an official booking). Use `select=*,listings(*)` to get the listing:
         the listing stays readable as long as the showing exists, even if nobody matches it any more.
         Deleted by pg_cron 30 days after `showing_date`.
+        Creating, changing and deleting a group showing is logged for the other members' notifications (`my_showing_events`).
       operationId: showings_select
       responses:
         '200':
@@ -586,13 +680,13 @@ paths:
               required: [listing_id, showing_date]
               properties:
                 listing_id: { type: integer, format: int64 }
-                showing_date: { type: string, format: date }
+                showing_date: { type: string, format: date, description: '2000-01-01 – 2099-12-31. An invalid date (e.g. 2027-02-29) gives 400 with code 22008.' }
                 start_time: { type: string, nullable: true, example: '17:30' }
                 note: { type: string, nullable: true, maxLength: 500 }
       responses:
         '201': { description: Created. }
         '400':
-          description: '`Gruppen har redan max antal visningar (50)`, `Du har redan max antal visningar (50)`, or a check constraint (note longer than 500).'
+          description: '`Gruppen har redan max antal visningar (50)`, `Du har redan max antal visningar (50)`, or a check constraint (note longer than 500, date outside 2000-2099).'
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -611,11 +705,16 @@ paths:
             schema:
               type: object
               properties:
-                showing_date: { type: string, format: date }
+                showing_date: { type: string, format: date, description: '2000-01-01 – 2099-12-31. An invalid date (e.g. 2027-02-29) gives 400 with code 22008.' }
                 start_time: { type: string, nullable: true }
                 note: { type: string, nullable: true, maxLength: 500 }
       responses:
         '204': { description: Updated. }
+        '400':
+          description: A check constraint (note longer than 500, date outside 2000-2099), or an invalid date.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
         '429': { $ref: '#/components/responses/RateLimited' }
     delete:
       tags: [Showings]
@@ -704,7 +803,7 @@ paths:
     post:
       tags: [Tags]
       summary: Create a tag
-      description: '`user_id` must be my id. `tag_name` is 1-100 characters and unique per user (otherwise 409).'
+      description: '`user_id` must be my id. `tag_name` is 1-100 characters, not only whitespace, and unique per user (otherwise 409). At most 30 tags per user.'
       operationId: user_tags_insert
       requestBody:
         required: true
@@ -715,9 +814,14 @@ paths:
               required: [user_id, tag_name]
               properties:
                 user_id: { type: string, format: uuid }
-                tag_name: { type: string, minLength: 1, maxLength: 100 }
+                tag_name: { type: string, minLength: 1, maxLength: 100, pattern: '\S' }
       responses:
         '201': { description: Created. }
+        '400':
+          description: '`Du har redan max antal kategorier (30)`, or a check constraint (name only whitespace).'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
         '409': { description: I already have a tag with this name. }
         '429': { $ref: '#/components/responses/RateLimited' }
     patch:
@@ -731,9 +835,14 @@ paths:
             schema:
               type: object
               properties:
-                tag_name: { type: string, minLength: 1, maxLength: 100 }
+                tag_name: { type: string, minLength: 1, maxLength: 100, pattern: '\S' }
       responses:
         '204': { description: Updated. }
+        '400':
+          description: A check constraint (name only whitespace).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
         '429': { $ref: '#/components/responses/RateLimited' }
     delete:
       tags: [Tags]
@@ -841,6 +950,23 @@ components:
           type: string
           nullable: true
           description: 'Path in the public `avatars` bucket, `<user id>/<name>.<jpg|jpeg|png|webp>`. Build the URL with `supabase.storage.from(''avatars'').getPublicUrl(path)`'
+        notification_frequency: { $ref: '#/components/schemas/NotificationFrequency' }
+        last_notified_at: { type: string, format: date-time, nullable: true, description: When the last notification mail was sent. Read-only }
+        notifications_seen_at: { type: string, format: date-time, nullable: true, description: 'When I last opened the notifications page (null = never). Set with mark_notifications_seen. Read-only' }
+
+    ShowingEvent:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        created_at: { type: string, format: date-time, description: When the change was made }
+        action: { type: string, enum: [created, updated, deleted] }
+        actor_id: { type: string, format: uuid, description: The member who made the change }
+        actor_name: { type: string }
+        listing_id: { type: integer, format: int64 }
+        address: { type: string, nullable: true }
+        showing_date: { type: string, format: date, description: 'The date after the change (before it for deleted)' }
+        start_time: { type: string, format: time, nullable: true, example: '17:30:00' }
+        is_unseen: { type: boolean, description: Newer than my notifications_seen_at }
 
     ProfileUpdate:
       type: object
@@ -853,6 +979,13 @@ components:
           maxLength: 200
           pattern: '^[0-9a-f-]{36}/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$'
           description: 'Must start with the own user id. It is not checked that the file exists, so upload the file first'
+        notification_frequency: { $ref: '#/components/schemas/NotificationFrequency' }
+
+    NotificationFrequency:
+      type: string
+      enum: [day, week, none]
+      default: day
+      description: 'How often the notification mail is sent (about 07:00 Swedish time): day = every morning, week = Friday mornings, none = never. Covers both new matches and group members'' likes'
 
     Invite:
       type: object
@@ -894,12 +1027,12 @@ components:
           items: { $ref: '#/components/schemas/PropertyType' }
         municipalities: { type: array, maxItems: 10, items: { type: string }, description: Names from `municipalities` }
         areas: { type: array, maxItems: 200, items: { type: string }, description: 'Names (not display_name) from `areas`, each under one of the chosen municipalities' }
-        min_price: { type: integer, format: int64, nullable: true }
-        max_price: { type: integer, format: int64, nullable: true }
-        min_rooms: { type: number, nullable: true }
-        max_rooms: { type: number, nullable: true }
-        max_monthly_fee: { type: integer, format: int64, nullable: true, minimum: 0 }
-        min_living_area: { type: number, nullable: true, minimum: 0 }
+        min_price: { type: integer, format: int64, nullable: true, minimum: 0, maximum: 1000000000 }
+        max_price: { type: integer, format: int64, nullable: true, minimum: 0, maximum: 1000000000 }
+        min_rooms: { type: number, nullable: true, exclusiveMinimum: true, minimum: 0, maximum: 100 }
+        max_rooms: { type: number, nullable: true, exclusiveMinimum: true, minimum: 0, maximum: 100 }
+        max_monthly_fee: { type: integer, format: int64, nullable: true, minimum: 0, maximum: 100000 }
+        min_living_area: { type: number, nullable: true, minimum: 0, maximum: 10000 }
         include_new_construction: { type: boolean, nullable: true, default: true }
 
     SearchParams:
@@ -917,8 +1050,9 @@ components:
         created_at: { type: string, format: date-time }
         user_id: { type: string, format: uuid }
         listing_id: { type: integer, format: int64 }
-        is_new: { type: boolean, description: 'true until the user has opened the listing page or liked it. Drives the "NEW" flag on my own results only' }
+        is_new: { type: boolean, description: 'true until the user has opened the listing page or liked it. A new match for a listing the user has already opened starts as false. Only says something about my own rows: use my_new_listing_ids for the "NEW" flag in every list' }
         liked: { type: boolean }
+        liked_at: { type: string, format: date-time, nullable: true, description: When liked last became true. Set by the database, read-only }
 
     Listing:
       type: object
@@ -927,25 +1061,25 @@ components:
         created_at: { type: string, format: date-time }
         agency: { type: string }
         external_id: { type: integer, format: int64 }
-        url: { type: string }
-        ld_json: { type: object, description: Raw schema.org data from the agency }
+        url: { type: string, maxLength: 500, pattern: '^https://' }
+        ld_json: { type: object, description: 'Raw schema.org data from the agency. Max 300 000 bytes as text' }
         last_seen_at: { type: string, format: date-time }
-        removed_at: { type: string, format: date-time, nullable: true, description: Set when the listing disappeared from the agency's site. Deleted after 14 days. }
+        removed_at: { type: string, format: date-time, nullable: true, description: Set when the listing disappeared from the agency's site, or was not seen for 7 days while someone had it in a list or showing. Deleted after 10 days. }
         property_type: { $ref: '#/components/schemas/PropertyType' }
-        municipality: { type: string, nullable: true }
-        area: { type: string, nullable: true }
-        price: { type: integer, format: int64, nullable: true }
-        rooms: { type: number, nullable: true }
+        municipality: { type: string, nullable: true, description: 'A name from `municipalities` (null when the agency''s name is unknown)' }
+        area: { type: string, nullable: true, maxLength: 100 }
+        price: { type: integer, format: int64, nullable: true, minimum: 1, maximum: 1000000000 }
+        rooms: { type: number, nullable: true, exclusiveMinimum: true, minimum: 0, maximum: 100 }
         latitude: { type: number, nullable: true }
         longitude: { type: number, nullable: true }
-        monthly_fee: { type: integer, format: int64, nullable: true, description: Apartments only }
-        living_area: { type: number, nullable: true }
+        monthly_fee: { type: integer, format: int64, nullable: true, minimum: 1, maximum: 100000, description: Apartments only }
+        living_area: { type: number, nullable: true, exclusiveMinimum: true, minimum: 0, maximum: 10000 }
         is_new_construction: { type: boolean }
         address: { type: string, nullable: true, maxLength: 300 }
-        image_url: { type: string, nullable: true, maxLength: 500 }
+        image_url: { type: string, nullable: true, maxLength: 500, pattern: '^https://' }
         description: { type: string, nullable: true, maxLength: 5000, description: The app cuts it for the UI }
         floor_level: { type: integer, nullable: true, minimum: -5, maximum: 100, description: Apartments only }
-        plot_area: { type: integer, format: int64, nullable: true, minimum: 0, description: Houses }
+        plot_area: { type: integer, format: int64, nullable: true, minimum: 0, maximum: 10000000, description: Houses }
         build_year: { type: integer, nullable: true, minimum: 1000, maximum: 2100 }
 
     Showing:

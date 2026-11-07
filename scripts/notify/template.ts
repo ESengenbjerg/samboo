@@ -1,0 +1,337 @@
+// Build topic, html and text for ONE user
+// Only functions that turn data into text: no database, no network.
+// The data: one row from due_notifications() (see docs/database-design.md, "Notification mails")
+
+import type { PropertyType } from "../lib/types.ts";
+
+export type MailListing = {
+  id: number;
+  address: string | null;
+  area: string | null;
+  municipality: string | null;
+  property_type: PropertyType | null;
+  price: number | null;
+  rooms: number | null;
+  living_area: number | null;
+  monthly_fee: number | null;
+  is_new_construction: boolean;
+  agency: string;
+  url: string;
+};
+
+export type PartnerLike = {
+  name: string;
+  count: number;
+  listings: { id: number; address: string | null }[]; // the 2 latest
+};
+
+export type DueRow = {
+  user_id: string;
+  name: string;
+  email: string;
+  frequency: "day" | "week";
+  window_end: string;
+  new_count: number;
+  new_listings: MailListing[]; // at most 5
+  partner_likes: PartnerLike[];
+};
+
+// ----- Small helpers -----
+// This function replaces symbols, use it on everything from the database that goes into the html version of the mail
+export function escapeHtml(text: string): string {
+  text = text.replaceAll("&", "&amp;");
+  text = text.replaceAll("<", "&lt;");
+  text = text.replaceAll(">", "&gt;");
+  text = text.replaceAll('"', "&quot;");
+  text = text.replaceAll("'", "&#39;");
+
+  return text;
+}
+
+// Format number: 4000000 -> 4 000 000, 3.5 -> 3,5
+export function formatNumber(n: number): string {
+  const formatNumber = Intl.NumberFormat("sv-SE").format(n);
+  return formatNumber;
+}
+
+// Convert villa -> Villa, lagenhet -> Lägenhet and so on
+// NOTE: Lägenhet & Övrigt has the Swedish letters å, ä or ö.
+export function propertyTypeLabel(type: PropertyType | null): string | null {
+  if (!type) {
+    return null;
+  }
+
+  if (type === "lagenhet") {
+    return "Lägenhet";
+  }
+
+  if (type === "other") {
+    return "Övrigt";
+  }
+
+  // Slice out & capitalize 1st letter
+  let firstLetter = type.slice(0, 1);
+  firstLetter = firstLetter.toUpperCase();
+
+  // Slice out the rest of the word
+  let rest = type.slice(1);
+
+  // Return concaternated result
+  return firstLetter + rest;
+}
+
+export function objectsWord(value: number): string {
+  // This is used if 1
+  if (value === 1) {
+    return "1 nytt objekt";
+  }
+  // For 0 and all other numbers
+  return `${value} nya objekt`;
+}
+
+// Link to Samboo's listing page
+export function listingUrl(appUrl: string, id: number): string {
+  return `${appUrl}/search/object/${id}`;
+}
+
+// ----------------- NEW OBJECTS -----------------
+
+// Convert one listing to two lines
+
+// Line 1 (title): address + ", " + area, but ONLY add area if the address does not already contain it
+//   ("Hytterkullen 16, Öjersjö" + "Öjersjö" -> no extra). No address: use area or municipality.
+export function listingTitle(l: MailListing): string {
+  const address: string | null = l.address;
+  const area: string | null = l.area;
+  const municipality: string | null = l.municipality;
+
+  // Missing address, try to turn area first hand, municipality 2nd hand, otherwise just a string
+  if (!address) {
+    if (area) {
+      return `En bostad i ${area}`;
+    }
+    if (municipality) {
+      return `En bostad i ${municipality}`;
+    }
+    return "En ny bostadsannons";
+  }
+
+  // From here on, address exists
+  //   If address contains area, just return address with area
+  if (area && address.toLowerCase().includes(area.toLowerCase())) {
+    return address;
+  }
+
+  // If address and area are separate, concaternate
+  if (area) {
+    const result = `${address}, ${area}`;
+    return result;
+  }
+
+  // If no area, just reteurn address
+  return address;
+}
+
+// Line 2 (facts): the parts that are not null
+// "Lägenhet · 3 495 000 kr · 3 rok · 78 m² · Avgift 4 200 kr/mån · Nyproduktion"
+export function listingFacts(list: MailListing): string {
+  const parts: string[] = [];
+
+  const type = propertyTypeLabel(list.property_type);
+  if (type) parts.push(type);
+
+  if (list.price) parts.push(`${formatNumber(list.price)} kr`);
+
+  if (list.rooms) parts.push(`${formatNumber(list.rooms)} rok`);
+
+  if (list.living_area) parts.push(`${formatNumber(list.living_area)} kvm`);
+
+  if (list.monthly_fee)
+    parts.push(`Avgift ${formatNumber(list.monthly_fee)} kr/mån`);
+
+  if (list.is_new_construction) parts.push("Nyproduktion");
+
+  return parts.join(" · ");
+}
+
+// ----------------- A GROUP MEMEBER's NEW LIKES  -----------------
+export function partnerSentence(p: PartnerLike): string {
+  if (p.count === 1) {
+    return `${p.name} har gillat ${p.listings[0].address ? p.listings[0].address : "ett objekt"}.`;
+  }
+
+  if (p.count === 2) {
+    return `${p.name} har gillat ${p.listings[0].address ? p.listings[0].address : "ett objekt"} och ${p.listings[1].address ? p.listings[1].address : "ett annat objekt"}.`;
+  }
+
+  return `${p.name} har gillat ${p.count} objekt sedan sist.`;
+}
+
+// ----------------- CREATE SUBJECT LINE -----------------
+export function mailSubject(row: DueRow): string {
+  if (row.frequency === "week") {
+    return "Samboo: Senaste veckan";
+  }
+
+  return "Nytt på Samboo";
+}
+
+// Text version of the mail, sent alongside the HTML (for clients and spam filters that perfer plain text)
+export function mailContent(row: DueRow, appUrl: string): string {
+  const lines: string[] = [];
+
+  lines.push(`Hej ${row.name},`);
+  lines.push(""); // Empty line
+
+  // Number of new matching objects
+  if (row.new_count > 0) {
+    lines.push(
+      `Du har ${objectsWord(row.new_count)} som matchar din bevakning.`,
+    );
+    lines.push("");
+
+    for (const l of row.new_listings) {
+      lines.push(listingTitle(l));
+      lines.push(listingFacts(l));
+      lines.push(listingUrl(appUrl, l.id));
+      lines.push("");
+    }
+  }
+
+  if (row.new_count > 5) {
+    lines.push(`och ${row.new_count - 5} till i appen.`);
+    lines.push("");
+  }
+
+  // Number of partner likes
+  const partnerList: PartnerLike[] = row.partner_likes;
+  if (partnerList.length > 0) {
+    partnerList.forEach((p) => {
+      lines.push(partnerSentence(p));
+    });
+    lines.push("");
+  }
+
+  // Outro
+  lines.push(`Öppna Samboo ${appUrl}`);
+  lines.push(
+    `Du får det här mailet eftersom du valt ${row.frequency === "week" ? "veckovisa" : "dagliga"} notiser.`,
+  );
+  lines.push(`Stäng av under Inställningar: ${appUrl}/settings`);
+
+  // Put lines together
+  return lines.join("\n");
+}
+
+// ----------------- CREATE HTML VERSION OF MAIL -----------------
+// The app's colors (src/global.css) as hex: mail clients do not all understand hsl()
+const COLOR_BACKGROUND = "#F7F2ED"; // --off-white
+const COLOR_TEXT = "#293907"; // --dark-green
+const COLOR_MUTED = "#6B6259"; // greige, for the facts line and the footer
+const COLOR_BORDER = "#DCD5D0"; // --light-greige
+const COLOR_BUTTON = "#EDB74A"; // --yellow
+const COLOR_BUTTON_TEXT = "#212121"; // --off-black
+
+const FONT = "Arial, Helvetica, sans-serif";
+
+// One paragraph. The text must already be escaped
+function paragraph(html: string, style = ""): string {
+  return `<p style="margin: 0 0 16px 0; ${style}">${html}</p>`;
+}
+
+// Html version of the mail, same content as mailContent()
+export function mailHtml(row: DueRow, appUrl: string): string {
+  const parts: string[] = [];
+
+  parts.push(paragraph(`Hej ${escapeHtml(row.name)},`));
+
+  // New matching objects: one table row per listing, with a line between them
+  if (row.new_count > 0) {
+    parts.push(
+      paragraph(
+        `Du har ${objectsWord(row.new_count)} som matchar din bevakning.`,
+      ),
+    );
+
+    const listingRows = row.new_listings.map(
+      (l) => `
+        <tr>
+          <td style="padding: 12px 0; border-top: 1px solid ${COLOR_BORDER};">
+            <a href="${listingUrl(appUrl, l.id)}" style="color: ${COLOR_TEXT}; font-weight: bold; font-size: 16px; text-decoration: underline;">${escapeHtml(listingTitle(l))}</a>
+            <div style="color: ${COLOR_MUTED}; font-size: 14px; margin-top: 4px;">${escapeHtml(listingFacts(l))}</div>
+          </td>
+        </tr>`,
+    );
+
+    parts.push(`
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 16px 0;">
+        ${listingRows.join("")}
+      </table>`);
+  }
+
+  if (row.new_count > 5) {
+    parts.push(paragraph(`…och ${row.new_count - 5} till i appen.`));
+  }
+
+  // Partner likes: one paragraph per group member
+  for (const p of row.partner_likes) {
+    parts.push(paragraph(escapeHtml(partnerSentence(p))));
+  }
+
+  // Button = a link with a background color (padding on the <td> makes the whole button clickable in Outlook too)
+  parts.push(`
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin: 8px 0 24px 0;">
+      <tr>
+        <td style="background-color: ${COLOR_BUTTON}; border-radius: 6px;">
+          <a href="${appUrl}" style="display: inline-block; padding: 12px 24px; color: ${COLOR_BUTTON_TEXT}; font-weight: bold; font-size: 16px; text-decoration: none;">Öppna Samboo</a>
+        </td>
+      </tr>
+    </table>`);
+
+  // Footer
+  const frequencyWord = row.frequency === "week" ? "veckovisa" : "dagliga";
+  parts.push(
+    paragraph(
+      `Du får det här mailet eftersom du valt ${frequencyWord} notiser. ` +
+        `<a href="${appUrl}/settings" style="color: ${COLOR_MUTED};">Stäng av under Inställningar</a>.`,
+      `color: ${COLOR_MUTED}; font-size: 12px; margin: 0;`,
+    ),
+  );
+
+  // The page around it: an off-white background with a white box in the middle, at most 600px wide
+  return `<!DOCTYPE html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>${escapeHtml(mailSubject(row))}</title>
+  </head>
+  <body style="margin: 0; padding: 0; background-color: ${COLOR_BACKGROUND};">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: ${COLOR_BACKGROUND};">
+      <tr>
+        <td align="center" style="padding: 24px 12px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 600px; background-color: #FFFFFF; border-radius: 8px;">
+            <tr>
+              <td style="padding: 24px; font-family: ${FONT}; font-size: 16px; line-height: 1.5; color: ${COLOR_TEXT};">
+                ${parts.join("\n")}
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
+
+// ----------------- FUNCTION TO BUILD MAIL -----------------
+export function buildMail(
+  row: DueRow,
+  appUrl: string,
+): { subject: string; html: string; text: string } {
+  return {
+    subject: mailSubject(row),
+    html: mailHtml(row, appUrl),
+    text: mailContent(row, appUrl),
+  };
+}

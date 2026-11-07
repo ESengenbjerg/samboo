@@ -41,6 +41,17 @@ export function defaultShowingTime(): Date {
   return d;
 }
 
+// "2026-10-29" + "17:30:00" -> "torsdag 29 oktober kl. 17:30", without the time if it is null.
+// Lowercase, so it can be used in the middle of a sentence
+export function formatShowingWhen(date: string, time: string | null): string {
+  const day = parseIsoDate(date).toLocaleDateString("sv-SE", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+  return time ? `${day} kl. ${time.slice(0, 5)}` : day;
+}
+
 // "Torsdag 29 oktober"
 export function formatDateLabel(date: Date): string {
   return capitalize(

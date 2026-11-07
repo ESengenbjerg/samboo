@@ -10,11 +10,9 @@ export type Listing = {
   rooms: number | null;
   living_area?: number | null;
   monthly_fee?: number | null;
-  ld_json: {
-    streetAddress?: string;
-    image?: string;
-    newProduction?: boolean;
-  };
+  address: string | null;
+  image_url: string | null;
+  is_new_construction: boolean;
 };
 
 export type UserListing = {
@@ -24,12 +22,31 @@ export type UserListing = {
   listings: Listing;
 };
 
-// UserListing with the owner, used when rows from several users are fetched at once
+// A listing together with my user_listings row data, so the UI can show the "Ny" flag
+// and attach tags (listing_tags.user_listing_id = user_listing_id)
+export type MatchedListing = Listing & {
+  user_listing_id: number;
+  is_new: boolean;
+};
+
+// UserListing with the owner, used when rows from several users are fetched at once.
+// liked_at is when the owner liked it (null for likes made before the column existed)
 export type MemberUserListing = UserListing & {
   user_id: string;
+  liked_at: string | null;
+};
+
+// A listing in a group member's liked list, with when the member liked it
+export type MemberLikedListing = Listing & {
+  liked_at: string | null;
 };
 
 // Only the listing id of a liked user_listings row (listings.id = user_listings.listing_id)
 export type LikedListingId = {
+  listing_id: number;
+};
+
+// Only the listing id of one of my user_listings rows that I have not opened yet (is_new = true)
+export type NewListingId = {
   listing_id: number;
 };

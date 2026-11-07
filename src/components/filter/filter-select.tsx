@@ -12,11 +12,12 @@ import {
 } from "../ui/select";
 
 type FilterSelectProps = {
-  label: string;
+  label?: string;
   value: SelectOption | undefined;
   onValueChange: (option: SelectOption | undefined) => void;
   options: SelectOption[];
   fieldColor?: "bg-white" | "bg-input";
+  placeholder?: string;
 };
 
 export default function FilterSelect({
@@ -25,6 +26,7 @@ export default function FilterSelect({
   onValueChange,
   options,
   fieldColor = "bg-input",
+  placeholder,
 }: FilterSelectProps) {
   // Dropdowns should be as wide as their trigger
   const [triggerWidth, setTriggerWidth] = useState<number>();
@@ -34,10 +36,13 @@ export default function FilterSelect({
 
   return (
     <View className="gap-1.5">
-      <Label>{label}</Label>
+      {label && <Label>{label}</Label>}
       <Select value={value} onValueChange={onValueChange}>
-        <SelectTrigger className={`${fieldColor} w-full`} onLayout={onTriggerLayout}>
-          <SelectValue placeholder="Välj" />
+        <SelectTrigger
+          className={`${fieldColor} w-full justify-start`}
+          onLayout={onTriggerLayout}
+        >
+          <SelectValue placeholder={placeholder ? placeholder : "Välj"} />
         </SelectTrigger>
         <SelectContent style={contentStyle}>
           <NativeSelectScrollView>

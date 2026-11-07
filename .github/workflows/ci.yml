@@ -43,8 +43,11 @@ jobs:
 
       - run: npm run typecheck
 
-      # Lint is disabled until the existing react-hooks errors are fixed
-      # - run: npm run lint
+      # The root tsconfig excludes scripts/, so the backend is typechecked separately
+      - name: Typecheck backend
+        run: npx tsc --noEmit -p scripts/tsconfig.json
+
+      - run: npm run lint
 
       # The app throws at startup without the Supabase variables (public keys only)
       - run: npm run build:web
