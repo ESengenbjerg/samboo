@@ -4,20 +4,20 @@ import { StorageApiError } from "@supabase/supabase-js";
 export type ProfileRow = {
   name: string | null;
   avatar_path: string | null;
+  InformationInterval: string | null;
 };
 
 const AVATAR_BUCKET = "avatars";
 
 export function getAvatarUrl(path: string | null) {
   if (!path) return null;
-  return supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path).data
-    .publicUrl;
+  return supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path).data.publicUrl;
 }
 
 export function getProfile(userId: string) {
   return supabase
     .from("profiles")
-    .select("name, avatar_path")
+    .select("name, avatar_path, notification_frequency")
     .eq("id", userId)
     .single()
     .overrideTypes<ProfileRow>();
@@ -25,6 +25,10 @@ export function getProfile(userId: string) {
 
 export function updateProfileName(userId: string, name: string) {
   return supabase.from("profiles").update({ name }).eq("id", userId);
+}
+
+export function updateNotificationFrequency(userId: string, frequency: string) {
+  return supabase.from("profiles").update({ frequency }).eq("id", userId);
 }
 
 export function getOnboardingStatus(userId: string) {
@@ -36,12 +40,17 @@ export function getOnboardingStatus(userId: string) {
 }
 
 // Save name and update onboarding_completed_at with correct date
-export function completeProfile(userId: string, name: string) {
+export function completeProfile(
+  userId: string,
+  name: string,
+  frequency: string,
+) {
   return supabase
     .from("profiles")
     .update({
       name,
       onboarding_completed_at: new Date().toISOString(),
+      notification_frequency: frequency,
     })
     .eq("id", userId)
     .select("id, name, onboarding_completed_at")
@@ -71,7 +80,10 @@ export async function uploadAvatar(userId: string, uri: string) {
   return path;
 }
 
-export function updateProfileAvatarPath(userId: string, avatarPath: string | null) {
+export function updateProfileAvatarPath(
+  userId: string,
+  avatarPath: string | null,
+) {
   return supabase
     .from("profiles")
     .update({ avatar_path: avatarPath })
