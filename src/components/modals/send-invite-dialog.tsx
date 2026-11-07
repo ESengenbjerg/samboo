@@ -18,7 +18,7 @@ import { Label } from "../ui/label";
 type SendInviteDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAction: (emails: string[]) => void | Promise<unknown>;
+  onAction: (emails: string[]) => Promise<string[]>;
   isLoading?: boolean;
   error?: string | null;
 };
@@ -124,9 +124,10 @@ export function SendInviteDialog({
           <View className="flex-1 gap-4">
             {error && <FormError>{error}</FormError>}
             <Button
-              onPress={() => {
+              onPress={async () => {
                 const valid = emails.map((e) => e.trim()).filter(Boolean);
-                onAction(valid);
+                const remaining = await onAction(valid);
+                if (remaining.length > 0) setEmails(remaining);
               }}
               disabled={isLoading}
             >

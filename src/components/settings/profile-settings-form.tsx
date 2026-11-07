@@ -6,6 +6,7 @@ import { pickImage } from "@/utils/pick-image";
 import { Trash } from "lucide-react-native";
 import { useState } from "react";
 import { View } from "react-native";
+import AvatarPublicInfo from "../avatar-public-info";
 import FormError from "../form-error";
 import FormMessage from "../form-message";
 import ProfileImage from "../profile-image";
@@ -176,6 +177,7 @@ export default function ProfileSettingsForm() {
             </View>
             {avatarUrl && <ProfileImage uri={avatarUrl} />}
           </View>
+          <AvatarPublicInfo />
         </View>
 
         {!!errorMessage && <FormError>{errorMessage}</FormError>}

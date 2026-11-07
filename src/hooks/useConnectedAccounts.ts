@@ -13,6 +13,7 @@ import {
   getSentInvites,
   inviteErrorMessage,
   normalizeEmail,
+  validateInviteEmails,
 } from "@/services/invites";
 import {
   GroupMember,
@@ -30,8 +31,6 @@ type ConnectedAccountsData = {
   sentInvites: SentInvite[];
   failed?: boolean;
 };
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Thrown by the database when the invite is already answered, e.g. after a double tap on "Accept"
 function isInviteAlreadyHandled(error: PostgrestError) {
@@ -171,31 +170,52 @@ export function useConnectedAccounts(userId: string | undefined) {
 
   const sendInvite = useCallback(
     async (emails: string[]) => {
-      if (!userId) return false;
+      if (!userId) return emails;
 
       // Me + the others. The invite would be stored but could never be accepted
       if (members.length + emails.length >= MAX_GROUP_MEMBERS) {
         setActionError(`Gruppen är full (max ${MAX_GROUP_MEMBERS} medlemmar).`);
-        return false;
+        return emails;
       }
 
-      for (const email of emails) {
-        const toEmail = normalizeEmail(email);
-        if (!EMAIL_PATTERN.test(toEmail)) {
-          setActionError("Ange en giltig e-postadress.");
-          return false;
+      // Check all before sending any
+      const validationError = validateInviteEmails(emails);
+
+      // If error, show message and exit
+      if (validationError) {
+        setActionError(validationError);
+        return emails;
+      }
+
+      // Not via run(): it clears the error on every call, so a later
+      // success would hide an earlier failure
+      setActionError(null);
+      setGroupNotice(null);
+      setIsSubmitting(true);
+
+      const failed: string[] = [];
+      let lastError: string | null = null;
+
+      try {
+        // Keep going on errors, so one rejected address does not stop the rest
+        for (const email of emails) {
+          const { error } = await createInvite(userId, normalizeEmail(email));
+          if (error) {
+            console.log("Send invite error:", error);
+            failed.push(email);
+            lastError = inviteErrorMessage(error);
+          }
         }
-
-        const ok = await run(
-          () => createInvite(userId, toEmail),
-          "Send invite",
-        );
-        if (!ok) return false;
+      } finally {
+        setIsSubmitting(false);
+        // Reload once, so the sent invites show up
+        refresh();
       }
 
-      return true;
+      if (lastError) setActionError(lastError);
+      return failed;
     },
-    [userId, members.length, run],
+    [userId, members.length, refresh],
   );
 
   const acceptInvite = useCallback(

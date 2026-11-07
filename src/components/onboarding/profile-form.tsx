@@ -12,6 +12,7 @@ import { router } from "expo-router";
 import { Trash } from "lucide-react-native";
 import { useState } from "react";
 import { View } from "react-native";
+import AvatarPublicInfo from "../avatar-public-info";
 import ProfileImage from "../profile-image";
 import { Icon } from "../ui/icon";
 
@@ -142,11 +143,8 @@ export default function ProfileForm() {
           </Button>
         )}
       </View>
-      <Text variant="small">
-        Din profilbild är offentlig. Alla som besöker din profil kan se och
-        spara bilden. Du kan när som helst byta eller ta bort bilden under
-        Inställningar.
-      </Text>
+
+      <AvatarPublicInfo location="Inställningar" />
 
       <View className="self-center">
         {previewUri ? (
