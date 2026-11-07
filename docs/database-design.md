@@ -10,6 +10,7 @@ Why the Supabase database is built the way it is. The facts live elsewhere:
 | [supabase/setup-extras.sql](../supabase/setup-extras.sql) | What the dump does not contain: the trigger on `auth.users`, the RLS event trigger, role settings, the `avatars` bucket and its policies, pg_cron jobs | By hand, when one of those changes                 |
 | This file                                                 | Design decisions, and rules that span several tables or functions                                                                                      | When a decision changes                            |
 | [docs/openapi.yml](openapi.yml)                           | The API the app uses                                                                                                                                   | With every change to functions, grants or policies |
+| [shared/database.types.ts](../shared/database.types.ts)   | TypeScript types for every table, function and enum, generated from the database. The app and the scripts both import them                            | `npm run gen:types` after every database change    |
 | [docs/removed_listings.md](removed_listings.md)           | How the scraper marks listings as removed                                                                                                              | With the scraper                                   |
 
 New project: run `schema.sql`, then `setup-extras.sql`, then `node scripts/places/seedPlaces.ts`.
@@ -19,6 +20,12 @@ Updating `schema.sql` after a database change (needs the Supabase CLI, `supabase
 ```bash
 REF=$(sed -n "s|^EXPO_PUBLIC_SUPABASE_URL=['\"]\{0,1\}https://\([a-z0-9]*\)\.supabase\.co.*|\1|p" .env)
 supabase db dump --remote="$REF" -f supabase/schema.sql
+```
+
+Then regenerate the TypeScript types, so `tsc` shows every place in the app and the scripts that no longer matches the database:
+
+```bash
+npm run gen:types
 ```
 
 The dump keeps function bodies (including comments inside them) and `COMMENT ON` texts, but not comments written outside them. Explanations that should survive therefore go inside the function body, into a `COMMENT ON`, or into this file.

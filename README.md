@@ -59,4 +59,5 @@ npx expo start --web  # run the app in the browser (react-native-web)
 npm run build:web     # static web export to dist/
 npx expo lint         # lint
 npx tsc --noEmit      # typecheck
+npm run gen:types     # regenerate shared/database.types.ts after a database change (needs the Supabase CLI)
 ```
