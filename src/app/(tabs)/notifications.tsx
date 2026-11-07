@@ -1,13 +1,17 @@
+import AnsweredInviteNotification from "@/components/notifications/answered-invitation-notification";
 import { default as FeedUpdateNotification } from "@/components/notifications/feed-update-notification";
 import GroupUpdateNotification from "@/components/notifications/group-update-notification";
 import InviteUpdateNotification from "@/components/notifications/invitation-update-notification";
 import { Card } from "@/components/ui/card";
 import { Text } from "@/components/ui/text";
+import { useAnsweredInvites } from "@/hooks/useAnsweredInvites";
 import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
 import { useGroupUpdates } from "@/hooks/useGroupUpdates";
+import { useMarkNotificationsSeen } from "@/hooks/useMarkNotificationsSeen";
 import { useNewListingIds } from "@/hooks/useNewListingIds";
+import { useNewMatchesCount } from "@/hooks/useNewMatchesCount";
 import { useSession } from "@/hooks/useSession";
-import { MemberUpdate } from "@/types/notifications";
+import { AnsweredInvite, MemberUpdate } from "@/types/notifications";
 import { useFocusEffect } from "expo-router";
 import { useCallback } from "react";
 import { ScrollView, View } from "react-native";
@@ -24,16 +28,27 @@ function MemberUpdates({ updates }: { updates: MemberUpdate[] }) {
   ));
 }
 
+// One AnsweredInviteNotification per answered invtite
+function AnsweredInvites({ invites }: { invites: AnsweredInvite[] }) {
+  return invites.map((i) => (
+    <AnsweredInviteNotification key={i.id} invite={i} />
+  ));
+}
+
 export default function NotificationsScreen() {
   const { session } = useSession();
   const userId = session?.user.id;
   const accounts = useConnectedAccounts(userId);
 
-  // Fetched once and used by both the feedUpdateNotification and the groupUpdateNotification
   // Refetches by itself every time the page is opened
+  const { newMatchesCount } = useNewMatchesCount(userId);
   const { newListingIds } = useNewListingIds(session?.user.id);
   const { updatesByDay } = useGroupUpdates(userId, newListingIds);
-  const { today, yesterday, earlier } = updatesByDay;
+  const { answeredByDay } = useAnsweredInvites(accounts);
+
+  // Turns off the dot on the bell, that indicate new notifications,
+  // when the user leaves the page
+  useMarkNotificationsSeen();
 
   // Reload invites every time the page is opened
   const { refresh } = accounts;
@@ -42,6 +57,11 @@ export default function NotificationsScreen() {
       refresh();
     }, [refresh]),
   );
+
+  const hasYesterday =
+    updatesByDay.yesterday.length > 0 || answeredByDay.yesterday.length > 0;
+  const hasEarlier =
+    updatesByDay.earlier.length > 0 || answeredByDay.earlier.length > 0;
 
   return (
     <View className="flex-1 px-6 bg-background gap-2">
@@ -53,36 +73,43 @@ export default function NotificationsScreen() {
         contentContainerClassName="pb-8"
         showsVerticalScrollIndicator={false}
       >
-        <View className="gap-6">
-          <Card className="p-4 pb-8">
-            <Text variant="bold">Idag</Text>
+        <View className="gap-2">
+          {/* <Card className="p-4 pb-8"> */}
+            <Text variant="h3" className="pt-4">Idag</Text>
             <View className="gap-6 flex-1">
               <InviteUpdateNotification accounts={accounts} />
-              <FeedUpdateNotification newObjects={newListingIds.size} />
-              <MemberUpdates updates={today} />
+              <AnsweredInvites invites={answeredByDay.today} />
+              <FeedUpdateNotification newObjects={newMatchesCount} />
+              <MemberUpdates updates={updatesByDay.today} />
             </View>
-          </Card>
+          {/* </Card> */}
 
-          {yesterday.length > 0 && (
-            <Card className="p-4 pb-8">
-              <Text variant="bold">Igår</Text>
+          {hasYesterday && (
+            <>
+            {/* <Card className="p-4 pb-8"> */}
+              <Text variant="h3" className="pt-8">Igår</Text>
               <View className="gap-6 flex-1">
                 <InviteUpdateNotification accounts={accounts} />
-                <FeedUpdateNotification newObjects={newListingIds.size} />
-                <MemberUpdates updates={yesterday} />
+                <AnsweredInvites invites={answeredByDay.yesterday} />
+                <FeedUpdateNotification newObjects={newMatchesCount} />
+                <MemberUpdates updates={updatesByDay.yesterday} />
               </View>
-            </Card>
+            {/* </Card> */}
+            </>
           )}
 
-          {earlier.length > 0 && (
-            <Card className="p-4 pb-8">
-              <Text variant="bold">Tidigare</Text>
+          {hasEarlier && (
+            <>
+            {/* <Card className="p-4 pb-8"> */}
+              <Text variant="h3" className="pt-8">Tidigare</Text>
               <View className="gap-6 flex-1">
                 <InviteUpdateNotification accounts={accounts} />
-                <FeedUpdateNotification newObjects={newListingIds.size} />
-                <MemberUpdates updates={earlier} />
+                <AnsweredInvites invites={answeredByDay.earlier} />
+                <FeedUpdateNotification newObjects={newMatchesCount} />
+                <MemberUpdates updates={updatesByDay.earlier} />
               </View>
-            </Card>
+            {/* </Card> */}
+            </>
           )}
         </View>
       </ScrollView>

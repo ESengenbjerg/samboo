@@ -63,8 +63,9 @@ export default function ObjectPageScreen({
     listing ? String(listing.id) : undefined,
   );
 
-  // Mark the listing as seen once my user_listings row is loaded and says it is new
-  useMarkListingSeen(listing?.id, userListing?.is_new);
+  // Mark the listing as seen every time the page opens, also a group member's listing outside my search
+  useMarkListingSeen(listing?.id);
+
 
   const {
     tags,
