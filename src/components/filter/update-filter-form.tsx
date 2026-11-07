@@ -5,7 +5,12 @@ import { useProfile } from "@/hooks/useProfile";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { useSession } from "@/hooks/useSession";
 import { useUpdateSearchParams } from "@/hooks/useUpdateSearchParams";
-import { ClientFilter, ScraperFilter } from "@/stores/onboarding";
+import { updateNotificationFrequency } from "@/services/profiles";
+import {
+  ClientFilter,
+  InformationInterval,
+  ScraperFilter,
+} from "@/stores/onboarding";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { View } from "react-native";
@@ -30,12 +35,16 @@ export default function UpdateFilterForm() {
   } = useUpdateSearchParams();
 
   const [successMessage, setSuccessMessage] = useState<null | string>(null);
+  const [savedFrequency, setSavedFrequency] =
+    useState<InformationInterval | null>(null);
+  const [frequencyError, setFrequencyError] = useState<string | null>(null);
 
   // The tab never unmounts, so clear old messages when the user leaves it
   useFocusEffect(
     useCallback(() => {
       return () => {
         setSuccessMessage(null);
+        setFrequencyError(null);
         clearError();
       };
     }, [clearError]),
@@ -54,12 +63,42 @@ export default function UpdateFilterForm() {
     return <FormError>{profileError}</FormError>;
   }
 
-  async function onSave(scraper: ScraperFilter, client: ClientFilter) {
+  // Interval saved on this visit, otherwise the one from Supabase
+  const currentFrequency =
+    savedFrequency ?? profile?.notificationFrequency ?? "day";
+
+  async function onSave(
+    scraper: ScraperFilter,
+    client: ClientFilter,
+    interval: InformationInterval,
+  ) {
     setSuccessMessage(null);
+    setFrequencyError(null);
+
     if (isUpdating || !userId) return;
 
-    const ok = await updateSearchParams(userId, scraper, client);
-    if (ok) setSuccessMessage("Bevakning uppdaterad!");
+    // Only save the interval if the user changed it
+    let frequencyOk = true;
+    if (interval !== currentFrequency) {
+      const { error: saveError } = await updateNotificationFrequency(
+        userId,
+        interval,
+      );
+
+      if (saveError) {
+        console.log("Update frequency error:", saveError);
+        setFrequencyError(
+          "Kunde inte spara hur ofta du vill få mejl. Försök igen.",
+        );
+        frequencyOk = false;
+      } else {
+        setSavedFrequency(interval);
+      }
+    }
+
+    const searchOk = await updateSearchParams(userId, scraper, client);
+
+    if (searchOk && frequencyOk) setSuccessMessage("Bevakning uppdaterad!");
   }
 
   return (
@@ -70,7 +109,7 @@ export default function UpdateFilterForm() {
         submitLabel="Uppdatera bevakning"
         savedScraperFilter={scraperFilter}
         savedClientFilter={clientFilter}
-        savedInformationInterval={profile?.notificationFrequency ?? "day"}
+        savedInformationInterval={currentFrequency}
         onSave={onSave}
         mainColor="primary"
         fieldColor="bg-white"
@@ -85,6 +124,12 @@ export default function UpdateFilterForm() {
       {updateError && (
         <View className="px-6 mt-4 self-center">
           <FormError>{updateError}</FormError>
+        </View>
+      )}
+
+      {frequencyError && (
+        <View className="px-6 mt-4 self-center">
+          <FormError>{frequencyError}</FormError>
         </View>
       )}
     </View>
