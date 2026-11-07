@@ -1,4 +1,5 @@
 import { Icon } from "@/components/ui/icon";
+import { useNotificationDot } from "@/hooks/useNotificationDot";
 import { signOut } from "@/services/auth";
 import { Image } from "expo-image";
 import { Link, router } from "expo-router";
@@ -19,6 +20,7 @@ export default function Header() {
   const [isLoading, setIsLoading] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const insets = useSafeAreaInsets();
+  const { showDot } = useNotificationDot();
   const contentInsets = {
     top: insets.top,
     bottom: insets.bottom,
@@ -52,13 +54,18 @@ export default function Header() {
             <Icon as={ShieldCheck} size={24} />
           </Pressable>
 
-          <Pressable
+           <Pressable
             onPress={() => router.push("/(tabs)/notifications")}
             hitSlop={12}
             role="button"
-            aria-label="Notiser"
+            aria-label={showDot ? "Notiser, nya händelser" : "Notiser"}
           >
-            <Icon as={Bell} size={24} />
+            <View>
+              <Icon as={Bell} size={24} />
+              {showDot && (
+                <View className="absolute top-0 right-0 h-2.5 w-2.5 rounded-full bg-destructive" />
+              )}
+            </View>
           </Pressable>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
