@@ -1,5 +1,6 @@
 import { useAnswerInvite } from "@/hooks/useAnswerInvite";
 import { ConnectedAccounts } from "@/hooks/useConnectedAccounts";
+import { router } from "expo-router";
 import { Check, X } from "lucide-react-native";
 import { View } from "react-native";
 import { Button } from "../ui/button";
@@ -15,7 +16,8 @@ export default function InviteUpdateNotification({
   accounts,
 }: InvitationUpdateProps) {
   const { receivedInvites, isSubmitting, actionError } = accounts;
-  const { answeredInvite, onAnswer } = useAnswerInvite(accounts);
+  const { answeredInvite, answeredFromName, onAnswer } =
+    useAnswerInvite(accounts);
 
   if (receivedInvites.length === 0 && answeredInvite == null) return null;
 
@@ -25,20 +27,26 @@ export default function InviteUpdateNotification({
         <>
           <Separator />
           <View className="flex-row justify-between items-center">
-            <Text variant="bold">
-              {answeredInvite === "accepted"
-                ? "Inbjudan godkänd!"
-                : "Inbjudan nekad."}
-            </Text>
+            <View className="flex-1">
+              <Text variant="bold">
+                {answeredInvite === "accepted"
+                  ? "Inbjudan godkänd!"
+                  : "Inbjudan nekad."}
+              </Text>
+              <Text>
+                {answeredInvite === "accepted"
+                  ? `Du och ${answeredFromName ?? "din grupp"} kan nu se varandras listor.`
+                  : "Inbjudan nekad."}
+              </Text>
+            </View>
+
             {answeredInvite === "accepted" ? (
               <Button
                 size="sm"
-                variant="secondary"
-                disabled
-                className="max-h-7 justify-between"
+                onPress={() => router.push("/saved")}
+                className="max-h-7"
               >
-                <Text>Accepterad</Text>
-                <Icon as={Check} />
+                <Text>Visa</Text>
               </Button>
             ) : (
               <Button
@@ -61,7 +69,9 @@ export default function InviteUpdateNotification({
           <View className="flex-row justify-between items-center gap-2">
             <View className="flex-1">
               <Text variant="bold">Koppla konto</Text>
-              <Text>{i.from_name} ({i.from_email}) har bjudit in dig till sin grupp.</Text>
+              <Text>
+                {i.from_name} ({i.from_email}) har bjudit in dig till sin grupp.
+              </Text>
             </View>
             <View className="gap-1">
               <Button
