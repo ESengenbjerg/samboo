@@ -1,6 +1,7 @@
 import FilterForm from "@/components/filter/filter-form";
 import FormError from "@/components/form-error";
 import { Text } from "@/components/ui/text";
+import { useProfile } from "@/hooks/useProfile";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { useSession } from "@/hooks/useSession";
 import { useUpdateSearchParams } from "@/hooks/useUpdateSearchParams";
@@ -16,6 +17,11 @@ export default function UpdateFilterForm() {
 
   const { scraperFilter, clientFilter, isLoading, error } =
     useSearchParams(userId);
+  const {
+    profile,
+    isLoading: isLoadingProfile,
+    error: profileError,
+  } = useProfile(userId);
   const {
     updateSearchParams,
     isUpdating,
@@ -34,6 +40,18 @@ export default function UpdateFilterForm() {
       };
     }, [clearError]),
   );
+
+  if (!userId || isLoading || isLoadingProfile) {
+    return <Text>Laddar bevakning...</Text>;
+  }
+
+  if (error) {
+    return <FormError>{error}</FormError>;
+  }
+
+  if (profileError) {
+    return <FormError>{profileError}</FormError>;
+  }
 
   // Reads start values once, and must not render until saved search is fetched
   if (!userId || isLoading) {
