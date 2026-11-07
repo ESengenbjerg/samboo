@@ -9,6 +9,7 @@ import {
   cancelInvite as cancelInviteRpc,
   createInvite,
   declineInvite as declineInviteRpc,
+  EMAIL_PATTERN,
   getReceivedInvites,
   getSentInvites,
   inviteErrorMessage,
@@ -30,8 +31,6 @@ type ConnectedAccountsData = {
   sentInvites: SentInvite[];
   failed?: boolean;
 };
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Thrown by the database when the invite is already answered, e.g. after a double tap on "Accept"
 function isInviteAlreadyHandled(error: PostgrestError) {
