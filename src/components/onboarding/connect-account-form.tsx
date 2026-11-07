@@ -71,35 +71,42 @@ export default function ConnectAccountForm() {
 
     if (validationError) {
       setError(validationError);
-      return;
+      return emails;
     }
 
     const finished = await finish();
-    if (!finished) return;
+    if (!finished) return emails;
 
     setIsLoading(true);
+
+    // Declared outside try, so catch knows how far we've got
+    let i = 0;
 
     try {
       // Get user from Supabase
       const user = await getCurrentUser();
       if (!user) throw new Error("Not signed in.");
 
-      for (const email of emails) {
-        const { error: inviteError } = await createInvite(user.id, email);
+      for (; i < emails.length; i++) {
+        const { error: inviteError } = await createInvite(user.id, emails[i]);
 
         if (inviteError) {
           console.log("Invite error:", inviteError);
           setError(inviteErrorMessage(inviteError));
-          return;
+
+          // This one and the ones after it were not sent
+          return emails.slice(i);
         }
       }
 
       // All invites sent: close dialog and show success view
       setInvitationDialogOpen(false);
       setInviteSent(true);
+      return [];
     } catch (e) {
       console.log("Invite error", e);
       setError("Något gick fel, försök igen.");
+      return emails.slice(i);
     } finally {
       setIsLoading(false);
     }

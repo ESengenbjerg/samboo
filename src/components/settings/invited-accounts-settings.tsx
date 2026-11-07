@@ -32,8 +32,10 @@ export default function ConnectAccountsSettings({
   }
 
   async function onInvite(emails: string[]) {
-    const ok = await sendInvite(emails);
-    if (ok) setInviteDialogOpen(false);
+    const remaining = await sendInvite(emails);
+    if (emails.length > 0 && remaining.length === 0) setInviteDialogOpen(false);
+
+    return remaining;
   }
 
   async function onCancelInvite() {

@@ -170,12 +170,12 @@ export function useConnectedAccounts(userId: string | undefined) {
 
   const sendInvite = useCallback(
     async (emails: string[]) => {
-      if (!userId) return false;
+      if (!userId) return emails;
 
       // Me + the others. The invite would be stored but could never be accepted
       if (members.length + emails.length >= MAX_GROUP_MEMBERS) {
         setActionError(`Gruppen är full (max ${MAX_GROUP_MEMBERS} medlemmar).`);
-        return false;
+        return emails;
       }
 
       // Check all before sending any
@@ -184,20 +184,20 @@ export function useConnectedAccounts(userId: string | undefined) {
       // If error, show message and exit
       if (validationError) {
         setActionError(validationError);
-        return false;
+        return emails;
       }
 
-      for (const email of emails) {
-        const toEmail = normalizeEmail(email);
+      for (let i = 0; i < emails.length; i++) {
+        const toEmail = normalizeEmail(emails[i]);
 
         const ok = await run(
           () => createInvite(userId, toEmail),
           "Send invite",
         );
-        if (!ok) return false;
+        if (!ok) return emails.slice(i);
       }
 
-      return true;
+      return [];
     },
     [userId, members.length, run],
   );
