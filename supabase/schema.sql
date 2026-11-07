@@ -184,6 +184,20 @@ begin
     raise exception 'Ange en giltig e-postadress.';
   end if;
 
+  -- Recipient already in the sender's group: the invite could never be accepted
+  if exists (
+    select 1
+    from public.profiles me
+    join public.profiles p on p.group_id = me.group_id
+    join auth.users u on u.id = p.id
+    where me.id = new.from_user_id
+      and me.group_id is not null
+      and p.id <> me.id
+      and lower(u.email) = lower(new.to_email)
+  ) then
+    raise exception 'Personen är redan kopplad till dig.';
+  end if;
+
   -- no key update: does not block the foreign key check of other inserts
   perform 1 from public.profiles where id = new.from_user_id for no key update;
   if not exists (

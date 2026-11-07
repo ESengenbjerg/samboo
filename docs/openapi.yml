@@ -502,7 +502,7 @@ paths:
       summary: Send an invite
       description: |
         Only `from_user_id` (must be my id) and `to_email` can be set. Rules:
-        not to my own e-mail; `to_email` must be an e-mail address; at most one pending invite per recipient;
+        not to my own e-mail; not to someone already in my group; `to_email` must be an e-mail address; at most one pending invite per recipient;
         at most 20 invites in total (any status) per recipient; at most 20 different recipients in the last 30 days.
         E-mail addresses are compared case-insensitively.
       operationId: invites_insert
@@ -519,7 +519,7 @@ paths:
       responses:
         '201': { description: Created. }
         '400':
-          description: '`Ange en giltig e-postadress.`, `Du har bjudit in för många olika personer. Försök igen senare` (20 recipients per 30 days), `Du har skickat för många inbjudningar till den här personen` (20 per recipient), or a check constraint (longer than 254).'
+          description: '`Ange en giltig e-postadress.`, `Personen är redan kopplad till dig.` (the recipient is already in my group), `Du har bjudit in för många olika personer. Försök igen senare` (20 recipients per 30 days), `Du har skickat för många inbjudningar till den här personen` (20 per recipient), or a check constraint (longer than 254).'
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
