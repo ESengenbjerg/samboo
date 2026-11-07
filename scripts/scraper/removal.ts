@@ -3,6 +3,7 @@
 // The db client is passed in, because run.ts loads .env AFTER its static imports.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "../../shared/database.types.ts";
 import type { ActiveListing, ScopeItem } from "../lib/types.ts";
 
 // Failure F3: this share (or more) of the listing pages failed -> the scraper is probably broken
@@ -33,7 +34,7 @@ function isInScope(listing: ActiveListing, scope: ScopeItem[]): boolean {
 // All active listings of an agency that the current scope covers.
 // Call this BEFORE the upsert, so new listings do not inflate the count
 export async function fetchActiveInScope(
-  db: SupabaseClient,
+  db: SupabaseClient<Database>,
   agency: string,
   scope: ScopeItem[],
 ): Promise<ActiveListing[]> {
@@ -92,7 +93,7 @@ export function isSuspiciousRemoval(
 }
 
 export async function markRemoved(
-  db: SupabaseClient,
+  db: SupabaseClient<Database>,
   listings: ActiveListing[],
   removedAt: string,
 ): Promise<void> {

@@ -14,6 +14,7 @@
 // Usage: node scripts/test/testShowingsLimit.ts
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "../../shared/database.types.ts";
 
 process.loadEnvFile(".env");
 
@@ -36,11 +37,11 @@ if (!url || !key || !email1 || !password1 || !email2 || !password2) {
 
 const LIMIT = 50;
 
-type User = { client: SupabaseClient; id: string; email: string };
+type User = { client: SupabaseClient<Database>; id: string; email: string };
 
 // A normal client as the app would use it, not the admin client
 async function signIn(email: string, password: string): Promise<User> {
-  const client = createClient(url!, key!, {
+  const client = createClient<Database>(url!, key!, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
   const { data, error } = await client.auth.signInWithPassword({
@@ -207,6 +208,7 @@ try {
     .limit(1)
     .single();
   inviteId = invite?.id ?? null;
+  if (inviteId === null) throw new Error("The invite from user1 was not found");
 
   const { data: dropped, error: acceptError } = await user2.client.rpc(
     "accept_invite",

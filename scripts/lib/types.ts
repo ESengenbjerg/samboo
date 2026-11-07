@@ -70,7 +70,7 @@ export type Agency = {
 
 // The columns of an active listing that the removal check needs
 export type ActiveListing = {
-  id: number | string;
+  id: number;
   external_id: number;
   url: string;
   municipality: string | null;
@@ -84,7 +84,7 @@ export type IssueReason = "F1" | "F2" | "F3" | "F4" | "mass_removal";
 
 // A row in scrape_issues (the backlog)
 export type ScrapeIssue = {
-  id: number | string;
+  id: number;
   agency: string;
   kind: IssueKind;
   reason: IssueReason;

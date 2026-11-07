@@ -12,6 +12,7 @@
 // - Listings outside every search (never visited here) are handled by clean_stale_listings() in pg_cron after 7 days
 
 import { chromium } from "playwright";
+import type { Json } from "../../shared/database.types.ts";
 import { ScrapeLayoutError } from "../lib/errors.ts";
 import type {
   Agency,
@@ -142,7 +143,7 @@ async function flag(
   kind: IssueKind,
   reason: IssueReason,
   message: string,
-  details: Record<string, unknown>,
+  details: { [key: string]: Json | undefined },
 ) {
   console.error(`${agencyName}: ${kind} (${reason}) - ${message}`);
   const issue = await recordIssue(supabaseAdmin, agencyName, kind, reason, {
