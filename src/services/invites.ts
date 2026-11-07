@@ -10,7 +10,7 @@ export function normalizeEmail(email: string) {
 export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function validateInviteEmails(emails: string[]): string | null {
-  if (emails.length === 0) return "Ange misnt en e-postadress.";
+  if (emails.length === 0) return "Ange minst en e-postadress.";
   const invalid = emails.find((e) => !EMAIL_PATTERN.test(normalizeEmail(e)));
   if (invalid) return `Ogiltig e-postadress: ${invalid}`;
   return null;

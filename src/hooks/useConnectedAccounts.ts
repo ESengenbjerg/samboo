@@ -9,11 +9,11 @@ import {
   cancelInvite as cancelInviteRpc,
   createInvite,
   declineInvite as declineInviteRpc,
-  EMAIL_PATTERN,
   getReceivedInvites,
   getSentInvites,
   inviteErrorMessage,
   normalizeEmail,
+  validateInviteEmails,
 } from "@/services/invites";
 import {
   GroupMember,
@@ -178,12 +178,17 @@ export function useConnectedAccounts(userId: string | undefined) {
         return false;
       }
 
+      // Check all before sending any
+      const validationError = validateInviteEmails(emails);
+
+      // If error, show message and exit
+      if (validationError) {
+        setActionError(validationError);
+        return false;
+      }
+
       for (const email of emails) {
         const toEmail = normalizeEmail(email);
-        if (!EMAIL_PATTERN.test(toEmail)) {
-          setActionError("Ange en giltig e-postadress.");
-          return false;
-        }
 
         const ok = await run(
           () => createInvite(userId, toEmail),

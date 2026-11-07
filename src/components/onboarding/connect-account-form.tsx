@@ -1,5 +1,9 @@
 import { getCurrentUser } from "@/services/auth";
-import { createInvite, inviteErrorMessage } from "@/services/invites";
+import {
+  createInvite,
+  inviteErrorMessage,
+  validateInviteEmails,
+} from "@/services/invites";
 import { saveOnboarding } from "@/services/onboarding";
 import { useOnboardingStore } from "@/stores/onboarding";
 import { router } from "expo-router";
@@ -62,6 +66,14 @@ export default function ConnectAccountForm() {
 
   // Save onboarding, then send invites to other users
   async function onInvite(emails: string[]) {
+    // Check all before saving or sending anything
+    const validationError = validateInviteEmails(emails);
+
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     const finished = await finish();
     if (!finished) return;
 
