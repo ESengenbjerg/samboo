@@ -11,7 +11,7 @@
 // Dev database only. Needs 102 listings that are not removed.
 //
 // Each user sends about 55 writes. The limit is 100 per 5 minutes (check_request()), so wait that long before running it again.
-// Usage: node scripts/users/testShowingsLimit.ts
+// Usage: node scripts/test/testShowingsLimit.ts
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
@@ -254,4 +254,4 @@ console.log(pass ? "\nRESULT: as expected" : "\nRESULT: NOT as expected");
 process.exitCode = pass && !process.exitCode ? 0 : 1;
 
 // Ran in Terminal:
-// node scripts/users/testShowingsLimit.ts
+// node scripts/test/testShowingsLimit.ts

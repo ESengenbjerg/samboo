@@ -109,7 +109,7 @@ console.log(pass ? "\nRESULT: as expected" : "\nRESULT: NOT as expected");
 process.exitCode = pass ? 0 : 1;
 
 // Ran in Terminal:
-// node scripts/users/testRateLimit.ts
+// node scripts/test/testRateLimit.ts
 
 // Result:
 // Signed in as admin@samboo.com
