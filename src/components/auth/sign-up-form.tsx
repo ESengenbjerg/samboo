@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
+import { EMAIL_MAX_LENGTH } from "@/constants/limits";
 import { signUp } from "@/services/auth";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
@@ -73,7 +74,7 @@ export function SignUpForm() {
             keyboardType="email-address"
             autoComplete="email"
             autoCapitalize="none"
-            maxLength={254}
+            maxLength={EMAIL_MAX_LENGTH}
             value={email}
             onChangeText={setEmail}
             onSubmitEditing={onEmailSubmitEditing}

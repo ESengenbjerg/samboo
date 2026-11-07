@@ -1,4 +1,5 @@
-import { createShowing, showingErrorMessage } from "@/services/showings";
+import { SHOWING_NOTE_MAX_LENGTH } from "@/constants/limits";
+import { createShowing, NOTE_TOO_LONG_MESSAGE, showingErrorMessage } from "@/services/showings";
 import { ShowingValues } from "@/types/showings";
 import {
   isShowingDateInPast,
@@ -37,8 +38,8 @@ export function useSaveShowing() {
       }
 
       const note = values.note.trim();
-      if (note.length > 500) {
-        setError("Anteckningen får vara max 500 tecken.");
+      if (note.length > SHOWING_NOTE_MAX_LENGTH) {
+        setError(NOTE_TOO_LONG_MESSAGE);
         return false;
       }
 

@@ -1,9 +1,6 @@
 import type { Enums, Tables } from "@shared/database.types";
 import type { RpcRow } from "@shared/db";
 
-// Same limit as accept_invite() in the database
-export const MAX_GROUP_MEMBERS = 10;
-
 // invites.status, the database enum public.invite_status
 export type InviteStatus = Enums<"invite_status">;
 

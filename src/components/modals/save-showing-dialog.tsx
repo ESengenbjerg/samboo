@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { SHOWING_NOTE_MAX_LENGTH } from "@/constants/limits";
 import {
   defaultShowingTime,
   startOfToday,
@@ -80,7 +81,7 @@ export function SaveShowingDialog({
                 value={note}
                 onChangeText={setNote}
                 placeholder="Lägg till anteckning..."
-                maxLength={500}
+                maxLength={SHOWING_NOTE_MAX_LENGTH}
                 className="h-24"
               />
             </View>

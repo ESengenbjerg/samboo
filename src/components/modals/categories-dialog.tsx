@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { TAG_NAME_MAX_LENGTH } from "@/constants/limits";
 import { UserTag } from "@/types/tags";
 import { capitalize } from "@/utils/capitalize-string";
 import { useState } from "react";
@@ -151,7 +152,7 @@ export function CategoriesDialog({
                   onClearError();
                 }}
                 placeholder="T.ex. Balkong"
-                maxLength={100}
+                maxLength={TAG_NAME_MAX_LENGTH}
               />
               <Button
                 disabled={isSaving || newName.trim() === ""}

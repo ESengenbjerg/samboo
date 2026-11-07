@@ -57,6 +57,8 @@ export function PrivacyDialog({ open, onOpenChange }: PrivacyDialogProps) {
 
             <View className="gap-1">
               <Text variant="bold">Hur länge</Text>
+              {/* Must match the database: purge_old_invites() (pending 90 days, answered 1 year)
+                  and purge_old_showings() (30 days after the showing date) */}
               <Text>
                 Så länge du har kvar ditt konto. Obesvarade inbjudningar raderas
                 automatiskt efter 90 dagar samt besvarade efter ett år.

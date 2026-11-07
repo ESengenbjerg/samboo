@@ -1,3 +1,4 @@
+import { MAX_GROUP_MEMBERS } from "@/constants/limits";
 import {
   getGroupMembers,
   leaveGroup as leaveGroupRpc,
@@ -17,7 +18,6 @@ import {
 } from "@/services/invites";
 import {
   GroupMember,
-  MAX_GROUP_MEMBERS,
   ReceivedInvite,
   SentInvite,
 } from "@/types/connected-accounts";

@@ -1,3 +1,4 @@
+import { SHOWING_NOTE_MAX_LENGTH } from "@/constants/limits";
 import { supabase } from "@/lib/supabase";
 import { NewShowing, ShowingValues } from "@/types/showings";
 import { toIsoDate } from "@/utils/date-format";
@@ -7,6 +8,8 @@ import type { PostgrestError } from "@supabase/supabase-js";
 // !inner is a safety net: without it listings could be null and the app would crash
 const SHOWING_COLUMNS =
   "id, listing_id, showing_date, start_time, note, listings!inner(address, municipality, area)";
+
+export const NOTE_TOO_LONG_MESSAGE = `Anteckningen får vara max ${SHOWING_NOTE_MAX_LENGTH} tecken.`;
 
 // Today's date in local time as "2026-10-29", to compare with showings.showing_date
 function today() {
@@ -77,7 +80,7 @@ export function showingErrorMessage(error: PostgrestError) {
       return "Du kan inte spara en visning för den här bostaden.";
     // showings_note_length
     case "23514":
-      return "Anteckningen får vara max 500 tecken.";
+      return NOTE_TOO_LONG_MESSAGE;
     // Invalid date or time
     case "22007":
     case "22008":
