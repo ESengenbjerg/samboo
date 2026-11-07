@@ -78,9 +78,10 @@ export function showingErrorMessage(error: PostgrestError) {
     // showings_insert policy: the listing is not visible to me (or my account is not active)
     case "42501":
       return "Du kan inte spara en visning för den här bostaden.";
-    // showings_note_length
+    // showings_note_length or showings_date_range. The hooks check both before sending,
+    // so this only shows if something got past them
     case "23514":
-      return NOTE_TOO_LONG_MESSAGE;
+      return "Kontrollera datum och anteckning.";
     // Invalid date or time
     case "22007":
     case "22008":

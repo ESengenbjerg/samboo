@@ -1,8 +1,9 @@
-import { SHOWING_NOTE_MAX_LENGTH } from "@/constants/limits";
+import { SHOWING_LAST_DATE, SHOWING_NOTE_MAX_LENGTH } from "@/constants/limits";
 import { updateShowing, NOTE_TOO_LONG_MESSAGE, showingErrorMessage } from "@/services/showings";
 import { ShowingValues } from "@/types/showings";
 import {
   isShowingDateInPast,
+  isShowingDateTooLate,
   isValidShowingDate,
   normalizeShowingTime,
 } from "@/utils/showing-validation";
@@ -22,6 +23,10 @@ export function useUpdateShowing() {
     }
     if (isShowingDateInPast(date)) {
       setError("Datumet kan inte ligga i det förflutna.");
+      return false;
+    }
+    if (isShowingDateTooLate(date)) {
+      setError(`Datumet kan inte ligga efter ${SHOWING_LAST_DATE}.`);
       return false;
     }
 

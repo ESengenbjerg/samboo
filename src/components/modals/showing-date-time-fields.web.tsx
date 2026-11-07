@@ -1,4 +1,5 @@
 import { Label } from "@/components/ui/label";
+import { SHOWING_LAST_DATE } from "@/constants/limits";
 import {
   parseIsoDate,
   parseTime,
@@ -37,6 +38,7 @@ export default function ShowingDateTimeFields({
           className={INPUT_CLASS}
           value={toIsoDate(date)}
           min={toIsoDate(new Date())}
+          max={SHOWING_LAST_DATE}
           onChange={(e) => {
             // Empty when the user clears the field. The date is required, so keep the old one
             if (e.target.value) onDateChange(parseIsoDate(e.target.value));
