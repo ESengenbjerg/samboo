@@ -1,4 +1,5 @@
 import { Listing } from "@/types/listing";
+import type { Tables } from "@shared/database.types";
 
 export type ScheduledShowing = {
   id: number;
@@ -10,15 +11,12 @@ export type ScheduledShowing = {
   note: string | null;
 };
 
-// A row from showings joined with its listing
-export type ShowingRow = {
-  id: number;
-  listing_id: number;
-  // "2026-10-29"
-  showing_date: string;
-  // "11:00:00", null if no start time was entered
-  start_time: string | null;
-  note: string | null;
+// A row from showings joined with its listing.
+// showing_date "2026-10-29", start_time "11:00:00" or null if no start time was entered
+export type ShowingRow = Pick<
+  Tables<"showings">,
+  "id" | "listing_id" | "showing_date" | "start_time" | "note"
+> & {
   listings: Pick<Listing, "address" | "municipality" | "area">;
 };
 

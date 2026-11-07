@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import { ReceivedInvite, SentInvite } from "@/types/connected-accounts";
+import { SentInvite } from "@/types/connected-accounts";
 import type { PostgrestError } from "@supabase/supabase-js";
 
 // The database compares e-mails case-insensitively, but store them clean anyway
@@ -29,6 +29,7 @@ export function getSentInvites(userId: string) {
     .select("id, created_at, to_email, status, responded_at")
     .eq("from_user_id", userId)
     .order("created_at", { ascending: false })
+    // Only narrows status from text to InviteStatus. Removed in part 3 of #153 (enum)
     .overrideTypes<SentInvite[]>();
 }
 
@@ -39,7 +40,7 @@ export async function getReceivedInvites() {
   const { data, error } = await supabase.rpc("my_pending_invites", undefined, {
     get: true,
   });
-  return { data: data as ReceivedInvite[] | null, error };
+  return { data, error };
 }
 
 // Joins the sender's group. Fails if I am already in a group or the group is full.

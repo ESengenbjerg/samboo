@@ -1,6 +1,10 @@
+import type { Tables } from "@shared/database.types";
+import type { RpcRow } from "@shared/db";
+
 // Same limit as accept_invite() in the database
 export const MAX_GROUP_MEMBERS = 10;
 
+// Handwritten until invites.status becomes an enum (part 3 of #153)
 export type InviteStatus = "pending" | "accepted" | "declined" | "cancelled";
 
 // Another member of my group (a connected account)
@@ -14,19 +18,10 @@ export type GroupMember = {
 };
 
 // Invite addressed to me, from my_pending_invites()
-export type ReceivedInvite = {
-  id: number;
-  created_at: string;
-  from_user_id: string;
-  from_name: string;
-  from_email: string;
-};
+export type ReceivedInvite = RpcRow<"my_pending_invites">;
 
-// Invite I have sent (all statuses)
-export type SentInvite = {
-  id: number;
-  created_at: string;
-  to_email: string;
-  status: InviteStatus;
-  responded_at: string | null;
-};
+// Invite I have sent (all statuses). status is text in the generated types until part 3 of #153
+export type SentInvite = Omit<
+  Pick<Tables<"invites">, "id" | "created_at" | "to_email" | "status" | "responded_at">,
+  "status"
+> & { status: InviteStatus };

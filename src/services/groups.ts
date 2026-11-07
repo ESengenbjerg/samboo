@@ -2,12 +2,10 @@ import { supabase } from "@/lib/supabase";
 import { getAvatarUrl } from "@/services/profiles";
 import { GroupMember } from "@/types/connected-accounts";
 
-type MemberRow = {
-  id: string;
-  name: string;
-  avatar_path: string | null;
-  email: string;
-};
+import type { RpcRow } from "@shared/db";
+
+// avatar_path is null for a member without a profile image
+type MemberRow = RpcRow<"my_group_members", "avatar_path">;
 
 // The other members of my group (connected accounts), with e-mail. Empty if I am not in a group
 export async function getGroupMembers() {
@@ -18,7 +16,8 @@ export async function getGroupMembers() {
   });
   if (error) return { data: null, error };
 
-  const members: GroupMember[] = (data as MemberRow[]).map((m) => ({
+  const rows: MemberRow[] = data;
+  const members: GroupMember[] = rows.map((m) => ({
     id: m.id,
     name: m.name,
     email: m.email,

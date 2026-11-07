@@ -8,7 +8,8 @@ export async function getShowingEvents() {
   const { data, error } = await supabase.rpc("my_showing_events", undefined, {
     get: true,
   });
-  // rpc() without generated types can't be cast with overrideTypes()
+  // The cast only narrows action from text to ShowingEventAction (removed in part 3 of #153, enum)
+  // and marks address and start_time as nullable. The other columns are checked by tsc
   return { data: (data ?? []) as ShowingEvent[], error };
 }
 

@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import { NewShowing, ShowingRow, ShowingValues } from "@/types/showings";
+import { NewShowing, ShowingValues } from "@/types/showings";
 import { toIsoDate } from "@/utils/date-format";
 import type { PostgrestError } from "@supabase/supabase-js";
 
@@ -21,8 +21,7 @@ export function getUpcomingShowings() {
     .select(SHOWING_COLUMNS)
     .gte("showing_date", today())
     .order("showing_date", { ascending: true })
-    .order("start_time", { ascending: true, nullsFirst: false })
-    .overrideTypes<ShowingRow[]>();
+    .order("start_time", { ascending: true, nullsFirst: false });
 }
 
 // My showings (group's or own, see getUpcomingShowings()) before today, latest first.
@@ -33,8 +32,7 @@ export function getPastShowings() {
     .select(SHOWING_COLUMNS)
     .lt("showing_date", today())
     .order("showing_date", { ascending: false })
-    .order("start_time", { ascending: false, nullsFirst: false })
-    .overrideTypes<ShowingRow[]>();
+    .order("start_time", { ascending: false, nullsFirst: false });
 }
 
 // The owner is not sent: the database sets group_id to my group, or user_id to me if
