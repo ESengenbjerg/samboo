@@ -47,8 +47,7 @@ export async function fetchActiveInScope(
       .eq("agency", agency)
       .is("removed_at", null)
       .order("id")
-      .range(from, from + PAGE_SIZE - 1)
-      .overrideTypes<ActiveListing[]>();
+      .range(from, from + PAGE_SIZE - 1);
     if (error) throw error;
 
     active.push(...data);

@@ -19,7 +19,6 @@ import type {
   IssueKind,
   IssueReason,
   ListingRow,
-  SearchParamsRow,
 } from "../lib/types.ts";
 import * as agency1 from "./agencies/agency1.ts";
 import * as mockdata from "./agencies/mockdata.ts";
@@ -79,8 +78,7 @@ const municipalityFlags = flagValues("municipality");
 // ---------------------- READ SEARCH PARAMS --------------------------
 const { data: searchParams, error: searchError } = await supabaseAdmin
   .from("search_params")
-  .select("user_id, property_types, municipalities, areas")
-  .overrideTypes<SearchParamsRow[]>();
+  .select("user_id, property_types, municipalities, areas");
 
 if (searchError) {
   console.error("Failed to read search_params:", searchError);

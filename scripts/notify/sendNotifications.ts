@@ -69,6 +69,8 @@ if (error) {
   process.exit(1); // Exit code 1 makes the workflow run fail (red) in GitHub
 }
 
+// The cast only gives the jsonb columns (new_listings, partner_likes) their shape, see DueRow.
+// The other columns come from the generated types, so a renamed column still fails tsc
 const rows = (data ?? []) as DueRow[];
 
 // Build one mail per user
