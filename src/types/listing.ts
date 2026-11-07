@@ -1,24 +1,26 @@
-export type Listing = {
-  id: number;
-  agency: string;
-  external_id: number;
-  url: string;
-  property_type: string | null;
-  municipality: string | null;
-  area: string | null;
-  price: number | null;
-  rooms: number | null;
-  living_area?: number | null;
-  monthly_fee?: number | null;
-  address: string | null;
-  image_url: string | null;
-  is_new_construction: boolean;
-};
+import type { Tables } from "@shared/database.types";
+import type { RpcRow } from "@shared/db";
 
-export type UserListing = {
-  id: number;
-  is_new: boolean;
-  liked: boolean;
+// The listings columns the app uses. Queries may return more (listings(*)), never less
+export type Listing = Pick<
+  Tables<"listings">,
+  | "id"
+  | "agency"
+  | "external_id"
+  | "url"
+  | "property_type"
+  | "municipality"
+  | "area"
+  | "price"
+  | "rooms"
+  | "living_area"
+  | "monthly_fee"
+  | "address"
+  | "image_url"
+  | "is_new_construction"
+>;
+
+export type UserListing = Pick<Tables<"user_listings">, "id" | "is_new" | "liked"> & {
   listings: Listing;
 };
 
@@ -31,22 +33,14 @@ export type MatchedListing = Listing & {
 
 // UserListing with the owner, used when rows from several users are fetched at once.
 // liked_at is when the owner liked it (null for likes made before the column existed)
-export type MemberUserListing = UserListing & {
-  user_id: string;
-  liked_at: string | null;
-};
+export type MemberUserListing = UserListing &
+  Pick<Tables<"user_listings">, "user_id" | "liked_at">;
 
 // A listing in a group member's liked list, with when the member liked it
-export type MemberLikedListing = Listing & {
-  liked_at: string | null;
-};
+export type MemberLikedListing = Listing & Pick<Tables<"user_listings">, "liked_at">;
 
 // Only the listing id of a liked user_listings row (listings.id = user_listings.listing_id)
-export type LikedListingId = {
-  listing_id: number;
-};
+export type LikedListingId = Pick<Tables<"user_listings">, "listing_id">;
 
 // Only the listing id of one of my user_listings rows that I have not opened yet (is_new = true)
-export type NewListingId = {
-  listing_id: number;
-};
+export type NewListingId = RpcRow<"my_new_listing_ids">;
