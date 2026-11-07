@@ -32,6 +32,8 @@ type ConnectedAccountsData = {
   failed?: boolean;
 };
 
+const NO_MEMBERS: GroupMember[] = [];
+
 // Thrown by the database when the invite is already answered, e.g. after a double tap on "Accept"
 function isInviteAlreadyHandled(error: PostgrestError) {
   return error.message
@@ -134,7 +136,7 @@ export function useConnectedAccounts(userId: string | undefined) {
 
   // Never expose data that belongs to a previous user
   const current = userId && data?.userId === userId ? data : null;
-  const members = current?.members ?? [];
+  const members = current?.members ?? NO_MEMBERS;
   // A group always has at least 2 members, so any other member means I am in one
   const isInGroup = members.length > 0;
 
@@ -187,6 +189,16 @@ export function useConnectedAccounts(userId: string | undefined) {
         return emails;
       }
 
+      // Already in my group: the invite could never be accepted
+      const memberEmails = new Set(members.map((m) => normalizeEmail(m.email)));
+      const alreadyMember = emails.find((e) =>
+        memberEmails.has(normalizeEmail(e)),
+      );
+      if (alreadyMember) {
+        setActionError(`${alreadyMember} är redan kopplad till dig.`);
+        return emails;
+      }
+
       // Not via run(): it clears the error on every call, so a later
       // success would hide an earlier failure
       setActionError(null);
@@ -215,7 +227,7 @@ export function useConnectedAccounts(userId: string | undefined) {
       if (lastError) setActionError(lastError);
       return failed;
     },
-    [userId, members.length, refresh],
+    [userId, members, refresh],
   );
 
   const acceptInvite = useCallback(
