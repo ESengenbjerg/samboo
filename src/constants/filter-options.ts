@@ -1,5 +1,6 @@
 import { SelectOption } from "@/types/select-option";
 import { formatPrice } from "@/utils/format-price";
+import { Constants, type Enums } from "@shared/database.types";
 
 const range = (start: number, end: number, step = 1) =>
   Array.from(
@@ -27,16 +28,15 @@ export const LIVING_AREA_OPTIONS: SelectOption[] = range(20, 200, 10).map(
   }),
 );
 
-export const PROPERTY_TYPES = [
-  "villa",
-  "radhus",
-  "lagenhet",
-  "fritidshus",
-  "tomt",
-  "other",
-] as const;
+// From the database enum public.property_type, in its order
+export const PROPERTY_TYPES = Constants.public.Enums.property_type;
 
-export type PropertyType = (typeof PROPERTY_TYPES)[number];
+export type PropertyType = Enums<"property_type">;
+
+// Checks a value from the UI (toggle groups give string[]) against the database's list
+export function isPropertyType(value: string): value is PropertyType {
+  return (PROPERTY_TYPES as readonly string[]).includes(value);
+}
 
 export const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
   villa: "Villa",

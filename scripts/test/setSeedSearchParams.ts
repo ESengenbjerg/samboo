@@ -7,6 +7,8 @@
 // The user is looked up by SEED_USER_EMAIL, so createSeedUser.ts must have run first (CHECK!)
 // user_id is unique in search_params, so this can be re-run safely
 
+import type { TablesInsert } from "../../shared/database.types.ts";
+
 // Fetch credentials in dotenv
 process.loadEnvFile(".env");
 
@@ -20,7 +22,10 @@ if (!email) {
 }
 
 // The full desired state. null = no limit, [] = no choice made
-const seedSearches = [
+const seedSearches: {
+  email: string | undefined;
+  searchParams: Omit<TablesInsert<"search_params">, "user_id">;
+}[] = [
   {
     email: process.env.SEED_USER_EMAIL,
     searchParams: {

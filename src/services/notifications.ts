@@ -8,9 +8,9 @@ export async function getShowingEvents() {
   const { data, error } = await supabase.rpc("my_showing_events", undefined, {
     get: true,
   });
-  // The cast only narrows action from text to ShowingEventAction (removed in part 3 of #153, enum)
-  // and marks address and start_time as nullable. The other columns are checked by tsc
-  return { data: (data ?? []) as ShowingEvent[], error };
+  // ShowingEvent marks address and start_time as nullable, which the generated type does not know
+  const events: ShowingEvent[] = data ?? [];
+  return { data: events, error };
 }
 
 // true if something has happened since I last left the notifications page: an invite,

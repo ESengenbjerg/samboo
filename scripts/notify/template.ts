@@ -2,29 +2,26 @@
 // Only functions that turn data into text: no database, no network.
 // The data: one row from due_notifications() (see docs/database-design.md, "Notification mails")
 
-import type { Tables } from "../../shared/database.types.ts";
+import type { Enums, Tables } from "../../shared/database.types.ts";
 import type { RpcRow } from "../../shared/db.ts";
 import type { PropertyType } from "../lib/types.ts";
 
 // One listing in due_notifications().new_listings. The function builds the json from these listings columns
-export type MailListing = Omit<
-  Pick<
-    Tables<"listings">,
-    | "id"
-    | "address"
-    | "area"
-    | "municipality"
-    | "property_type"
-    | "price"
-    | "rooms"
-    | "living_area"
-    | "monthly_fee"
-    | "is_new_construction"
-    | "agency"
-    | "url"
-  >,
-  "property_type"
-> & { property_type: PropertyType | null };
+export type MailListing = Pick<
+  Tables<"listings">,
+  | "id"
+  | "address"
+  | "area"
+  | "municipality"
+  | "property_type"
+  | "price"
+  | "rooms"
+  | "living_area"
+  | "monthly_fee"
+  | "is_new_construction"
+  | "agency"
+  | "url"
+>;
 
 // One entry in due_notifications().partner_likes. Handwritten: the function returns it as jsonb,
 // which the generated types only know as Json
@@ -40,7 +37,7 @@ export type DueRow = Omit<
   RpcRow<"due_notifications">,
   "frequency" | "new_listings" | "partner_likes"
 > & {
-  frequency: "day" | "week";
+  frequency: Exclude<Enums<"notification_frequency">, "none">;
   new_listings: MailListing[]; // at most 5
   partner_likes: PartnerLike[];
 };

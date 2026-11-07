@@ -1,5 +1,4 @@
 import { supabase } from "@/lib/supabase";
-import { SentInvite } from "@/types/connected-accounts";
 import type { PostgrestError } from "@supabase/supabase-js";
 
 // The database compares e-mails case-insensitively, but store them clean anyway
@@ -28,9 +27,7 @@ export function getSentInvites(userId: string) {
     .from("invites")
     .select("id, created_at, to_email, status, responded_at")
     .eq("from_user_id", userId)
-    .order("created_at", { ascending: false })
-    // Only narrows status from text to InviteStatus. Removed in part 3 of #153 (enum)
-    .overrideTypes<SentInvite[]>();
+    .order("created_at", { ascending: false });
 }
 
 // Pending invites addressed to my e-mail, with the sender's name and e-mail.

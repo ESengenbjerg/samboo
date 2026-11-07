@@ -41,7 +41,7 @@ export async function recordIssue(
         .eq("id", open.id)
     : db.from("scrape_issues").insert({ agency, kind, reason, details });
 
-  // <ScrapeIssue> narrows kind and reason from text to their unions: we just wrote them from typed arguments
+  // <ScrapeIssue> narrows reason from text to IssueReason: we just wrote it from a typed argument
   const { data, error } = await query.select(COLUMNS).single<ScrapeIssue>();
   if (error) throw error;
   return data;
