@@ -13,7 +13,6 @@ import {
   getReceivedInvites,
   getSentInvites,
   inviteErrorMessage,
-  normalizeEmail,
   validateInviteEmails,
 } from "@/services/invites";
 import {
@@ -21,6 +20,7 @@ import {
   ReceivedInvite,
   SentInvite,
 } from "@/types/connected-accounts";
+import { normalizeEmail } from "@shared/email";
 import type { PostgrestError } from "@supabase/supabase-js";
 import { useCallback, useEffect, useRef, useState } from "react";
 

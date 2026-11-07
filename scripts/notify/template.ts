@@ -64,7 +64,9 @@ export function objectsWord(value: number): string {
   return `${value} nya objekt`;
 }
 
-// Link to Samboo's listing page
+// Link to Samboo's listing page. The paths in this file follow the Expo Router files:
+// /search/object/<id> is src/app/(tabs)/search/object/[id].tsx and /settings is src/app/(tabs)/settings.tsx.
+// Moving or renaming those files breaks the links in every mail sent after that
 export function listingUrl(appUrl: string, id: number): string {
   return `${appUrl}/search/object/${id}`;
 }

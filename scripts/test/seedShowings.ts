@@ -5,6 +5,8 @@
 // Safe to run again: it only adds what is missing up to 50, on listings that do not have a showing yet.
 // Usage: node scripts/test/seedShowings.ts
 
+import { sameEmail } from "../../shared/email.ts";
+
 process.loadEnvFile(".env");
 
 const { supabaseAdmin } = await import("../lib/supabaseAdmin.ts");
@@ -20,7 +22,7 @@ if (!email) {
 const { data: userList, error: listError } =
   await supabaseAdmin.auth.admin.listUsers({ perPage: 200 });
 const authUser = userList?.users.find(
-  (u) => u.email?.toLowerCase() === email.toLowerCase(),
+  (u) => sameEmail(u.email, email),
 );
 
 if (listError || !authUser) {

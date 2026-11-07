@@ -8,6 +8,7 @@
 // user_id is unique in search_params, so this can be re-run safely
 
 import type { TablesInsert } from "../../shared/database.types.ts";
+import { sameEmail } from "../../shared/email.ts";
 
 // Fetch credentials in dotenv
 process.loadEnvFile(".env");
@@ -68,9 +69,7 @@ if (usersError) {
 }
 
 for (const { email, searchParams } of seedSearches) {
-  const user = usersData.users.find(
-    (u) => u.email?.toLowerCase() === email?.toLowerCase(),
-  );
+  const user = usersData.users.find((u) => sameEmail(u.email, email));
 
   if (!user) {
     console.error(`No user with email ${email}`);
