@@ -15,6 +15,21 @@ export type MemberUpdate = {
 // The member updates split into the sections of the notifications page
 export type MemberUpdatesByDay = Record<NotificationDay, MemberUpdate[]>;
 
+// An invite I have sent that the recipient has accepted or declined
+export type AnsweredInvite = {
+  id: number;
+  status: "accepted" | "declined";
+  // When the recipient answered
+  responded_at: string;
+  to_email: string;
+  // The recipient's name if they are in my group now (accepted), otherwise null:
+  // the name of someone outside my group can not be read
+  name: string | null;
+};
+
+// The answered invites split into the sections of the notifications page
+export type AnsweredInvitesByDay = Record<NotificationDay, AnsweredInvite[]>;
+
 export type ShowingEventAction = "created" | "updated" | "deleted";
 
 // A change another member made to one of my group's showings, from my_showing_events()
