@@ -1,7 +1,7 @@
 import AnsweredInviteNotification from "@/components/notifications/answered-invitation-notification";
 import { default as FeedUpdateNotification } from "@/components/notifications/feed-update-notification";
 import GroupUpdateNotification from "@/components/notifications/group-update-notification";
-import InviteUpdateNotification from "@/components/notifications/invitation-update-notification";
+import InvitationNotification from "@/components/notifications/invitation-notification";
 import { Text } from "@/components/ui/text";
 import { useAnsweredInvites } from "@/hooks/useAnsweredInvites";
 import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
@@ -77,7 +77,7 @@ export default function NotificationsScreen() {
             Idag
           </Text>
           <View className="gap-6">
-            <InviteUpdateNotification accounts={accounts} />
+            <InvitationNotification accounts={accounts} />
             <AnsweredInvites invites={answeredByDay.today} />
             <FeedUpdateNotification newObjects={newMatchesCount} />
             <MemberUpdates updates={updatesByDay.today} />

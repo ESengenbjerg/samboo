@@ -12,7 +12,7 @@ type InvitationUpdateProps = {
   accounts: ConnectedAccounts;
 };
 
-export default function InviteUpdateNotification({
+export default function InvitationNotification({
   accounts,
 }: InvitationUpdateProps) {
   const { receivedInvites, isSubmitting, actionError } = accounts;
