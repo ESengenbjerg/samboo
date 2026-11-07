@@ -79,37 +79,45 @@ export default function ConnectAccountForm() {
 
     setIsLoading(true);
 
-    // Declared outside try, so catch knows how far we've got
-    let i = 0;
+    // Declared outside try, so catch knows which were not tried yet
+    const failed: string[] = [];
+    let tried = 0;
+    let lastError: string | null = null;
 
     try {
       // Get user from Supabase
       const user = await getCurrentUser();
       if (!user) throw new Error("Not signed in.");
 
-      for (; i < emails.length; i++) {
-        const { error: inviteError } = await createInvite(user.id, emails[i]);
+      // Keep going on errors, so one rejected address does not stop the rest
+      for (const email of emails) {
+        const { error: inviteError } = await createInvite(user.id, email);
+        tried++;
 
         if (inviteError) {
           console.log("Invite error:", inviteError);
-          setError(inviteErrorMessage(inviteError));
-
-          // This one and the ones after it were not sent
-          return emails.slice(i);
+          failed.push(email);
+          lastError = inviteErrorMessage(inviteError);
         }
       }
-
-      // All invites sent: close dialog and show success view
-      setInvitationDialogOpen(false);
-      setInviteSent(true);
-      return [];
     } catch (e) {
       console.log("Invite error", e);
-      setError("Något gick fel, försök igen.");
-      return emails.slice(i);
+      // The ones not tried yet were not sent either
+      failed.push(...emails.slice(tried));
+      lastError = "Något gick fel, försök igen.";
     } finally {
       setIsLoading(false);
     }
+
+    if (lastError) {
+      setError(lastError);
+      return failed;
+    }
+
+    // All invites sent: close dialog and show success view
+    setInvitationDialogOpen(false);
+    setInviteSent(true);
+    return [];
   }
 
   async function onSkip() {

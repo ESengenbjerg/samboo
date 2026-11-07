@@ -187,19 +187,35 @@ export function useConnectedAccounts(userId: string | undefined) {
         return emails;
       }
 
-      for (let i = 0; i < emails.length; i++) {
-        const toEmail = normalizeEmail(emails[i]);
+      // Not via run(): it clears the error on every call, so a later
+      // success would hide an earlier failure
+      setActionError(null);
+      setGroupNotice(null);
+      setIsSubmitting(true);
 
-        const ok = await run(
-          () => createInvite(userId, toEmail),
-          "Send invite",
-        );
-        if (!ok) return emails.slice(i);
+      const failed: string[] = [];
+      let lastError: string | null = null;
+
+      try {
+        // Keep going on errors, so one rejected address does not stop the rest
+        for (const email of emails) {
+          const { error } = await createInvite(userId, normalizeEmail(email));
+          if (error) {
+            console.log("Send invite error:", error);
+            failed.push(email);
+            lastError = inviteErrorMessage(error);
+          }
+        }
+      } finally {
+        setIsSubmitting(false);
+        // Reload once, so the sent invites show up
+        refresh();
       }
 
-      return [];
+      if (lastError) setActionError(lastError);
+      return failed;
     },
-    [userId, members.length, run],
+    [userId, members.length, refresh],
   );
 
   const acceptInvite = useCallback(
