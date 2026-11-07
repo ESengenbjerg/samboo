@@ -56,25 +56,38 @@ export function likeListing(listingId: number) {
   return supabase.rpc("like_listing", { p_listing_id: listingId });
 }
 
-// Mark a listing as seen (is_new = false) by listings.id. Goes through mark_listing_seen()
-// because is_new can not be updated directly. Does nothing if I have no user_listings row
-// for the listing, or if it is already seen
+// Mark a listing as seen by listings.id. Goes through mark_listing_seen() because is_new can
+// not be updated directly. Sets is_new = false on my row if I have one, and always remembers
+// the listing as seen (seen_listings), also a group member's listing outside my search.
+// Call it every time a listing page opens. Listings not visible to me are silently ignored
 export function markListingSeen(listingId: number) {
   return supabase.rpc("mark_listing_seen", { p_listing_id: listingId });
 }
 
-// The listing ids (listings.id) of my matched listings that I have not opened yet (is_new = true).
-// Matching on listings.id lets "new" work in every list, the same way as the category filter:
-// a group member's rows are theirs, and their own is_new says nothing about what I have seen.
-// !inner leaves out removed listings, so the ids match the "Ny" flags in the feed
-export function getNewListingIds(userId: string) {
+// The listing ids (listings.id) that are new to me: my own matches I have not opened, plus
+// listings a group member has liked that I have never opened (also outside my search).
+// Matching on listings.id lets "new" work in every list, the same way as the category filter.
+// Removed listings are left out by the database.
+// STABLE function: must be called with GET (see docs/database-design.md)
+export async function getNewListingIds() {
+  const { data, error } = await supabase.rpc("my_new_listing_ids", undefined, {
+    get: true,
+  });
+  // rpc() without generated types can't be cast with overrideTypes(), see getSharedLikedListings()
+  return { data: (data ?? []) as NewListingId[], error };
+}
+
+// How many listings in MY search I have not opened yet (is_new = true), for the "new listings
+// in your search" notification. Not my_new_listing_ids(): it also contains group members' likes
+// outside my search. head: true only returns the count, no rows.
+// !inner leaves out removed listings, so the number matches the "Ny" flags in the feed
+export function getNewMatchesCount(userId: string) {
   return supabase
     .from("user_listings")
-    .select("listing_id, listings!inner(id)")
+    .select("id, listings!inner(id)", { count: "exact", head: true })
     .eq("user_id", userId)
     .eq("is_new", true)
-    .is("listings.removed_at", null)
-    .overrideTypes<NewListingId[]>();
+    .is("listings.removed_at", null);
 }
 
 // Unlike a listing by listings.id. The row is kept (only liked is changed), see match_user_listings().

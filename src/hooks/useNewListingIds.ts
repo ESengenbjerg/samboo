@@ -25,7 +25,9 @@ export function useNewListingIds(userId: string | undefined) {
       // Ignore the response if the user changed or the screen lost focus
       let cancelled = false;
 
-      getNewListingIds(userId).then(({ data, error }) => {
+      // The database knows who I am from the session. userId is only used to refetch
+      // and to never show a previous user's result
+      getNewListingIds().then(({ data, error }) => {
         if (cancelled) return;
         if (error) {
           console.error("Failed to load new listings: ", error);
