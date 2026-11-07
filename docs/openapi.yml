@@ -459,7 +459,7 @@ paths:
             schema: { $ref: '#/components/schemas/ProfileUpdate' }
       responses:
         '204': { description: Updated. }
-        '400': { description: 'Constraint violated (name not 1-100 characters, avatar_path not `<own user id>/<name>.<jpg|jpeg|png|webp>` or longer than 200, notification_frequency not day/week/none).' }
+        '400': { description: 'Constraint violated (name not 1-100 characters, avatar_path not `<own user id>/<name>.<jpg|jpeg|png|webp>` or longer than 200, notification_frequency not day/week/none, error 22P02).' }
         '429': { $ref: '#/components/responses/RateLimited' }
 
   /groups:
@@ -561,9 +561,9 @@ paths:
         '400':
           description: |
             `Du har ändrat din sökning för många gånger. Försök igen senare`, `Okänd kommun: <namn>`,
-            `Området "<namn>" finns inte i någon av dina valda kommuner`, or a check constraint
-            (min greater than max for price or rooms, a value outside its range, unknown property type,
-            more than 10 municipalities or 200 areas).
+            `Området "<namn>" finns inte i någon av dina valda kommuner`, an unknown property type
+            (error 22P02, invalid enum value), or a check constraint (min greater than max for price or rooms,
+            a value outside its range, more than 10 municipalities or 200 areas).
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -936,6 +936,7 @@ components:
     PropertyType:
       type: string
       enum: [villa, radhus, lagenhet, fritidshus, tomt, other]
+      description: Postgres enum `public.property_type`
 
     Profile:
       type: object
@@ -959,7 +960,7 @@ components:
       properties:
         id: { type: integer, format: int64 }
         created_at: { type: string, format: date-time, description: When the change was made }
-        action: { type: string, enum: [created, updated, deleted] }
+        action: { type: string, enum: [created, updated, deleted], description: Postgres enum `public.showing_event_action` }
         actor_id: { type: string, format: uuid, description: The member who made the change }
         actor_name: { type: string }
         listing_id: { type: integer, format: int64 }
@@ -985,7 +986,7 @@ components:
       type: string
       enum: [day, week, none]
       default: day
-      description: 'How often the notification mail is sent (about 07:00 Swedish time): day = every morning, week = Friday mornings, none = never. Covers both new matches and group members'' likes'
+      description: 'Postgres enum `public.notification_frequency`. How often the notification mail is sent (about 07:00 Swedish time): day = every morning, week = Friday mornings, none = never. Covers both new matches and group members'' likes'
 
     Invite:
       type: object
@@ -994,7 +995,7 @@ components:
         created_at: { type: string, format: date-time }
         from_user_id: { type: string, format: uuid }
         to_email: { type: string }
-        status: { type: string, enum: [pending, accepted, declined, cancelled] }
+        status: { type: string, enum: [pending, accepted, declined, cancelled], description: Postgres enum `public.invite_status` }
         responded_at: { type: string, format: date-time, nullable: true }
 
     PendingInvite:

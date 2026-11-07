@@ -99,7 +99,7 @@ export type Database = {
           from_user_id: string
           id: number
           responded_at: string | null
-          status: string
+          status: Database["public"]["Enums"]["invite_status"]
           to_email: string
         }
         Insert: {
@@ -107,7 +107,7 @@ export type Database = {
           from_user_id: string
           id?: number
           responded_at?: string | null
-          status?: string
+          status?: Database["public"]["Enums"]["invite_status"]
           to_email: string
         }
         Update: {
@@ -115,7 +115,7 @@ export type Database = {
           from_user_id?: string
           id?: number
           responded_at?: string | null
-          status?: string
+          status?: Database["public"]["Enums"]["invite_status"]
           to_email?: string
         }
         Relationships: [
@@ -186,7 +186,7 @@ export type Database = {
           municipality: string | null
           plot_area: number | null
           price: number | null
-          property_type: string | null
+          property_type: Database["public"]["Enums"]["property_type"] | null
           removed_at: string | null
           rooms: number | null
           url: string
@@ -212,7 +212,7 @@ export type Database = {
           municipality?: string | null
           plot_area?: number | null
           price?: number | null
-          property_type?: string | null
+          property_type?: Database["public"]["Enums"]["property_type"] | null
           removed_at?: string | null
           rooms?: number | null
           url: string
@@ -238,7 +238,7 @@ export type Database = {
           municipality?: string | null
           plot_area?: number | null
           price?: number | null
-          property_type?: string | null
+          property_type?: Database["public"]["Enums"]["property_type"] | null
           removed_at?: string | null
           rooms?: number | null
           url?: string
@@ -288,7 +288,7 @@ export type Database = {
           is_active: boolean
           last_notified_at: string | null
           name: string
-          notification_frequency: string
+          notification_frequency: Database["public"]["Enums"]["notification_frequency"]
           notifications_seen_at: string | null
           onboarding_completed_at: string | null
         }
@@ -300,7 +300,7 @@ export type Database = {
           is_active?: boolean
           last_notified_at?: string | null
           name: string
-          notification_frequency?: string
+          notification_frequency?: Database["public"]["Enums"]["notification_frequency"]
           notifications_seen_at?: string | null
           onboarding_completed_at?: string | null
         }
@@ -312,7 +312,7 @@ export type Database = {
           is_active?: boolean
           last_notified_at?: string | null
           name?: string
-          notification_frequency?: string
+          notification_frequency?: Database["public"]["Enums"]["notification_frequency"]
           notifications_seen_at?: string | null
           onboarding_completed_at?: string | null
         }
@@ -332,39 +332,39 @@ export type Database = {
           details: Json
           first_seen_at: string
           id: number
-          kind: string
+          kind: Database["public"]["Enums"]["scrape_issue_kind"]
           last_seen_at: string
           notified_at: string | null
           occurrences: number
           reason: string
           resolved_at: string | null
-          status: string
+          status: Database["public"]["Enums"]["scrape_issue_status"]
         }
         Insert: {
           agency: string
           details?: Json
           first_seen_at?: string
           id?: never
-          kind: string
+          kind: Database["public"]["Enums"]["scrape_issue_kind"]
           last_seen_at?: string
           notified_at?: string | null
           occurrences?: number
           reason: string
           resolved_at?: string | null
-          status?: string
+          status?: Database["public"]["Enums"]["scrape_issue_status"]
         }
         Update: {
           agency?: string
           details?: Json
           first_seen_at?: string
           id?: never
-          kind?: string
+          kind?: Database["public"]["Enums"]["scrape_issue_kind"]
           last_seen_at?: string
           notified_at?: string | null
           occurrences?: number
           reason?: string
           resolved_at?: string | null
-          status?: string
+          status?: Database["public"]["Enums"]["scrape_issue_status"]
         }
         Relationships: []
       }
@@ -381,7 +381,7 @@ export type Database = {
           min_price: number | null
           min_rooms: number | null
           municipalities: string[]
-          property_types: string[]
+          property_types: Database["public"]["Enums"]["property_type"][]
           user_id: string
         }
         Insert: {
@@ -396,7 +396,7 @@ export type Database = {
           min_price?: number | null
           min_rooms?: number | null
           municipalities?: string[]
-          property_types?: string[]
+          property_types?: Database["public"]["Enums"]["property_type"][]
           user_id: string
         }
         Update: {
@@ -411,7 +411,7 @@ export type Database = {
           min_price?: number | null
           min_rooms?: number | null
           municipalities?: string[]
-          property_types?: string[]
+          property_types?: Database["public"]["Enums"]["property_type"][]
           user_id?: string
         }
         Relationships: [
@@ -494,7 +494,7 @@ export type Database = {
       }
       showing_events: {
         Row: {
-          action: string
+          action: Database["public"]["Enums"]["showing_event_action"]
           actor_id: string
           created_at: string
           group_id: number
@@ -504,7 +504,7 @@ export type Database = {
           start_time: string | null
         }
         Insert: {
-          action: string
+          action: Database["public"]["Enums"]["showing_event_action"]
           actor_id: string
           created_at?: string
           group_id: number
@@ -514,7 +514,7 @@ export type Database = {
           start_time?: string | null
         }
         Update: {
-          action?: string
+          action?: Database["public"]["Enums"]["showing_event_action"]
           actor_id?: string
           created_at?: string
           group_id?: number
@@ -694,7 +694,7 @@ export type Database = {
         Args: { p_include_weekly?: boolean }
         Returns: {
           email: string
-          frequency: string
+          frequency: Database["public"]["Enums"]["notification_frequency"]
           name: string
           new_count: number
           new_listings: Json
@@ -745,7 +745,7 @@ export type Database = {
       my_showing_events: {
         Args: never
         Returns: {
-          action: string
+          action: Database["public"]["Enums"]["showing_event_action"]
           actor_id: string
           actor_name: string
           address: string
@@ -793,7 +793,7 @@ export type Database = {
           municipality: string | null
           plot_area: number | null
           price: number | null
-          property_type: string | null
+          property_type: Database["public"]["Enums"]["property_type"] | null
           removed_at: string | null
           rooms: number | null
           url: string
@@ -808,7 +808,18 @@ export type Database = {
       shares_group_with: { Args: { target: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      invite_status: "pending" | "accepted" | "declined" | "cancelled"
+      notification_frequency: "day" | "week" | "none"
+      property_type:
+        | "villa"
+        | "radhus"
+        | "lagenhet"
+        | "fritidshus"
+        | "tomt"
+        | "other"
+      scrape_issue_kind: "failed" | "suspicious"
+      scrape_issue_status: "open" | "resolved"
+      showing_event_action: "created" | "updated" | "deleted"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -935,6 +946,20 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      invite_status: ["pending", "accepted", "declined", "cancelled"],
+      notification_frequency: ["day", "week", "none"],
+      property_type: [
+        "villa",
+        "radhus",
+        "lagenhet",
+        "fritidshus",
+        "tomt",
+        "other",
+      ],
+      scrape_issue_kind: ["failed", "suspicious"],
+      scrape_issue_status: ["open", "resolved"],
+      showing_event_action: ["created", "updated", "deleted"],
+    },
   },
 } as const

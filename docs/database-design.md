@@ -56,6 +56,26 @@ The limit triggers and functions lock first (the profile row, the group row or a
 
 **Trigger order matters.** BEFORE triggers on the same table fire in alphabetical order. The names are chosen so validation runs before counting: `search_params_check_places` before `search_params_limit_changes` (an invalid search is not logged), and `invites_check_recipient` before `invites_limit_per_pair`.
 
+## Fixed value lists (enums)
+
+Columns with a fixed list of values are Postgres enums, not text with a check constraint:
+
+| Type                     | Column                                                       | Values                                                 |
+| ------------------------ | ------------------------------------------------------------ | ------------------------------------------------------ |
+| `property_type`          | `listings.property_type`, `search_params.property_types` (array) | `villa`, `radhus`, `lagenhet`, `fritidshus`, `tomt`, `other` |
+| `invite_status`          | `invites.status`                                             | `pending`, `accepted`, `declined`, `cancelled`         |
+| `notification_frequency` | `profiles.notification_frequency`                            | `day`, `week`, `none`                                  |
+| `scrape_issue_kind`      | `scrape_issues.kind`                                         | `failed`, `suspicious`                                 |
+| `scrape_issue_status`    | `scrape_issues.status`                                       | `open`, `resolved`                                     |
+| `showing_event_action`   | `showing_events.action`                                      | `created`, `updated`, `deleted`                        |
+
+- **Why enums:** the type generator cannot read check constraints, so a text column only becomes `string`. An enum becomes a union type and a runtime list (`Constants.public.Enums`) in `shared/database.types.ts`, so the app and the scripts take the values from the database instead of keeping their own copies.
+- **For the API nothing changed:** the values are the same strings in JSON. An unknown value fails with `22P02` (invalid input value for enum) instead of `23514` (check constraint).
+- **Adding a value** is easy: `alter type public.<type> add value '<value>'`, then `npm run gen:types`. The new value can not be used in the same transaction that adds it. **Removing or renaming a value** is not possible: it needs a new type and a column change, like the migration that introduced the enums.
+- **Changing a column's type** is blocked by everything that refers to the column: the `UPDATE OF` triggers on `search_params`, the policy `invites_select` and the partial indexes `invites_one_pending` and `scrape_issues_one_open`. They have to be dropped and recreated in the same transaction.
+- **No rights for `anon`:** Postgres gives every new type to `PUBLIC`. The enum types have that revoked and `USAGE` granted to `authenticated` and `service_role`. A new enum type needs the same.
+- **Not enums on purpose:** `scrape_issues.reason` (the database does not limit it, the list `F1`–`F4`, `mass_removal` belongs to the scraper's rules in `scripts/lib/types.ts`) and `search_params_log.operation` (written only by a trigger from `tg_op`, never read by code).
+
 ## Listings and matching
 
 - **`listings` is shared data, not tied to a user.** The scraper writes it with `service_role`. A user sees a listing only through a row in `user_listings` (own or a group member's) or a showing.
