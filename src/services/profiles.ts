@@ -1,10 +1,11 @@
 import { supabase } from "@/lib/supabase";
+import { InformationInterval } from "@/stores/onboarding";
 import { StorageApiError } from "@supabase/supabase-js";
 
 export type ProfileRow = {
   name: string | null;
   avatar_path: string | null;
-  InformationInterval: string | null;
+  InformationInterval: InformationInterval;
 };
 
 const AVATAR_BUCKET = "avatars";
@@ -27,8 +28,14 @@ export function updateProfileName(userId: string, name: string) {
   return supabase.from("profiles").update({ name }).eq("id", userId);
 }
 
-export function updateNotificationFrequency(userId: string, frequency: string) {
-  return supabase.from("profiles").update({ frequency }).eq("id", userId);
+export function updateNotificationFrequency(
+  userId: string,
+  frequency: InformationInterval,
+) {
+  return supabase
+    .from("profiles")
+    .update({ notification_frequency: frequency })
+    .eq("id", userId);
 }
 
 export function getOnboardingStatus(userId: string) {
@@ -43,7 +50,7 @@ export function getOnboardingStatus(userId: string) {
 export function completeProfile(
   userId: string,
   name: string,
-  frequency: string,
+  frequency: InformationInterval,
 ) {
   return supabase
     .from("profiles")

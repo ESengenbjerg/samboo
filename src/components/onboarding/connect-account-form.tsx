@@ -31,7 +31,7 @@ export default function ConnectAccountForm() {
       // Fetch user input from previous onboarding steps
       // The profile image is already uploaded in the profile step
 
-      const { profileName, scraperFilter, clientFilter } =
+      const { profileName, scraperFilter, clientFilter, informationInterval } =
         useOnboardingStore.getState();
 
       // If a step is missing, redirect to /profile to start from beginning
@@ -41,7 +41,13 @@ export default function ConnectAccountForm() {
         return false;
       }
 
-      await saveOnboarding(user.id, profileName, scraperFilter, clientFilter);
+      await saveOnboarding(
+        user.id,
+        profileName,
+        scraperFilter,
+        clientFilter,
+        informationInterval,
+      );
 
       // Everything is sabed. Tge caller decides when the user is moved to /search
       return true;
