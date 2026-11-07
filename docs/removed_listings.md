@@ -12,8 +12,8 @@ A broken scrape must never make listings look removed. Therefore every run is ju
 
 - An active listing that the scraper does not find gets `removed_at` immediately, in the first run where it is missing. There is no delay. The listing is shown to the user as "Hittas inte" (not found) in the app.
 - If a removed listing is found again, `removed_at` is set back to null and it is active for the user again.
-- Removed listings are permanently deleted after 14 days (including the users' connections to the listing).
-- Only active listings in the scope of the scrape are compared: the same agency, and a municipality/area and property type that match the users' searches.
+- Removed listings are permanently deleted after 10 days (including the users' connections to the listing).
+- Only active listings in the scope of the scrape are compared: the same agency, and a municipality/area and property type that match the users' searches. Listings outside every search are handled by the database instead, see [Stale listings](#stale-listings-outside-every-search).
 
 ## Outcome of a run (per agency)
 
@@ -79,12 +79,64 @@ Small scopes are not affected by the percentage. For example, if 2 of 3 listings
 
 ## Purge
 
-Listings that have been removed for more than 14 days are deleted by a daily pg_cron job (the database function `purge_removed_listings`). This runs inside the database, so it does not depend on the scraper running.
+Listings that have been removed for more than 10 days are deleted by a daily pg_cron job (the database function `purge_removed_listings`, 03:15 UTC). This runs inside the database, so it does not depend on the scraper running.
+
+Why 10 days: the purge also deletes likes, tags, notes and showings for the listing (cascade). The days give a user time to see "Hittas inte", and give a listing marked as removed by mistake time to be found again, which keeps everything. With weekly mail on Fridays, a weekly user sees "Hittas inte" at least once with up to 3 days to spare. 7 days would leave no margin.
+
+## Stale listings (outside every search)
+
+The scraper only visits listings in the current scope. A listing that no user searches for any more is never checked again, so it would never get `removed_at`. Such listings are kept for 7 days as a bank, so a new account or a wider search gets listings right away. After that, the daily pg_cron job `clean_stale_listings()` (03:10 UTC, before the purge) handles them:
+
+- **Stale** means not seen for 7 days, counted from the latest `last_seen_at` of an active listing from the same agency, not from now. If the scraper stops, the agency's latest time stops too, and nothing becomes stale.
+- Agencies with an open row in `scrape_issues` are skipped. F3 and suspicious runs still save what they found, so the agency's latest time moves, and without this the stale rule would remove what those guards keep.
+- A stale listing that nobody has in a list (`user_listings`) or a showing is deleted directly. Nobody would notice, and there is nothing to keep.
+- A stale listing that someone has liked, tagged or has a showing for gets `removed_at`, is shown as "Hittas inte", and is purged 10 days later.
+
+### All outcomes for a listing
+
+**Inside someone's search (the scraper visits it)**
+
+| # | Situation | What happens |
+| --- | --- | --- |
+| A1 | The scraper finds it | `last_seen_at` is updated, the listing is active |
+| A2 | Clean run, the listing is missing | `removed_at` right away, "Hittas inte". Deleted after 10 days, with likes, tags and showings |
+| A3 | As A2, found again within 10 days | `removed_at` back to null, everything is kept |
+| A4 | As A2, found again after the purge | Saved as a new listing. Old likes, tags and showings are gone |
+| A5 | Suspicious run | Nothing is marked as removed. The admin is notified and must acknowledge it manually |
+| A6 | Failed run (F1–F4) | Nothing is marked as removed. Logged in the backlog |
+| A7 | Its page could not be read in an otherwise clean run | Not counted as removed, but `last_seen_at` is not updated. Unreadable for 7 days: stale, see B |
+
+**Outside every search (the scraper never visits it)**
+
+| # | Situation | What happens |
+| --- | --- | --- |
+| B1 | Not seen for less than 7 days | In the bank, can be matched to new accounts and wider searches |
+| B2 | 7 days, nobody has it in a list or showing | Deleted directly. 7 days in total from last seen |
+| B3 | 7 days, someone has liked, tagged or has a showing for it | `removed_at`, "Hittas inte", deleted after 10 days. 17 days in total |
+| B4 | Someone searches the municipality again during B3, and the listing is still there | The scraper finds it and sets `removed_at` back to null. Everything is kept, as in A3 |
+| B5 | Someone searches the municipality again after it was deleted, and it is still there | Saved as a new listing. Nothing is lost, nobody was connected to it |
+
+**When the scraper does not work (the guards)**
+
+| # | Situation | What happens |
+| --- | --- | --- |
+| C1 | The scraper does not run at all (e.g. a GitHub outage) | The agency's latest time stops, nothing becomes stale |
+| C2 | F1, F2 or F4 (nothing is saved) | As C1 |
+| C3 | F3 or a suspicious run | Some listings are saved and the latest time moves, but the agency has an open issue, so it is skipped until the issue is closed |
+| C4 | No user has a search ("Nothing to scrape") | Nothing is updated, nothing is cleaned. The bank stays until someone searches again |
+| C5 | The agency is outside every search, or has been removed from the scraper | Its latest time stops, so its listings stay forever. Rare, delete by hand if needed |
+
+**The user's view**
+
+| # | Situation | What happens |
+| --- | --- | --- |
+| D1 | New user or wider search | Gets listings from the bank right away (seen in the last 7 days). One may have been sold and becomes "Hittas inte" after the next scrape, as in A2 |
+| D2 | Weekly user who opens the app on Fridays | Sees "Hittas inte" at least once, with up to 3 days to spare |
 
 ## Special cases
 
 - **Skipped:** if the agency has no search URL in the current scope (for example the chosen property types do not exist there), nothing is scraped and nothing is marked as removed.
-- Users see removed listings for at most 14 days, even if they no longer search for them. The matching function does not remove removed listings from the users' lists, and does not match them to new users.
+- Users see removed listings for at most 10 days, even if they no longer search for them. The matching function does not remove removed listings from the users' lists, and does not match them to new users.
 - The first run after a scraper has been changed needs to be followed up manually.
 
 ## Adjusting the thresholds
@@ -93,3 +145,4 @@ All numbers are constants in the code:
 
 - `scripts/scraper/removal.ts`: 50% for F3, and 5 listings and 50% for suspicious.
 - `scripts/scraper/issues.ts`: 2 runs in a row before a failed run notifies.
+- Database: 7 days for stale in `clean_stale_listings()`, 10 days before the purge in `purge_removed_listings()`. Change them with `create or replace function`, then re-dump `schema.sql`.

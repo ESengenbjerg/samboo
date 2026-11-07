@@ -502,7 +502,7 @@ paths:
       summary: Send an invite
       description: |
         Only `from_user_id` (must be my id) and `to_email` can be set. Rules:
-        not to my own e-mail; `to_email` must be an e-mail address; at most one pending invite per recipient;
+        not to my own e-mail; not to someone already in my group; `to_email` must be an e-mail address; at most one pending invite per recipient;
         at most 20 invites in total (any status) per recipient; at most 20 different recipients in the last 30 days.
         E-mail addresses are compared case-insensitively.
       operationId: invites_insert
@@ -519,7 +519,7 @@ paths:
       responses:
         '201': { description: Created. }
         '400':
-          description: '`Ange en giltig e-postadress.`, `Du har bjudit in för många olika personer. Försök igen senare` (20 recipients per 30 days), `Du har skickat för många inbjudningar till den här personen` (20 per recipient), or a check constraint (longer than 254).'
+          description: '`Ange en giltig e-postadress.`, `Personen är redan kopplad till dig.` (the recipient is already in my group), `Du har bjudit in för många olika personer. Försök igen senare` (20 recipients per 30 days), `Du har skickat för många inbjudningar till den här personen` (20 per recipient), or a check constraint (longer than 254).'
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -634,7 +634,7 @@ paths:
       summary: Read listings matched to me or to someone in my group, or that my group (or I) have a showing for
       description: |
         Shared scraped data, read only. Listings where `removed_at` is set have disappeared from the agency's site:
-        show them as "Hittas inte". They are deleted 14 days after `removed_at` (daily cleanup by pg_cron).
+        show them as "Hittas inte". They are deleted 10 days after `removed_at` (daily cleanup by pg_cron).
         `ld_json` is the raw schema.org data from the agency.
       operationId: listings_select
       responses:
@@ -1064,7 +1064,7 @@ components:
         url: { type: string, maxLength: 500, pattern: '^https://' }
         ld_json: { type: object, description: 'Raw schema.org data from the agency. Max 300 000 bytes as text' }
         last_seen_at: { type: string, format: date-time }
-        removed_at: { type: string, format: date-time, nullable: true, description: Set when the listing disappeared from the agency's site. Deleted after 14 days. }
+        removed_at: { type: string, format: date-time, nullable: true, description: Set when the listing disappeared from the agency's site, or was not seen for 7 days while someone had it in a list or showing. Deleted after 10 days. }
         property_type: { $ref: '#/components/schemas/PropertyType' }
         municipality: { type: string, nullable: true, description: 'A name from `municipalities` (null when the agency''s name is unknown)' }
         area: { type: string, nullable: true, maxLength: 100 }

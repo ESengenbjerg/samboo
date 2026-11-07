@@ -184,6 +184,20 @@ begin
     raise exception 'Ange en giltig e-postadress.';
   end if;
 
+  -- Recipient already in the sender's group: the invite could never be accepted
+  if exists (
+    select 1
+    from public.profiles me
+    join public.profiles p on p.group_id = me.group_id
+    join auth.users u on u.id = p.id
+    where me.id = new.from_user_id
+      and me.group_id is not null
+      and p.id <> me.id
+      and lower(u.email) = lower(new.to_email)
+  ) then
+    raise exception 'Personen är redan kopplad till dig.';
+  end if;
+
   -- no key update: does not block the foreign key check of other inserts
   perform 1 from public.profiles where id = new.from_user_id for no key update;
   if not exists (
@@ -251,6 +265,56 @@ $$;
 
 
 ALTER FUNCTION "public"."check_request"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."clean_stale_listings"() RETURNS integer
+    LANGUAGE "sql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+  -- Listings outside every user's search are never visited by the scraper, so they never get removed_at.
+  -- "Stale" = not seen for 7 days, counted from the agency's latest seen listing (not now()):
+  -- if the scraper stops or fails, nothing happens.
+  -- Agencies with an open scrape issue are skipped: F3 and suspicious runs still save what they found,
+  -- so without this the stale rule would remove what those guards keep.
+  -- Stale and not in anyone's list or showing: deleted directly (nobody would notice, nothing to keep).
+  -- Stale and in use: gets removed_at ("Hittas inte"), purge_removed_listings() deletes it later.
+  with latest as (
+    select l.agency, max(l.last_seen_at) as seen_at
+    from public.listings l
+    where l.removed_at is null
+      and not exists (
+        select 1 from public.scrape_issues i
+        where i.agency = l.agency and i.status = 'open'
+      )
+    group by l.agency
+  ),
+  stale as (
+    select l.id,
+           exists (select 1 from public.user_listings ul where ul.listing_id = l.id)
+        or exists (select 1 from public.showings s where s.listing_id = l.id) as in_use
+    from public.listings l
+    join latest on latest.agency = l.agency
+    where l.removed_at is null
+      and l.last_seen_at < latest.seen_at - interval '7 days'
+  ),
+  deleted as (
+    delete from public.listings l
+    using stale
+    where l.id = stale.id and not stale.in_use
+    returning 1
+  ),
+  marked as (
+    update public.listings l
+    set removed_at = now()
+    from stale
+    where l.id = stale.id and stale.in_use
+    returning 1
+  )
+  select ((select count(*) from deleted) + (select count(*) from marked))::int;
+$$;
+
+
+ALTER FUNCTION "public"."clean_stale_listings"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."decline_invite"("invite_id" bigint) RETURNS "void"
@@ -1166,7 +1230,7 @@ CREATE OR REPLACE FUNCTION "public"."purge_removed_listings"() RETURNS integer
     AS $$
   with deleted as (
     delete from public.listings
-    where removed_at < now() - interval '14 days'
+    where removed_at < now() - interval '10 days'
     returning 1
   )
   select count(*)::int from deleted;
@@ -2561,6 +2625,11 @@ REVOKE ALL ON FUNCTION "public"."check_request"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."check_request"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."check_request"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."check_request"() TO "authenticator";
+
+
+
+REVOKE ALL ON FUNCTION "public"."clean_stale_listings"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."clean_stale_listings"() TO "service_role";
 
 
 

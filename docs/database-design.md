@@ -66,7 +66,7 @@ The limit triggers and functions lock first (the profile row, the group row or a
 
   Only functions read and write it (RLS on, no grants to the app). Rows go away with the user or the listing (cascade). When the table was added, it was filled with all rows with `is_new = false` and with every existing group like outside the member's own search, so nobody got a flood of "new" listings.
 
-- **Removed listings** get `removed_at` and are shown as "Hittas inte" (not found). They are deleted 14 days later by pg_cron. See [removed_listings.md](removed_listings.md).
+- **Removed listings** get `removed_at` and are shown as "Hittas inte" (not found). They are deleted 10 days later by pg_cron. Listings outside every search are never checked by the scraper, so `clean_stale_listings()` handles those after 7 days without being seen. See [removed_listings.md](removed_listings.md).
 - **`listings` constraints mirror the scraper's limits** (`LIMITS` in `scripts/scraper/mappers/parse.ts`). The scraper makes bad values null before the upsert, because one failing check fails the whole batch. The constraints catch a bug in a mapper.
 
 ## Groups

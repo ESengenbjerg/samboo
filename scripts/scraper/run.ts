@@ -8,7 +8,8 @@
 // - A failed run (F1-F4) never touches removed_at, it is logged in scrape_issues
 // - A suspicious run (many listings vanish at once) saves/updates what was found, removes nothing,
 //   and is logged in scrape_issues
-// - Listings removed for more than 14 days are purged by pg_cron in the database, not by this script
+// - Listings removed for more than 10 days are purged by pg_cron in the database, not by this script
+// - Listings outside every search (never visited here) are handled by clean_stale_listings() in pg_cron after 7 days
 
 import { chromium } from "playwright";
 import { ScrapeLayoutError } from "../lib/errors.ts";
