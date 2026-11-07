@@ -155,19 +155,25 @@ export default function ConnectAccountForm() {
       {invitationDialogOpen && (
         <SendInviteDialog
           open={invitationDialogOpen}
-          onOpenChange={setInvitationDialogOpen}
+          onOpenChange={(open) => {
+            setInvitationDialogOpen(open);
+            if (!open) setError(null);
+          }}
           onAction={onInvite}
           isLoading={isLoading}
           error={error}
         />
       )}
 
-      {error && <FormError>{error}</FormError>}
+      {error && !invitationDialogOpen && <FormError>{error}</FormError>}
 
       <View className="gap-2 items-start">
         <Button
           variant="secondary"
-          onPress={() => setInvitationDialogOpen(true)}
+          onPress={() => {
+            setError(null);
+            setInvitationDialogOpen(true);
+          }}
           disabled={isLoading}
           className="px-10"
         >
