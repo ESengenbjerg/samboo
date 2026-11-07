@@ -45,7 +45,7 @@ notify pgrst, 'reload config';
 
 
 -- ---------------------------------------------------------------------
--- Storage: profile images (bucket 'avatars')
+-- Storage: profile images (bucket 'avatars'; the app and scripts take the name from shared/storage.ts)
 -- ---------------------------------------------------------------------
 -- Public bucket, max 2 MB, only jpeg/png/webp. Path '<user id>/<new name per upload>.<ext>'.
 -- If the SQL Editor refuses the policies, create them under Storage > Policies in the Dashboard.

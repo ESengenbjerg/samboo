@@ -1,8 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { InformationInterval } from "@/stores/onboarding";
+import { AVATAR_BUCKET } from "@shared/storage";
 import { StorageApiError } from "@supabase/supabase-js";
-
-const AVATAR_BUCKET = "avatars";
 
 export function getAvatarUrl(path: string | null) {
   if (!path) return null;
