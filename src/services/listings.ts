@@ -137,7 +137,7 @@ export function getListingById(listingId: string) {
     supabase
       .from("listings")
       .select("*")
-      .eq("id", listingId)
+      .eq("id", Number(listingId))
       .is("removed_at", null)
       // select("*") without generated types can't be cast with overrideTypes(),
       // so the type is passed to maybeSingle() instead
@@ -153,7 +153,7 @@ export function getListing(userId: string, listingId: string) {
     .from("user_listings")
     .select("id, is_new, liked, listings!inner(*)")
     .eq("user_id", userId)
-    .eq("listing_id", listingId)
+    .eq("listing_id", Number(listingId))
     .is("listings.removed_at", null)
     .maybeSingle()
     .overrideTypes<UserListing, { merge: false }>();

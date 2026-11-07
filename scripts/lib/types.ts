@@ -1,5 +1,7 @@
 import type { Browser } from "playwright";
 
+import type { Json } from "../../shared/database.types.ts";
+
 // Row shape of search_params, as far as the scraper reads it
 export type SearchParamsRow = {
   user_id: string;
@@ -45,11 +47,11 @@ export type MappedListing = {
 };
 
 // A row ready to be upserted into listings
-export type ListingRow<LdJson = unknown> = MappedListing & {
+export type ListingRow = MappedListing & {
   agency: string;
   external_id: number;
   url: string;
-  ld_json: LdJson;
+  ld_json: Json;
   last_seen_at: string;
   removed_at: string | null;
 };

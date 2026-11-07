@@ -224,10 +224,11 @@ try {
     .select("group_id")
     .eq("id", user1.id)
     .single();
+  if (!member?.group_id) throw new Error("user1 has no group after accept_invite");
   const { count } = await supabaseAdmin
     .from("showings")
     .select("*", { count: "exact", head: true })
-    .eq("group_id", member?.group_id);
+    .eq("group_id", member.group_id);
   check(
     "group holds 100 showings (limit is only checked on insert)",
     count === 2 * LIMIT,
