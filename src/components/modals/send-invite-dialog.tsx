@@ -16,6 +16,10 @@ import { Icon } from "../ui/icon";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 
+// A group holds MAX_GROUP_MEMBERS people including me, so at most this many others can be invited.
+// useConnectedAccounts() also counts the members I already have when the invites are sent
+const MAX_INVITE_EMAILS = MAX_GROUP_MEMBERS - 1;
+
 type SendInviteDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -109,11 +113,11 @@ export function SendInviteDialog({
                 web: { marginLeft: -12 },
                 default: undefined,
               })}
-              disabled={emails.length >= MAX_GROUP_MEMBERS || isLoading}
+              disabled={emails.length >= MAX_INVITE_EMAILS || isLoading}
             >
               <Icon as={PlusSquare} className="size-[18px]" />
               <Text>
-                {emails.length >= MAX_GROUP_MEMBERS
+                {emails.length >= MAX_INVITE_EMAILS
                   ? `Du har nått gränsen på ${MAX_GROUP_MEMBERS} personer`
                   : "Lägg till"}
               </Text>
