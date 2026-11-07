@@ -41,6 +41,7 @@ export default function UpdateFilterForm() {
     }, [clearError]),
   );
 
+  // Reads start values once, and must not render until saved search and profile are fetched
   if (!userId || isLoading || isLoadingProfile) {
     return <Text>Laddar bevakning...</Text>;
   }
@@ -51,15 +52,6 @@ export default function UpdateFilterForm() {
 
   if (profileError) {
     return <FormError>{profileError}</FormError>;
-  }
-
-  // Reads start values once, and must not render until saved search is fetched
-  if (!userId || isLoading) {
-    return <Text>Laddar bevakning...</Text>;
-  }
-
-  if (error) {
-    return <FormError>{error}</FormError>;
   }
 
   async function onSave(scraper: ScraperFilter, client: ClientFilter) {
@@ -78,7 +70,7 @@ export default function UpdateFilterForm() {
         submitLabel="Uppdatera bevakning"
         savedScraperFilter={scraperFilter}
         savedClientFilter={clientFilter}
-        savedInformationInterval={"day"}
+        savedInformationInterval={profile?.notificationFrequency ?? "day"}
         onSave={onSave}
         mainColor="primary"
         fieldColor="bg-white"
