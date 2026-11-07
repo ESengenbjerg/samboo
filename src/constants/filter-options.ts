@@ -1,6 +1,7 @@
 import { SelectOption } from "@/types/select-option";
-import { formatPrice } from "@/utils/format-price";
 import { Constants, type Enums } from "@shared/database.types";
+import { formatPrice } from "@shared/format";
+import { PROPERTY_TYPE_LABELS } from "@shared/property-types";
 
 const range = (start: number, end: number, step = 1) =>
   Array.from(
@@ -37,15 +38,6 @@ export type PropertyType = Enums<"property_type">;
 export function isPropertyType(value: string): value is PropertyType {
   return (PROPERTY_TYPES as readonly string[]).includes(value);
 }
-
-export const PROPERTY_TYPE_LABELS: Record<PropertyType, string> = {
-  villa: "Villa",
-  radhus: "Radhus",
-  lagenhet: "Lägenhet",
-  fritidshus: "Fritidshus",
-  tomt: "Tomt",
-  other: "Övrigt",
-};
 
 export const PROPERTY_TYPES_OPTIONS: SelectOption[] = PROPERTY_TYPES.map(
   (type) => ({

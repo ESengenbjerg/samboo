@@ -4,7 +4,8 @@
 
 import type { Enums, Tables } from "../../shared/database.types.ts";
 import type { RpcRow } from "../../shared/db.ts";
-import type { PropertyType } from "../lib/types.ts";
+import { formatNumber, formatPrice } from "../../shared/format.ts";
+import { propertyTypeLabel } from "../../shared/property-types.ts";
 
 // One listing in due_notifications().new_listings. The function builds the json from these listings columns
 export type MailListing = Pick<
@@ -52,38 +53,6 @@ export function escapeHtml(text: string): string {
   text = text.replaceAll("'", "&#39;");
 
   return text;
-}
-
-// Format number: 4000000 -> 4 000 000, 3.5 -> 3,5
-export function formatNumber(n: number): string {
-  const formatNumber = Intl.NumberFormat("sv-SE").format(n);
-  return formatNumber;
-}
-
-// Convert villa -> Villa, lagenhet -> Lägenhet and so on
-// NOTE: Lägenhet & Övrigt has the Swedish letters å, ä or ö.
-export function propertyTypeLabel(type: PropertyType | null): string | null {
-  if (!type) {
-    return null;
-  }
-
-  if (type === "lagenhet") {
-    return "Lägenhet";
-  }
-
-  if (type === "other") {
-    return "Övrigt";
-  }
-
-  // Slice out & capitalize 1st letter
-  let firstLetter = type.slice(0, 1);
-  firstLetter = firstLetter.toUpperCase();
-
-  // Slice out the rest of the word
-  let rest = type.slice(1);
-
-  // Return concaternated result
-  return firstLetter + rest;
 }
 
 export function objectsWord(value: number): string {
@@ -146,7 +115,7 @@ export function listingFacts(list: MailListing): string {
   const type = propertyTypeLabel(list.property_type);
   if (type) parts.push(type);
 
-  if (list.price) parts.push(`${formatNumber(list.price)} kr`);
+  if (list.price) parts.push(formatPrice(list.price));
 
   if (list.rooms) parts.push(`${formatNumber(list.rooms)} rok`);
 
