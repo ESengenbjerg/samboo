@@ -1,6 +1,6 @@
 // Build topic, html and text for ONE user
-// Only functions that turn data into text: no database, no network. That makes it easy to test with a dry run.
-// The data: one row from due_notifications() (see supabase/schema.md, "Notification mails")
+// Only functions that turn data into text: no database, no network.
+// The data: one row from due_notifications() (see docs/database-design.md, "Notification mails")
 
 import type { PropertyType } from "../lib/types.ts";
 
@@ -176,7 +176,7 @@ export function mailSubject(row: DueRow): string {
   return "Nytt på Samboo";
 }
 
-// Text version of the mail, this is what the dry run prints
+// Text version of the mail, sent alongside the HTML (for clients and spam filters that perfer plain text)
 export function mailContent(row: DueRow, appUrl: string): string {
   const lines: string[] = [];
 

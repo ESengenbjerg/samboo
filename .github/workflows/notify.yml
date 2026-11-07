@@ -8,7 +8,19 @@ on:
     - cron: "7 5 * * *"
     - cron: "7 6 * * *"
 
-  workflow_dispatch: # Manual run from the Actions tab
+  # Manual run from the Actions tab, and backup trigger from pg_cron (dispatch-notify), because GitHub's schedule does not always fire
+  workflow_dispatch:
+    inputs:
+      # Not read by this workflow. dispatch_github_workflow() in Supabase always sends it, and GitHub rejects
+      # the dispatch (422) if the input is not declared. Double runs are harmless: due_notifications() skips
+      # users already mailed today, and Resend gets an idempotency key per user and day.
+      skip_if_recent:
+        description: "Unused here (sent by pg_cron). Users already mailed today are always skipped"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
 
 # Never run two notifies at once
 concurrency:

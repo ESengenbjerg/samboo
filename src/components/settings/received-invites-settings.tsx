@@ -1,5 +1,5 @@
+import { useAnswerInvite } from "@/hooks/useAnswerInvite";
 import { ConnectedAccounts } from "@/hooks/useConnectedAccounts";
-import { useState } from "react";
 import { View } from "react-native";
 import { Button } from "../ui/button";
 import { Text } from "../ui/text";
@@ -9,20 +9,8 @@ export default function ReceivedInvitesSettings({
 }: {
   accounts: ConnectedAccounts;
 }) {
-  const { receivedInvites, acceptInvite, declineInvite, isSubmitting } =
-    accounts;
-  const [answeredInvite, setAnsweredInvite] = useState<
-    "accepted" | "declined" | null
-  >(null);
-
-  // Only show the confirmation if the database call succeeded
-  async function onAnswer(inviteId: number, answer: "accepted" | "declined") {
-    const ok =
-      answer === "accepted"
-        ? await acceptInvite(inviteId)
-        : await declineInvite(inviteId);
-    if (ok) setAnsweredInvite(answer);
-  }
+  const { receivedInvites, isSubmitting } = accounts;
+  const { answeredInvite, onAnswer } = useAnswerInvite(accounts);
 
   return (
     <View className="gap-4">

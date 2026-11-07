@@ -4,8 +4,16 @@ import { buildMail, type DueRow } from "./template.ts";
 
 const force = process.argv.includes("--force");
 // Use: node scripts/notify/sendNotifications.ts --force
-// To force run a notification before 7 AM
-const dryRun = process.argv.includes("--dry-run");
+
+// Resend's error body can contain e-mail addresses, and the Actions log is public: log only the error name
+async function resendError(res: Response) {
+  try {
+    const body = (await res.json()) as { name?: string };
+    return body.name ?? "unknown_error";
+  } catch {
+    return "unreadable_error";
+  }
+}
 
 // Fetch credentials
 process.loadEnvFile(".env");
@@ -81,21 +89,6 @@ const mails = rows.map((row) => {
   };
 });
 
-// Dry run = print and stop
-if (dryRun) {
-  for (const m of mails) {
-    console.log("To:", m.payload.to.join(", "));
-    console.log("Subject:", m.payload.subject);
-    console.log(m.payload.text);
-    console.log("----------------------");
-  }
-
-  console.log(
-    `Dry run: ${mails.length} mails built, nothing sent, nothing marked`,
-  );
-  process.exit(0);
-}
-
 // Send in batches of 100 mails
 if (!ResendAPI) {
   console.error("Could not fetch Resend API key.");
@@ -134,8 +127,7 @@ for (let i = 0; i < mails.length; i += 100) {
   // On a validation error, send this batch one by one so only the bad mail fails.
   if (response.status === 400 || response.status === 422) {
     console.error(
-      `Batch rejected (${response.status}), sending one by one:`,
-      await response.text(),
+      `Batch rejected (${response.status}, ${await resendError(response)}), sending one by one:`,
     );
     process.exitCode = 1;
 
@@ -155,8 +147,7 @@ for (let i = 0; i < mails.length; i += 100) {
 
       if (!single.ok) {
         console.error(
-          `Resend failed for user ${m.userId} (${single.status}):`,
-          await single.text(),
+          `Resend failed for user ${m.userId} (${single.status}, ${await resendError(single)}):`,
         );
         failed += 1;
         continue;
@@ -175,7 +166,9 @@ for (let i = 0; i < mails.length; i += 100) {
 
   // Any other error (auth, rate limit, Resend down): stop, the next run picks them up
   if (!response.ok) {
-    console.error(`Resend failed (${response.status}):`, await response.text());
+    console.error(
+      `Resend failed (${response.status}, ${await resendError(response)}):`,
+    );
     failed += batch.length;
     process.exitCode = 1;
     break;

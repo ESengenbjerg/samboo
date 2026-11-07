@@ -3,6 +3,7 @@ import {
   LikedListingId,
   Listing,
   MemberUserListing,
+  NewListingId,
   UserListing,
 } from "@/types/listing";
 
@@ -62,6 +63,19 @@ export function markListingSeen(listingId: number) {
   return supabase.rpc("mark_listing_seen", { p_listing_id: listingId });
 }
 
+// The listing ids (listings.id) of my matched listings that I have not opened yet (is_new = true).
+// Matching on listings.id lets "new" work in every list, the same way as the category filter:
+// a group member's rows are theirs, and their own is_new says nothing about what I have seen.
+// !inner leaves out removed listings, so the ids match the "Ny" flags in the feed
+export function getNewListingIds(userId: string) {
+  return supabase
+    .from("user_listings")
+    .select("listing_id, listings!inner(id)")
+    .eq("user_id", userId)
+    .eq("is_new", true)
+    .is("listings.removed_at", null)
+    .overrideTypes<NewListingId[]>();
+}
 
 // Unlike a listing by listings.id. The row is kept (only liked is changed), see match_user_listings().
 // RLS only lets me update my own rows, user_id is there to be explicit
@@ -80,7 +94,8 @@ export function getLikedListingsForUsers(userIds: string[]) {
     supabase
       .from("user_listings")
       // !inner removes deleted listings, see getLikedListings()
-      .select("id, user_id, is_new, liked, listings!inner(*)")
+      // liked_at is used by the notifications page to sort the members' updates by day
+      .select("id, user_id, is_new, liked, liked_at, listings!inner(*)")
       .in("user_id", userIds)
       .eq("liked", true)
       .is("listings.removed_at", null)
