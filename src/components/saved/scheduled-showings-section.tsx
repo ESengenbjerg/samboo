@@ -23,7 +23,7 @@ export default function ScheduledShowingsSection({
   function isFirstForDate(showing: ScheduledShowing, index: number) {
     return (
       index === 0 ||
-      toIsoDate(showing.startsAt) !== toIsoDate(showings[index - 1].startsAt)
+      toIsoDate(showing.startsAt) !== toIsoDate(displayedShowings[index - 1].startsAt)
     );
   }
 
@@ -38,7 +38,7 @@ export default function ScheduledShowingsSection({
 
       {isLoading && <Text>Laddar visningar...</Text>}
       {error && <Text>{error}</Text>}
-      {!isLoading && !error && showings.length === 0 && (
+      {!isLoading && !error && displayedShowings.length === 0 && (
         <Text>Inga bokade visningar</Text>
       )}
 
