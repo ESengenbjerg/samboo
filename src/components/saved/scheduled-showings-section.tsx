@@ -1,9 +1,12 @@
-import ScheduledShowing from "@/components/saved/scheduled-showing";
+import ScheduledShowingInfo from "@/components/saved/scheduled-showing";
 import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
 import { useShowings } from "@/hooks/useShowings";
+import { ScheduledShowing } from "@/types/showings";
 import { formatDateLabel, toIsoDate } from "@/utils/date-format";
+import { useState } from "react";
 import { View } from "react-native";
+import { Button } from "../ui/button";
 
 export default function ScheduledShowingsSection({
   userId,
@@ -11,15 +14,26 @@ export default function ScheduledShowingsSection({
   userId: string;
 }) {
   const { showings, isLoading, error } = useShowings(userId, "upcoming");
+  const { showings: pastShowings } = useShowings(userId, "past");
+  const [isInPast, setIsInPast] = useState(false);
+  const displayedShowings = isInPast ? pastShowings : showings;
+
+  // Find out if the showing is the first for that date,
+  // to know when to add the date as heading
+  function isFirstForDate(showing: ScheduledShowing, index: number) {
+    return (
+      index === 0 ||
+      toIsoDate(showing.startsAt) !== toIsoDate(showings[index - 1].startsAt)
+    );
+  }
 
   return (
     <View>
       <View className="flex-row items-end justify-between mb-4">
         <Text variant="h2">Bokade visningar</Text>
-        {/* TODO: Add ealier showings */}
-        {/* <Button variant="link">
-          <Text>Tidigare visningar</Text>
-        </Button> */}
+        <Button variant="link" onPress={() => setIsInPast(!isInPast)}>
+          <Text>{isInPast ? "Kommande" : "Tidigare"}</Text>
+        </Button>
       </View>
 
       {isLoading && <Text>Laddar visningar...</Text>}
@@ -29,14 +43,10 @@ export default function ScheduledShowingsSection({
       )}
 
       <View>
-        {showings.map((s, index) => {
-          const isFirstForDate =
-            index === 0 ||
-            toIsoDate(s.startsAt) !== toIsoDate(showings[index - 1].startsAt);
-
+        {displayedShowings.map((s, index) => {
           return (
             <View key={s.id} className="gap-2">
-              {isFirstForDate ? (
+              {isFirstForDate(s, index) ? (
                 <>
                   <Text variant="bold" className={index > 0 ? "mt-8" : ""}>
                     {formatDateLabel(s.startsAt)}
@@ -48,7 +58,7 @@ export default function ScheduledShowingsSection({
               )}
 
               <View className="mb-4">
-                <ScheduledShowing
+                <ScheduledShowingInfo
                   id={s.id}
                   listingId={s.listingId}
                   address={s.address}
