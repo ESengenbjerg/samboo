@@ -35,6 +35,9 @@ type SaveShowingDialogProps = {
   onSave: (values: { date: string; time: string; note: string }) => void;
   isSaving: boolean;
   error: string | null;
+  initialDate?: Date;
+  initialTime?: Date;
+  initialNote?: string;
 };
 
 export function SaveShowingDialog({
@@ -43,11 +46,14 @@ export function SaveShowingDialog({
   onSave,
   isSaving,
   error,
+  initialDate,
+  initialTime,
+  initialNote,
 }: SaveShowingDialogProps) {
   // Starts on today, the user picks the real date
-  const [date, setDate] = useState(startOfToday);
-  const [time, setTime] = useState(defaultShowingTime);
-  const [note, setNote] = useState("");
+  const [date, setDate] = useState(initialDate ?? startOfToday);
+  const [time, setTime] = useState(initialTime ?? defaultShowingTime);
+  const [note, setNote] = useState(initialNote ?? "");
   const { height } = useWindowDimensions();
 
   return (

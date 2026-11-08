@@ -1,4 +1,4 @@
-import ScheduledShowingInfo from "@/components/saved/scheduled-showing";
+import ScheduledShowingInfo from "@/components/saved/scheduled-showing-info";
 import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
 import { useShowings } from "@/hooks/useShowings";
