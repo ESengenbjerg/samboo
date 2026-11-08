@@ -2,6 +2,7 @@ import { ConnectedAccounts } from "@/hooks/useConnectedAccounts";
 import { AnsweredInvite, AnsweredInvitesByDay } from "@/types/notifications";
 import { startOfToday } from "@/utils/date-format";
 import { toNotificationDay } from "@/utils/notification-day";
+import { sameEmail } from "@shared/email";
 import { useMemo } from "react";
 
 // Invites are kept for a year, but an answer is only news for a while.
@@ -30,10 +31,8 @@ export function useAnsweredInvites(accounts: ConnectedAccounts) {
       if (new Date(invite.responded_at).getTime() < oldest) continue;
 
       // An accepted invite means the recipient is in my group now, so the name can be found.
-      // Compared in lowercase: to_email is stored normalized, the member's e-mail may not be
-      const member = members.find(
-        (m) => m.email.toLowerCase() === invite.to_email.toLowerCase(),
-      );
+      // to_email is stored normalized, the member's e-mail may not be
+      const member = members.find((m) => sameEmail(m.email, invite.to_email));
 
       answered.push({
         id: invite.id,

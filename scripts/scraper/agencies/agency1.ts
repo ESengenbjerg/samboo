@@ -1,6 +1,7 @@
 import type { Browser } from "playwright";
 import { ScrapeLayoutError } from "../../lib/errors.ts";
 import { countyOf, slugify } from "../../lib/swedishPlaces.ts";
+import type { Json } from "../../../shared/database.types.ts";
 import type { ListingRow, ScopeItem } from "../../lib/types.ts";
 import { mapListing, type Agency1LdJson } from "../mappers/agency1.ts";
 
@@ -108,7 +109,7 @@ type Hit = { id: number; href: string; isNew: boolean };
 export async function scrape(
   scope: ScopeItem[],
   browser: Browser,
-): Promise<{ rows: ListingRow<Agency1LdJson>[]; failedUrls: string[] }> {
+): Promise<{ rows: ListingRow[]; failedUrls: string[] }> {
   const page = await browser.newPage();
   const failedUrls: string[] = [];
 
@@ -183,7 +184,7 @@ export async function scrape(
 
     // ------------------ OBJECT PAGES --------------------
     // 2. Fetch ld+json on every listing page. One failing page does not stop the rest
-    const rows: ListingRow<Agency1LdJson>[] = [];
+    const rows: ListingRow[] = [];
     const seenAt = new Date().toISOString();
 
     for (const [externalId, { url, isNew }] of listings) {
@@ -227,7 +228,8 @@ export async function scrape(
           agency: AGENCY,
           external_id: externalId,
           url,
-          ld_json: data,
+          // Parsed from JSON text, so always valid JSON. The type has unknown fields on purpose
+          ld_json: data as Json,
           last_seen_at: seenAt,
           removed_at: null, // A listing that is seen again is not "removed"
           ...mapListing(data, {

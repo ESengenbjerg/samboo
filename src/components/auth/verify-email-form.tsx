@@ -3,13 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
+import { RESEND_CODE_INTERVAL_SECONDS } from "@/constants/limits";
 import { useCountdown } from "@/hooks/useCountdown";
 import { resendSignUpCode, verifyEmailOtp } from "@/services/auth";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { type TextStyle, View } from "react-native";
-
-const RESEND_CODE_INTERVAL_SECONDS = 60;
 
 const TABULAR_NUMBERS_STYLE: TextStyle = { fontVariant: ["tabular-nums"] };
 

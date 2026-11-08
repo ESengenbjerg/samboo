@@ -1,7 +1,8 @@
 import { ConnectedAccounts } from "@/hooks/useConnectedAccounts";
+import { InviteStatus } from "@/types/connected-accounts";
 import { useState } from "react";
 
-type Answer = "accepted" | "declined";
+type Answer = Extract<InviteStatus, "accepted" | "declined">;
 
 // Answers a received invite and remembers the answer so the UI can confirm it.
 // Shared by the settings page and the notifications page

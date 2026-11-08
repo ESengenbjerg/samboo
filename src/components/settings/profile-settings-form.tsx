@@ -1,3 +1,4 @@
+import { NAME_MAX_LENGTH } from "@/constants/limits";
 import { useProfile } from "@/hooks/useProfile";
 import { useSession } from "@/hooks/useSession";
 import { useUpdateProfileAvatar } from "@/hooks/useUpdateProfileAvatar";
@@ -135,7 +136,7 @@ export default function ProfileSettingsForm() {
             placeholder="Namn"
             returnKeyType="next"
             submitBehavior="submit"
-            maxLength={100}
+            maxLength={NAME_MAX_LENGTH}
             value={newName}
             onChangeText={setTypedName}
             onSubmitEditing={onSubmit}

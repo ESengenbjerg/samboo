@@ -1,11 +1,4 @@
 import { supabase } from "@/lib/supabase";
-import {
-  LikedListingId,
-  Listing,
-  MemberUserListing,
-  NewListingId,
-  UserListing,
-} from "@/types/listing";
 
 // TODO: Remove policy from listings table that give anon permission to read
 export function getActiveListings(userId: string) {
@@ -19,7 +12,6 @@ export function getActiveListings(userId: string) {
       .is("listings.removed_at", null)
       // TODO: Update order to last_seen_at by editing in hook
       .order("created_at", { ascending: false })
-      .overrideTypes<UserListing[]>()
   );
 }
 
@@ -35,7 +27,6 @@ export function getLikedListings(userId: string) {
       .is("listings.removed_at", null)
       // TODO: Update order to last_seen_at by editing in hook
       .order("created_at", { ascending: false })
-      .overrideTypes<UserListing[]>()
   );
 }
 
@@ -46,8 +37,7 @@ export function getLikedListingIds(userId: string) {
     .from("user_listings")
     .select("listing_id")
     .eq("user_id", userId)
-    .eq("liked", true)
-    .overrideTypes<LikedListingId[]>();
+    .eq("liked", true);
 }
 
 // Like a listing by listings.id. Goes through like_listing() instead of an update, because
@@ -73,8 +63,7 @@ export async function getNewListingIds() {
   const { data, error } = await supabase.rpc("my_new_listing_ids", undefined, {
     get: true,
   });
-  // rpc() without generated types can't be cast with overrideTypes(), see getSharedLikedListings()
-  return { data: (data ?? []) as NewListingId[], error };
+  return { data: data ?? [], error };
 }
 
 // How many listings in MY search I have not opened yet (is_new = true), for the "new listings
@@ -113,7 +102,6 @@ export function getLikedListingsForUsers(userIds: string[]) {
       .eq("liked", true)
       .is("listings.removed_at", null)
       .order("created_at", { ascending: false })
-      .overrideTypes<MemberUserListing[]>()
   );
 }
 
@@ -126,7 +114,7 @@ export async function getSharedLikedListings() {
     // shared_likes() does not skip listings that have disappeared from the agency's site
     .is("removed_at", null)
     .order("created_at", { ascending: false });
-  return { data: data as Listing[] | null, error };
+  return { data, error };
 }
 
 // A single listing by listings.id, without the user_listings row.
@@ -137,11 +125,9 @@ export function getListingById(listingId: string) {
     supabase
       .from("listings")
       .select("*")
-      .eq("id", listingId)
+      .eq("id", Number(listingId))
       .is("removed_at", null)
-      // select("*") without generated types can't be cast with overrideTypes(),
-      // so the type is passed to maybeSingle() instead
-      .maybeSingle<Listing>()
+      .maybeSingle()
   );
 }
 
@@ -153,8 +139,7 @@ export function getListing(userId: string, listingId: string) {
     .from("user_listings")
     .select("id, is_new, liked, listings!inner(*)")
     .eq("user_id", userId)
-    .eq("listing_id", listingId)
+    .eq("listing_id", Number(listingId))
     .is("listings.removed_at", null)
-    .maybeSingle()
-    .overrideTypes<UserListing, { merge: false }>();
+    .maybeSingle();
 }

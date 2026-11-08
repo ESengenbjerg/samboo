@@ -5,12 +5,13 @@
 // that no profiles.avatar_path points to). This script only deletes them through the Storage API.
 // Files must not be deleted with SQL on storage.objects: that leaves the file in the bucket.
 
+import { AVATAR_BUCKET } from "../../shared/storage.ts";
+
 process.loadEnvFile(".env");
 
 // Imported here, after loadEnvFile: the admin client reads the keys when it is imported
 const { supabaseAdmin } = await import("../lib/supabaseAdmin.ts");
 
-const BUCKET = "avatars";
 // Delete a maximum of 1000 files per call (limit set by Storage remove() in the API). This amount of removed files probably won't happen in this application.
 const BATCH_SIZE = 1000;
 
@@ -36,7 +37,7 @@ let deleted = 0;
 for (let i = 0; i < orphans.length; i += BATCH_SIZE) {
   const batch = orphans.slice(i, i + BATCH_SIZE);
   const { data: removed, error: removeError } = await supabaseAdmin.storage
-    .from(BUCKET)
+    .from(AVATAR_BUCKET)
     .remove(batch);
 
   if (removeError) {

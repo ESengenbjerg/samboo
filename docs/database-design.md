@@ -10,6 +10,7 @@ Why the Supabase database is built the way it is. The facts live elsewhere:
 | [supabase/setup-extras.sql](../supabase/setup-extras.sql) | What the dump does not contain: the trigger on `auth.users`, the RLS event trigger, role settings, the `avatars` bucket and its policies, pg_cron jobs | By hand, when one of those changes                 |
 | This file                                                 | Design decisions, and rules that span several tables or functions                                                                                      | When a decision changes                            |
 | [docs/openapi.yml](openapi.yml)                           | The API the app uses                                                                                                                                   | With every change to functions, grants or policies |
+| [shared/database.types.ts](../shared/database.types.ts)   | TypeScript types for every table, function and enum, generated from the database. The app and the scripts both import them                            | `npm run gen:types` after every database change    |
 | [docs/removed_listings.md](removed_listings.md)           | How the scraper marks listings as removed                                                                                                              | With the scraper                                   |
 
 New project: run `schema.sql`, then `setup-extras.sql`, then `node scripts/places/seedPlaces.ts`.
@@ -19,6 +20,12 @@ Updating `schema.sql` after a database change (needs the Supabase CLI, `supabase
 ```bash
 REF=$(sed -n "s|^EXPO_PUBLIC_SUPABASE_URL=['\"]\{0,1\}https://\([a-z0-9]*\)\.supabase\.co.*|\1|p" .env)
 supabase db dump --remote="$REF" -f supabase/schema.sql
+```
+
+Then regenerate the TypeScript types, so `tsc` shows every place in the app and the scripts that no longer matches the database:
+
+```bash
+npm run gen:types
 ```
 
 The dump keeps function bodies (including comments inside them) and `COMMENT ON` texts, but not comments written outside them. Explanations that should survive therefore go inside the function body, into a `COMMENT ON`, or into this file.
@@ -48,6 +55,26 @@ The limit triggers and functions lock first (the profile row, the group row or a
 **STABLE functions must be called with `{ get: true }`.** PostgREST runs STABLE functions in a read-only transaction. Called with POST (the `supabase.rpc` default), `check_request()` tries to write its counter and the call fails with 405 / 25006. `my_group_id()`, `my_group_members()`, `my_pending_invites()`, `my_new_listing_ids()`, `my_showing_events()` and `has_new_notifications()` are STABLE, and so must any new STABLE function the app calls.
 
 **Trigger order matters.** BEFORE triggers on the same table fire in alphabetical order. The names are chosen so validation runs before counting: `search_params_check_places` before `search_params_limit_changes` (an invalid search is not logged), and `invites_check_recipient` before `invites_limit_per_pair`.
+
+## Fixed value lists (enums)
+
+Columns with a fixed list of values are Postgres enums, not text with a check constraint:
+
+| Type                     | Column                                                       | Values                                                 |
+| ------------------------ | ------------------------------------------------------------ | ------------------------------------------------------ |
+| `property_type`          | `listings.property_type`, `search_params.property_types` (array) | `villa`, `radhus`, `lagenhet`, `fritidshus`, `tomt`, `other` |
+| `invite_status`          | `invites.status`                                             | `pending`, `accepted`, `declined`, `cancelled`         |
+| `notification_frequency` | `profiles.notification_frequency`                            | `day`, `week`, `none`                                  |
+| `scrape_issue_kind`      | `scrape_issues.kind`                                         | `failed`, `suspicious`                                 |
+| `scrape_issue_status`    | `scrape_issues.status`                                       | `open`, `resolved`                                     |
+| `showing_event_action`   | `showing_events.action`                                      | `created`, `updated`, `deleted`                        |
+
+- **Why enums:** the type generator cannot read check constraints, so a text column only becomes `string`. An enum becomes a union type and a runtime list (`Constants.public.Enums`) in `shared/database.types.ts`, so the app and the scripts take the values from the database instead of keeping their own copies.
+- **For the API nothing changed:** the values are the same strings in JSON. An unknown value fails with `22P02` (invalid input value for enum) instead of `23514` (check constraint).
+- **Adding a value** is easy: `alter type public.<type> add value '<value>'`, then `npm run gen:types`. The new value can not be used in the same transaction that adds it. **Removing or renaming a value** is not possible: it needs a new type and a column change, like the migration that introduced the enums.
+- **Changing a column's type** is blocked by everything that refers to the column: the `UPDATE OF` triggers on `search_params`, the policy `invites_select` and the partial indexes `invites_one_pending` and `scrape_issues_one_open`. They have to be dropped and recreated in the same transaction.
+- **No rights for `anon`:** Postgres gives every new type to `PUBLIC`. The enum types have that revoked and `USAGE` granted to `authenticated` and `service_role`. A new enum type needs the same.
+- **Not enums on purpose:** `scrape_issues.reason` (the database does not limit it, the list `F1`–`F4`, `mass_removal` belongs to the scraper's rules in `scripts/lib/types.ts`) and `search_params_log.operation` (written only by a trigger from `tg_op`, never read by code).
 
 ## Listings and matching
 

@@ -2,36 +2,43 @@
 // Only functions that turn data into text: no database, no network.
 // The data: one row from due_notifications() (see docs/database-design.md, "Notification mails")
 
-import type { PropertyType } from "../lib/types.ts";
+import type { Enums, Tables } from "../../shared/database.types.ts";
+import type { RpcRow } from "../../shared/db.ts";
+import { formatNumber, formatPrice } from "../../shared/format.ts";
+import { propertyTypeLabel } from "../../shared/property-types.ts";
 
-export type MailListing = {
-  id: number;
-  address: string | null;
-  area: string | null;
-  municipality: string | null;
-  property_type: PropertyType | null;
-  price: number | null;
-  rooms: number | null;
-  living_area: number | null;
-  monthly_fee: number | null;
-  is_new_construction: boolean;
-  agency: string;
-  url: string;
-};
+// One listing in due_notifications().new_listings. The function builds the json from these listings columns
+export type MailListing = Pick<
+  Tables<"listings">,
+  | "id"
+  | "address"
+  | "area"
+  | "municipality"
+  | "property_type"
+  | "price"
+  | "rooms"
+  | "living_area"
+  | "monthly_fee"
+  | "is_new_construction"
+  | "agency"
+  | "url"
+>;
 
+// One entry in due_notifications().partner_likes. Handwritten: the function returns it as jsonb,
+// which the generated types only know as Json
 export type PartnerLike = {
   name: string;
   count: number;
   listings: { id: number; address: string | null }[]; // the 2 latest
 };
 
-export type DueRow = {
-  user_id: string;
-  name: string;
-  email: string;
-  frequency: "day" | "week";
-  window_end: string;
-  new_count: number;
+// One row from due_notifications(). The json columns get their shape here, and frequency is narrower
+// than the column: users with "none" are never returned
+export type DueRow = Omit<
+  RpcRow<"due_notifications">,
+  "frequency" | "new_listings" | "partner_likes"
+> & {
+  frequency: Exclude<Enums<"notification_frequency">, "none">;
   new_listings: MailListing[]; // at most 5
   partner_likes: PartnerLike[];
 };
@@ -48,38 +55,6 @@ export function escapeHtml(text: string): string {
   return text;
 }
 
-// Format number: 4000000 -> 4 000 000, 3.5 -> 3,5
-export function formatNumber(n: number): string {
-  const formatNumber = Intl.NumberFormat("sv-SE").format(n);
-  return formatNumber;
-}
-
-// Convert villa -> Villa, lagenhet -> Lägenhet and so on
-// NOTE: Lägenhet & Övrigt has the Swedish letters å, ä or ö.
-export function propertyTypeLabel(type: PropertyType | null): string | null {
-  if (!type) {
-    return null;
-  }
-
-  if (type === "lagenhet") {
-    return "Lägenhet";
-  }
-
-  if (type === "other") {
-    return "Övrigt";
-  }
-
-  // Slice out & capitalize 1st letter
-  let firstLetter = type.slice(0, 1);
-  firstLetter = firstLetter.toUpperCase();
-
-  // Slice out the rest of the word
-  let rest = type.slice(1);
-
-  // Return concaternated result
-  return firstLetter + rest;
-}
-
 export function objectsWord(value: number): string {
   // This is used if 1
   if (value === 1) {
@@ -89,7 +64,9 @@ export function objectsWord(value: number): string {
   return `${value} nya objekt`;
 }
 
-// Link to Samboo's listing page
+// Link to Samboo's listing page. The paths in this file follow the Expo Router files:
+// /search/object/<id> is src/app/(tabs)/search/object/[id].tsx and /settings is src/app/(tabs)/settings.tsx.
+// Moving or renaming those files breaks the links in every mail sent after that
 export function listingUrl(appUrl: string, id: number): string {
   return `${appUrl}/search/object/${id}`;
 }
@@ -140,7 +117,7 @@ export function listingFacts(list: MailListing): string {
   const type = propertyTypeLabel(list.property_type);
   if (type) parts.push(type);
 
-  if (list.price) parts.push(`${formatNumber(list.price)} kr`);
+  if (list.price) parts.push(formatPrice(list.price));
 
   if (list.rooms) parts.push(`${formatNumber(list.rooms)} rok`);
 

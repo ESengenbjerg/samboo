@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { MAX_TAGS_PER_USER, TAG_NAME_MAX_LENGTH } from "@/constants/limits";
 import { UserTag } from "@/types/tags";
 import { capitalize } from "@/utils/capitalize-string";
 import { useState } from "react";
@@ -57,6 +58,9 @@ export function CategoriesDialog({
 
   // The dialog's own message goes first, then errors from saving
   const shownMessage = message ?? error;
+
+  // The database allows MAX_TAGS_PER_USER categories per user. Existing ones can still be chosen
+  const isFull = categories.length >= MAX_TAGS_PER_USER;
 
   // Categories currently chosen in the dialog (shown as removable tags)
   const draftCategories = categories.filter((c) => draftIds.includes(c.id));
@@ -151,16 +155,22 @@ export function CategoriesDialog({
                   onClearError();
                 }}
                 placeholder="T.ex. Balkong"
-                maxLength={100}
+                maxLength={TAG_NAME_MAX_LENGTH}
+                editable={!isFull}
               />
               <Button
-                disabled={isSaving || newName.trim() === ""}
+                disabled={isFull || isSaving || newName.trim() === ""}
                 variant="outline"
                 onPress={handleCreate}
               >
                 <Text>Lägg till</Text>
               </Button>
             </View>
+            {isFull && (
+              <Text variant="small">
+                {`Du har nått gränsen på ${MAX_TAGS_PER_USER} kategorier. Välj bland dina befintliga ovan.`}
+              </Text>
+            )}
           </View>
 
           {/* --- CHOSEN CATEGORY --- */}

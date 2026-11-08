@@ -1,3 +1,4 @@
+import { MAX_GROUP_MEMBERS } from "@/constants/limits";
 import {
   getGroupMembers,
   leaveGroup as leaveGroupRpc,
@@ -12,15 +13,14 @@ import {
   getReceivedInvites,
   getSentInvites,
   inviteErrorMessage,
-  normalizeEmail,
   validateInviteEmails,
 } from "@/services/invites";
 import {
   GroupMember,
-  MAX_GROUP_MEMBERS,
   ReceivedInvite,
   SentInvite,
 } from "@/types/connected-accounts";
+import { normalizeEmail } from "@shared/email";
 import type { PostgrestError } from "@supabase/supabase-js";
 import { useCallback, useEffect, useRef, useState } from "react";
 

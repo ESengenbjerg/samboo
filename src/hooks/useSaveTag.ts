@@ -33,10 +33,11 @@ export function useSaveTag() {
 
       if (error) {
         console.error("Failed to create tag: ", error);
-        // 23505 = user_tags_unique
+        // 23505 = user_tags_unique. P0001 = limit_tags_per_user(), its message is already in Swedish
         if (error.code === "rate_limited") setError(RATE_LIMITED_MESSAGE);
         else if (error.code === "23505")
           setError("Du har redan en kategori med det namnet.");
+        else if (error.code === "P0001") setError(error.message);
         else setError("Kunde inte skapa kategorin. Försök igen.");
         return null;
       }

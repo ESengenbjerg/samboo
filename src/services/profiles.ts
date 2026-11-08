@@ -1,14 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { InformationInterval } from "@/stores/onboarding";
+import { AVATAR_BUCKET } from "@shared/storage";
 import { StorageApiError } from "@supabase/supabase-js";
-
-export type ProfileRow = {
-  name: string | null;
-  avatar_path: string | null;
-  InformationInterval: InformationInterval;
-};
-
-const AVATAR_BUCKET = "avatars";
 
 export function getAvatarUrl(path: string | null) {
   if (!path) return null;
@@ -20,8 +13,7 @@ export function getProfile(userId: string) {
     .from("profiles")
     .select("name, avatar_path, notification_frequency")
     .eq("id", userId)
-    .single()
-    .overrideTypes<ProfileRow>();
+    .single();
 }
 
 export function updateProfileName(userId: string, name: string) {

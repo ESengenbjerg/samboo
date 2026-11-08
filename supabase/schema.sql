@@ -59,6 +59,92 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
 
 
 
+CREATE TYPE "public"."invite_status" AS ENUM (
+    'pending',
+    'accepted',
+    'declined',
+    'cancelled'
+);
+
+
+ALTER TYPE "public"."invite_status" OWNER TO "postgres";
+
+
+COMMENT ON TYPE "public"."invite_status" IS 'Status of an invite. cancelled = withdrawn by the sender, or closed by accept_invite().';
+
+
+
+CREATE TYPE "public"."notification_frequency" AS ENUM (
+    'day',
+    'week',
+    'none'
+);
+
+
+ALTER TYPE "public"."notification_frequency" OWNER TO "postgres";
+
+
+COMMENT ON TYPE "public"."notification_frequency" IS 'How often a user gets notification mails (profiles.notification_frequency). week = Fridays.';
+
+
+
+CREATE TYPE "public"."property_type" AS ENUM (
+    'villa',
+    'radhus',
+    'lagenhet',
+    'fritidshus',
+    'tomt',
+    'other'
+);
+
+
+ALTER TYPE "public"."property_type" OWNER TO "postgres";
+
+
+COMMENT ON TYPE "public"."property_type" IS 'Our own property types, mapped from each agency''s categories by the scraper. Used by listings.property_type and search_params.property_types.';
+
+
+
+CREATE TYPE "public"."scrape_issue_kind" AS ENUM (
+    'failed',
+    'suspicious'
+);
+
+
+ALTER TYPE "public"."scrape_issue_kind" OWNER TO "postgres";
+
+
+COMMENT ON TYPE "public"."scrape_issue_kind" IS 'Kind of scrape issue: failed (F1-F4) or suspicious (mass removal).';
+
+
+
+CREATE TYPE "public"."scrape_issue_status" AS ENUM (
+    'open',
+    'resolved'
+);
+
+
+ALTER TYPE "public"."scrape_issue_status" OWNER TO "postgres";
+
+
+COMMENT ON TYPE "public"."scrape_issue_status" IS 'Status of a scrape issue. At most one open issue per agency and kind.';
+
+
+
+CREATE TYPE "public"."showing_event_action" AS ENUM (
+    'created',
+    'updated',
+    'deleted'
+);
+
+
+ALTER TYPE "public"."showing_event_action" OWNER TO "postgres";
+
+
+COMMENT ON TYPE "public"."showing_event_action" IS 'What happened to a group showing (showing_events.action).';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."accept_invite"("invite_id" bigint) RETURNS "jsonb"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO ''
@@ -415,7 +501,7 @@ $$;
 ALTER FUNCTION "public"."dissolve_group_if_alone"("g" bigint) OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."due_notifications"("p_include_weekly" boolean DEFAULT NULL::boolean) RETURNS TABLE("user_id" "uuid", "name" "text", "email" "text", "frequency" "text", "window_end" timestamp with time zone, "new_count" integer, "new_listings" "jsonb", "partner_likes" "jsonb")
+CREATE OR REPLACE FUNCTION "public"."due_notifications"("p_include_weekly" boolean DEFAULT NULL::boolean) RETURNS TABLE("user_id" "uuid", "name" "text", "email" "text", "frequency" "public"."notification_frequency", "window_end" timestamp with time zone, "new_count" integer, "new_listings" "jsonb", "partner_likes" "jsonb")
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
@@ -555,7 +641,7 @@ CREATE OR REPLACE FUNCTION "public"."has_new_notifications"() RETURNS boolean
       or exists (
         select 1 from public.invites i
         where i.from_user_id = me.id
-          and i.status = any (array['accepted', 'declined'])
+          and i.status in ('accepted', 'declined')
           and i.responded_at > me.since
       )
       -- c) A new match I have not opened
@@ -1112,7 +1198,7 @@ $$;
 ALTER FUNCTION "public"."my_pending_invites"() OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."my_showing_events"() RETURNS TABLE("id" bigint, "created_at" timestamp with time zone, "action" "text", "actor_id" "uuid", "actor_name" "text", "listing_id" bigint, "address" "text", "showing_date" "date", "start_time" time without time zone, "is_unseen" boolean)
+CREATE OR REPLACE FUNCTION "public"."my_showing_events"() RETURNS TABLE("id" bigint, "created_at" timestamp with time zone, "action" "public"."showing_event_action", "actor_id" "uuid", "actor_name" "text", "listing_id" bigint, "address" "text", "showing_date" "date", "start_time" time without time zone, "is_unseen" boolean)
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
@@ -1377,7 +1463,7 @@ CREATE TABLE IF NOT EXISTS "public"."listings" (
     "ld_json" "jsonb" NOT NULL,
     "last_seen_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "removed_at" timestamp with time zone,
-    "property_type" "text",
+    "property_type" "public"."property_type",
     "municipality" "text",
     "area" "text",
     "price" bigint,
@@ -1404,7 +1490,6 @@ CREATE TABLE IF NOT EXISTS "public"."listings" (
     CONSTRAINT "listings_monthly_fee_check" CHECK ((("monthly_fee" IS NULL) OR (("monthly_fee" >= 1) AND ("monthly_fee" <= 100000)))),
     CONSTRAINT "listings_plot_area_check" CHECK ((("plot_area" IS NULL) OR (("plot_area" >= 0) AND ("plot_area" <= 10000000)))),
     CONSTRAINT "listings_price_check" CHECK ((("price" IS NULL) OR (("price" >= 1) AND ("price" <= 1000000000)))),
-    CONSTRAINT "listings_property_type_check" CHECK (("property_type" = ANY (ARRAY['villa'::"text", 'radhus'::"text", 'lagenhet'::"text", 'fritidshus'::"text", 'tomt'::"text", 'other'::"text"]))),
     CONSTRAINT "listings_rooms_check" CHECK ((("rooms" IS NULL) OR (("rooms" > (0)::numeric) AND ("rooms" <= (100)::numeric)))),
     CONSTRAINT "listings_url_check" CHECK ((("char_length"("url") <= 500) AND ("url" ~~ 'https://%'::"text")))
 );
@@ -1496,7 +1581,7 @@ CREATE TABLE IF NOT EXISTS "public"."search_params" (
     "id" bigint NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "user_id" "uuid" NOT NULL,
-    "property_types" "text"[] DEFAULT '{}'::"text"[] NOT NULL,
+    "property_types" "public"."property_type"[] DEFAULT '{}'::"public"."property_type"[] NOT NULL,
     "municipalities" "text"[] DEFAULT '{}'::"text"[] NOT NULL,
     "max_price" bigint,
     "areas" "text"[] DEFAULT '{}'::"text"[] NOT NULL,
@@ -1512,7 +1597,6 @@ CREATE TABLE IF NOT EXISTS "public"."search_params" (
     CONSTRAINT "search_params_place_limit" CHECK ((("cardinality"("municipalities") <= 10) AND ("cardinality"("areas") <= 200))),
     CONSTRAINT "search_params_price_check" CHECK ((("min_price" IS NULL) OR ("max_price" IS NULL) OR ("min_price" <= "max_price"))),
     CONSTRAINT "search_params_price_range" CHECK (((("min_price" IS NULL) OR (("min_price" >= 0) AND ("min_price" <= 1000000000))) AND (("max_price" IS NULL) OR (("max_price" >= 0) AND ("max_price" <= 1000000000))))),
-    CONSTRAINT "search_params_property_types_check" CHECK (("property_types" <@ ARRAY['villa'::"text", 'radhus'::"text", 'lagenhet'::"text", 'fritidshus'::"text", 'tomt'::"text", 'other'::"text"])),
     CONSTRAINT "search_params_rooms_check" CHECK ((("min_rooms" IS NULL) OR ("max_rooms" IS NULL) OR ("min_rooms" <= "max_rooms"))),
     CONSTRAINT "search_params_rooms_range" CHECK (((("min_rooms" IS NULL) OR (("min_rooms" > (0)::numeric) AND ("min_rooms" <= (100)::numeric))) AND (("max_rooms" IS NULL) OR (("max_rooms" > (0)::numeric) AND ("max_rooms" <= (100)::numeric)))))
 );
@@ -1615,10 +1699,9 @@ CREATE TABLE IF NOT EXISTS "public"."invites" (
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "from_user_id" "uuid" NOT NULL,
     "to_email" "text" NOT NULL,
-    "status" "text" DEFAULT 'pending'::"text" NOT NULL,
+    "status" "public"."invite_status" DEFAULT 'pending'::"public"."invite_status" NOT NULL,
     "responded_at" timestamp with time zone,
-    CONSTRAINT "invites_email_length" CHECK (("char_length"("to_email") <= 254)),
-    CONSTRAINT "invites_status_check" CHECK (("status" = ANY (ARRAY['pending'::"text", 'accepted'::"text", 'declined'::"text", 'cancelled'::"text"])))
+    CONSTRAINT "invites_email_length" CHECK (("char_length"("to_email") <= 254))
 );
 
 
@@ -1698,12 +1781,11 @@ CREATE TABLE IF NOT EXISTS "public"."profiles" (
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "onboarding_completed_at" timestamp with time zone,
     "avatar_path" "text",
-    "notification_frequency" "text" DEFAULT 'day'::"text" NOT NULL,
+    "notification_frequency" "public"."notification_frequency" DEFAULT 'day'::"public"."notification_frequency" NOT NULL,
     "last_notified_at" timestamp with time zone,
     "notifications_seen_at" timestamp with time zone,
     CONSTRAINT "profiles_avatar_path_check" CHECK ((("avatar_path" IS NULL) OR (("char_length"("avatar_path") <= 200) AND ("avatar_path" ~ (('^'::"text" || ("id")::"text") || '/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$'::"text"))))),
-    CONSTRAINT "profiles_name_length" CHECK ((("char_length"("name") >= 1) AND ("char_length"("name") <= 100))),
-    CONSTRAINT "profiles_notification_frequency_check" CHECK (("notification_frequency" = ANY (ARRAY['day'::"text", 'week'::"text", 'none'::"text"])))
+    CONSTRAINT "profiles_name_length" CHECK ((("char_length"("name") >= 1) AND ("char_length"("name") <= 100)))
 );
 
 
@@ -1717,17 +1799,15 @@ COMMENT ON COLUMN "public"."profiles"."notifications_seen_at" IS 'When the user 
 CREATE TABLE IF NOT EXISTS "public"."scrape_issues" (
     "id" bigint NOT NULL,
     "agency" "text" NOT NULL,
-    "kind" "text" NOT NULL,
+    "kind" "public"."scrape_issue_kind" NOT NULL,
     "reason" "text" NOT NULL,
     "details" "jsonb" DEFAULT '{}'::"jsonb" NOT NULL,
     "occurrences" integer DEFAULT 1 NOT NULL,
-    "status" "text" DEFAULT 'open'::"text" NOT NULL,
+    "status" "public"."scrape_issue_status" DEFAULT 'open'::"public"."scrape_issue_status" NOT NULL,
     "first_seen_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "last_seen_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "notified_at" timestamp with time zone,
-    "resolved_at" timestamp with time zone,
-    CONSTRAINT "scrape_issues_kind_check" CHECK (("kind" = ANY (ARRAY['failed'::"text", 'suspicious'::"text"]))),
-    CONSTRAINT "scrape_issues_status_check" CHECK (("status" = ANY (ARRAY['open'::"text", 'resolved'::"text"])))
+    "resolved_at" timestamp with time zone
 );
 
 
@@ -1790,10 +1870,9 @@ CREATE TABLE IF NOT EXISTS "public"."showing_events" (
     "group_id" bigint NOT NULL,
     "actor_id" "uuid" NOT NULL,
     "listing_id" bigint NOT NULL,
-    "action" "text" NOT NULL,
+    "action" "public"."showing_event_action" NOT NULL,
     "showing_date" "date" NOT NULL,
-    "start_time" time without time zone,
-    CONSTRAINT "showing_events_action_check" CHECK (("action" = ANY (ARRAY['created'::"text", 'updated'::"text", 'deleted'::"text"])))
+    "start_time" time without time zone
 );
 
 
@@ -2039,7 +2118,7 @@ CREATE UNIQUE INDEX "areas_municipality_name_key" ON "public"."areas" USING "btr
 
 
 
-CREATE UNIQUE INDEX "invites_one_pending" ON "public"."invites" USING "btree" ("from_user_id", "lower"("to_email")) WHERE ("status" = 'pending'::"text");
+CREATE UNIQUE INDEX "invites_one_pending" ON "public"."invites" USING "btree" ("from_user_id", "lower"("to_email")) WHERE ("status" = 'pending'::"public"."invite_status");
 
 
 
@@ -2051,7 +2130,7 @@ CREATE INDEX "listings_agency_active_idx" ON "public"."listings" USING "btree" (
 
 
 
-CREATE UNIQUE INDEX "scrape_issues_one_open" ON "public"."scrape_issues" USING "btree" ("agency", "kind") WHERE ("status" = 'open'::"text");
+CREATE UNIQUE INDEX "scrape_issues_one_open" ON "public"."scrape_issues" USING "btree" ("agency", "kind") WHERE ("status" = 'open'::"public"."scrape_issue_status");
 
 
 
@@ -2261,7 +2340,7 @@ CREATE POLICY "invites_insert" ON "public"."invites" FOR INSERT TO "authenticate
 
 
 
-CREATE POLICY "invites_select" ON "public"."invites" FOR SELECT TO "authenticated" USING (("public"."is_active_user"() AND (("from_user_id" = ( SELECT "auth"."uid"() AS "uid")) OR (("lower"("to_email") = "lower"((( SELECT "auth"."jwt"() AS "jwt") ->> 'email'::"text"))) AND ("status" <> 'cancelled'::"text")))));
+CREATE POLICY "invites_select" ON "public"."invites" FOR SELECT TO "authenticated" USING (("public"."is_active_user"() AND (("from_user_id" = ( SELECT "auth"."uid"() AS "uid")) OR (("lower"("to_email") = "lower"((( SELECT "auth"."jwt"() AS "jwt") ->> 'email'::"text"))) AND ("status" <> 'cancelled'::"public"."invite_status")))));
 
 
 
@@ -2427,6 +2506,42 @@ ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."profiles";
 GRANT USAGE ON SCHEMA "public" TO "postgres";
 GRANT USAGE ON SCHEMA "public" TO "authenticated";
 GRANT USAGE ON SCHEMA "public" TO "service_role";
+
+
+
+REVOKE ALL ON TYPE "public"."invite_status" FROM PUBLIC;
+GRANT ALL ON TYPE "public"."invite_status" TO "authenticated";
+GRANT ALL ON TYPE "public"."invite_status" TO "service_role";
+
+
+
+REVOKE ALL ON TYPE "public"."notification_frequency" FROM PUBLIC;
+GRANT ALL ON TYPE "public"."notification_frequency" TO "authenticated";
+GRANT ALL ON TYPE "public"."notification_frequency" TO "service_role";
+
+
+
+REVOKE ALL ON TYPE "public"."property_type" FROM PUBLIC;
+GRANT ALL ON TYPE "public"."property_type" TO "authenticated";
+GRANT ALL ON TYPE "public"."property_type" TO "service_role";
+
+
+
+REVOKE ALL ON TYPE "public"."scrape_issue_kind" FROM PUBLIC;
+GRANT ALL ON TYPE "public"."scrape_issue_kind" TO "authenticated";
+GRANT ALL ON TYPE "public"."scrape_issue_kind" TO "service_role";
+
+
+
+REVOKE ALL ON TYPE "public"."scrape_issue_status" FROM PUBLIC;
+GRANT ALL ON TYPE "public"."scrape_issue_status" TO "authenticated";
+GRANT ALL ON TYPE "public"."scrape_issue_status" TO "service_role";
+
+
+
+REVOKE ALL ON TYPE "public"."showing_event_action" FROM PUBLIC;
+GRANT ALL ON TYPE "public"."showing_event_action" TO "authenticated";
+GRANT ALL ON TYPE "public"."showing_event_action" TO "service_role";
 
 
 
@@ -2777,8 +2892,8 @@ GRANT ALL ON FUNCTION "public"."my_pending_invites"() TO "authenticated";
 
 
 REVOKE ALL ON FUNCTION "public"."my_showing_events"() FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."my_showing_events"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."my_showing_events"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."my_showing_events"() TO "service_role";
 
 
 

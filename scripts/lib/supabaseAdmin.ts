@@ -1,5 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 
+import type { Database } from "../../shared/database.types.ts";
+
 // Server-side only! The service role key bypasses RLS.
 // Never import this from the app, and never prefix the key with EXPO_PUBLIC_.
 // Requires process.loadEnvFile(".env") to have run before this file is imported.
@@ -11,6 +13,6 @@ if (!url || !key) {
 }
 
 // No user session needed in a script
-export const supabaseAdmin = createClient(url, key, {
+export const supabaseAdmin = createClient<Database>(url, key, {
   auth: { persistSession: false, autoRefreshToken: false },
 });

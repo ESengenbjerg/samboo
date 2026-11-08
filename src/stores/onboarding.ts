@@ -2,6 +2,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
+import type { PropertyType } from "@/constants/filter-options";
+import { Constants, type Enums } from "@shared/database.types";
+
 // TODO: Add persistens for data to survive if app is closed
 // @react-native-async-storage/async-storage
 // Wrap store in persist(..., { name: "onboarding", storage: createJSONStorage(() => AsyncStorage) }) from zustand/middleware
@@ -9,7 +12,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 
 export type ScraperFilter = {
   municipalities: string[];
-  propertyTypes: string[];
+  propertyTypes: PropertyType[];
 };
 
 export type ClientFilter = {
@@ -20,7 +23,13 @@ export type ClientFilter = {
   showNewConstruction: boolean;
 };
 
-export type InformationInterval = "day" | "week" | "none";
+// profiles.notification_frequency, the database enum public.notification_frequency
+export type InformationInterval = Enums<"notification_frequency">;
+
+// Checks a value from the UI (radio groups give string) against the database's list
+export function isInformationInterval(value: string): value is InformationInterval {
+  return (Constants.public.Enums.notification_frequency as readonly string[]).includes(value);
+}
 
 type OnboardingState = {
   profileName: string;

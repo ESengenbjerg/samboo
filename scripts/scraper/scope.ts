@@ -13,8 +13,8 @@ export function buildScope(searchParams: SearchParamsRow[]): {
   const seen = new Set<string>();
 
   for (const sp of searchParams) {
-    const municipalities = sp.municipalities ?? [];
-    const areas = sp.areas ?? [];
+    const municipalities = sp.municipalities;
+    const areas = sp.areas;
 
     // A municipality is mandatory for scraping to occur. Areas only narrow a municipality down (see validate_search_places()),
     // so a search with areas but no municipality is not valid and is skipped
@@ -26,7 +26,7 @@ export function buildScope(searchParams: SearchParamsRow[]): {
     const item: ScopeItem = {
       municipalities: [...municipalities].sort(),
       areas: [...areas].sort(),
-      propertyTypes: [...(sp.property_types ?? [])].sort(),
+      propertyTypes: [...sp.property_types].sort(),
     };
 
     // Identical searches only need to be scraped once

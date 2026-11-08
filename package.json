@@ -69,7 +69,8 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "build:web": "expo export --platform web",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "gen:types": "node scripts/db/generateTypes.ts"
   },
   "engines": {
     "node": ">=22"

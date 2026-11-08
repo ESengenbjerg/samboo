@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
+import { EMAIL_MAX_LENGTH } from "@/constants/limits";
 import { useForgotPassword } from "@/hooks/useForgotPassword";
 import { router } from "expo-router";
 import { useState } from "react";
@@ -48,7 +49,7 @@ export function ForgotPasswordForm() {
           keyboardType="email-address"
           autoComplete="email"
           autoCapitalize="none"
-          maxLength={254}
+          maxLength={EMAIL_MAX_LENGTH}
           returnKeyType="send"
           value={email}
           onChangeText={setEmail}
