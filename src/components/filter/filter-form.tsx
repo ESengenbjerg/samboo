@@ -2,15 +2,18 @@ import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
+  isPropertyType,
   LIVING_AREA_OPTIONS,
   MONTHLY_FEE_OPTIONS,
   PROPERTY_TYPES_OPTIONS,
+  PropertyType,
   ROOM_OPTIONS,
 } from "@/constants/filter-options";
 import { usePlaces } from "@/hooks/usePlaces";
 import {
   ClientFilter,
   InformationInterval,
+  isInformationInterval,
   ScraperFilter,
 } from "@/stores/onboarding";
 import { SelectOption } from "@/types/select-option";
@@ -67,7 +70,7 @@ export default function FilterForm({
   );
   const [areas, setAreas] = useState<string[]>(savedClientFilter?.area ?? []);
 
-  const [propertyType, setPropertyType] = useState<string[]>(
+  const [propertyType, setPropertyType] = useState<PropertyType[]>(
     savedScraperFilter?.propertyTypes ?? [],
   );
   const [rooms, setRooms] = useState<SelectOption | undefined>(
@@ -196,7 +199,7 @@ export default function FilterForm({
           type="multiple"
           aria-label="Bostadstyp"
           value={propertyType}
-          onValueChange={setPropertyType}
+          onValueChange={(values) => setPropertyType(values.filter(isPropertyType))}
           className="gap-2 flex-wrap"
           variant="secondary"
         >
@@ -254,9 +257,9 @@ export default function FilterForm({
         <Text variant="bold">Hur ofta vill du bli informerad?</Text>
         <RadioGroup
           value={informationInterval}
-          onValueChange={(v) =>
-            setInformationInterval(v as InformationInterval)
-          }
+          onValueChange={(v) => {
+            if (isInformationInterval(v)) setInformationInterval(v);
+          }}
           className="flex-row flex-wrap gap-4 justify-between"
         >
           {INTERVAL_OPTIONS.map((o) => (

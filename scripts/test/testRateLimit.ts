@@ -7,6 +7,7 @@
 // The counters are per minute and the window is about 5 minutes, so wait that long before running it again.
 
 import { createClient } from "@supabase/supabase-js";
+import type { Database } from "../../shared/database.types.ts";
 
 // Fetch credentials in dotenv
 process.loadEnvFile(".env");
@@ -25,7 +26,7 @@ if (!url || !key || !email || !password) {
 }
 
 // A normal client as the app would use it, not the admin client
-const supabase = createClient(url, key, {
+const supabase = createClient<Database>(url, key, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 

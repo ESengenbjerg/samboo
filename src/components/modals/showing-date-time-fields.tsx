@@ -1,8 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
+import { SHOWING_LAST_DATE } from "@/constants/limits";
 import {
   formatDateLabel,
+  parseIsoDate,
   startOfToday,
   toTimeString,
 } from "@/utils/date-format";
@@ -27,6 +29,9 @@ type PickerMode = "date" | "time";
 // iOS: the button opens a wheel right below the field. The compact iOS picker can't be used:
 // its popover opens behind the dialog, which lives in its own window (FullWindowOverlay).
 // The picker does not support web, see showing-date-time-fields.web.tsx
+// The last date the database accepts (showings_date_range)
+const LAST_DATE = parseIsoDate(SHOWING_LAST_DATE);
+
 export default function ShowingDateTimeFields({
   date,
   time,
@@ -49,6 +54,7 @@ export default function ShowingDateTimeFields({
         value: mode === "date" ? date : time,
         is24Hour: true,
         minimumDate: mode === "date" ? startOfToday() : undefined,
+        maximumDate: mode === "date" ? LAST_DATE : undefined,
         onValueChange: (_event, value) => onPickerChange(mode, value),
       });
       return;
@@ -69,6 +75,7 @@ export default function ShowingDateTimeFields({
           // The app has no dark mode yet, so keep dark text on the white dialog
           themeVariant="light"
           minimumDate={mode === "date" ? startOfToday() : undefined}
+          maximumDate={mode === "date" ? LAST_DATE : undefined}
           onValueChange={(_event, newValue) => onPickerChange(mode, newValue)}
           style={{
             transform: [{ scale: 0.8 }],

@@ -1,6 +1,7 @@
 import FormError from "@/components/form-error";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { EMAIL_MAX_LENGTH, MAX_GROUP_MEMBERS } from "@/constants/limits";
 import { PlusSquare, X } from "lucide-react-native";
 import { useState } from "react";
 import { Platform, ScrollView, useWindowDimensions, View } from "react-native";
@@ -14,6 +15,10 @@ import {
 import { Icon } from "../ui/icon";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
+
+// A group holds MAX_GROUP_MEMBERS people including me, so at most this many others can be invited.
+// useConnectedAccounts() also counts the members I already have when the invites are sent
+const MAX_INVITE_EMAILS = MAX_GROUP_MEMBERS - 1;
 
 type SendInviteDialogProps = {
   open: boolean;
@@ -78,7 +83,7 @@ export function SendInviteDialog({
                     keyboardType="email-address"
                     autoComplete="email"
                     autoCapitalize="none"
-                    maxLength={254}
+                    maxLength={EMAIL_MAX_LENGTH}
                     returnKeyType="next"
                     submitBehavior="submit"
                     textContentType="emailAddress"
@@ -108,12 +113,12 @@ export function SendInviteDialog({
                 web: { marginLeft: -12 },
                 default: undefined,
               })}
-              disabled={emails.length > 9 || isLoading}
+              disabled={emails.length >= MAX_INVITE_EMAILS || isLoading}
             >
               <Icon as={PlusSquare} className="size-[18px]" />
               <Text>
-                {emails.length > 9
-                  ? "Du har nått gränsen på 10 personer"
+                {emails.length >= MAX_INVITE_EMAILS
+                  ? `Du har nått gränsen på ${MAX_GROUP_MEMBERS} personer`
                   : "Lägg till"}
               </Text>
             </Button>

@@ -11,7 +11,7 @@ import { useSaveTag } from "@/hooks/useSaveTag";
 import { useSession } from "@/hooks/useSession";
 import { useUserTags } from "@/hooks/useUserTags";
 import { Listing } from "@/types/listing";
-import { formatPrice } from "@/utils/format-price";
+import { formatPrice } from "@shared/format";
 import { isNewConstruction } from "@/utils/is-new-construction";
 import { Image } from "expo-image";
 import { router } from "expo-router";

@@ -1,3 +1,4 @@
+import { MAX_AREAS, MAX_MUNICIPALITIES } from "@/constants/limits";
 import { Area, Municipality } from "@/services/places";
 import { X } from "lucide-react-native";
 import { useState } from "react";
@@ -10,21 +11,21 @@ import { Text } from "../ui/text";
 // Number of suggestions shown while typing
 const MAX_SUGGESTIONS = 6;
 
-// Texts and limits per type. Database allows max 10 municipalities per search and 200 areas
+// Texts and limits per type. The limits mirror search_params_place_limit, see constants/limits.ts
 const CONFIG = {
   municipality: {
     label: "Kommun*",
     placeholder: "Sök kommuner",
-    fullPlaceholder: "Max 10 kommuner",
-    max: 10,
+    fullPlaceholder: `Max ${MAX_MUNICIPALITIES} kommuner`,
+    max: MAX_MUNICIPALITIES,
     id: "municipality",
     textContentType: "addressCity",
   },
   area: {
     label: "Område",
     placeholder: "Sök område",
-    fullPlaceholder: "Max 200 områden",
-    max: 200,
+    fullPlaceholder: `Max ${MAX_AREAS} områden`,
+    max: MAX_AREAS,
     id: "area",
     textContentType: undefined,
   },

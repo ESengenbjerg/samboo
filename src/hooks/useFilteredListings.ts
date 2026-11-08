@@ -26,7 +26,8 @@ export function useFilteredListings(
   const showCategoryFilter = tags.length > 1;
 
   // Only the property types that exist among the listings
-  const listingTypes = new Set(listings.map((l) => l.property_type));
+  // string: compared with the options' values, which are plain strings
+  const listingTypes = new Set<string | null>(listings.map((l) => l.property_type));
   const propertyTypeOptions = PROPERTY_TYPES_OPTIONS.filter((o) =>
     listingTypes.has(o.value),
   );

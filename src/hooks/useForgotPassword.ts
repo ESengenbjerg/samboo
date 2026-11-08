@@ -1,4 +1,5 @@
 import { requestPasswordReset } from "@/services/auth";
+import { isValidEmail } from "@shared/email";
 import { useCallback, useState } from "react";
 
 export function useForgotPassword() {
@@ -12,8 +13,7 @@ export function useForgotPassword() {
       if (isSending) return false;
       setError(null);
 
-      // Something, @, something, dot, something. Supabase does the full check
-      if (!/^\S+@\S+\.\S+$/.test(email)) {
+      if (!isValidEmail(email)) {
         setError("Fyll i en giltig e-postadress.");
         return false;
       }

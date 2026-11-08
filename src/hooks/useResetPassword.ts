@@ -1,3 +1,4 @@
+import { RESEND_CODE_INTERVAL_SECONDS } from "@/constants/limits";
 import { useCountdown } from "@/hooks/useCountdown";
 import {
   passwordErrorMessage,
@@ -9,9 +10,6 @@ import {
 } from "@/services/auth";
 import { usePasswordRecoveryStore } from "@/stores/password-recovery";
 import { useCallback, useEffect, useState } from "react";
-
-// Matches Supabase's cooldown between emails to the same address
-const RESEND_CODE_INTERVAL_SECONDS = 60;
 
 // email is sent as a param from the forgot password screen
 export function useResetPassword(email: string) {

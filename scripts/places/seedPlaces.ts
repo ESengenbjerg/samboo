@@ -23,11 +23,17 @@ if (countyError || !counties) {
   process.exit(1);
 }
 
-const countyId = new Map(counties.map((c) => [c.name as string, c.id as number]));
+const countyId = new Map(counties.map((c) => [c.name, c.id]));
 
 // 2. Municipalities, each with the id of its county
 const municipalityRows = Object.entries(COUNTIES).flatMap(([county, names]) =>
-  names.map((name) => ({ name, county_id: countyId.get(county) })),
+  names.map((name) => {
+    const county_id = countyId.get(county);
+    if (county_id === undefined) {
+      throw new Error(`County ${county} missing after upsert`);
+    }
+    return { name, county_id };
+  }),
 );
 
 const { error: municipalityError } = await supabaseAdmin

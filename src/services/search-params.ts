@@ -1,6 +1,5 @@
 import { supabase } from "@/lib/supabase";
 import { ClientFilter, ScraperFilter } from "@/stores/onboarding";
-import { SearchParamsRow } from "@/types/search-params";
 
 // My saved search. data is null if I have not made one
 export function getSearchParams(userId: string) {
@@ -10,7 +9,7 @@ export function getSearchParams(userId: string) {
       "property_types, municipalities, areas, min_rooms, max_monthly_fee, min_living_area, include_new_construction",
     )
     .eq("user_id", userId)
-    .maybeSingle<SearchParamsRow>();
+    .maybeSingle();
 }
 
 // Save search, creates row or updates if it already exist

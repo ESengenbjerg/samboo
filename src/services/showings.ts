@@ -1,5 +1,6 @@
+import { SHOWING_NOTE_MAX_LENGTH } from "@/constants/limits";
 import { supabase } from "@/lib/supabase";
-import { NewShowing, ShowingRow, ShowingValues } from "@/types/showings";
+import { NewShowing, ShowingValues } from "@/types/showings";
 import { toIsoDate } from "@/utils/date-format";
 import type { PostgrestError } from "@supabase/supabase-js";
 
@@ -7,6 +8,8 @@ import type { PostgrestError } from "@supabase/supabase-js";
 // !inner is a safety net: without it listings could be null and the app would crash
 const SHOWING_COLUMNS =
   "id, listing_id, showing_date, start_time, note, listings!inner(address, municipality, area)";
+
+export const NOTE_TOO_LONG_MESSAGE = `Anteckningen får vara max ${SHOWING_NOTE_MAX_LENGTH} tecken.`;
 
 // Today's date in local time as "2026-10-29", to compare with showings.showing_date
 function today() {
@@ -21,8 +24,7 @@ export function getUpcomingShowings() {
     .select(SHOWING_COLUMNS)
     .gte("showing_date", today())
     .order("showing_date", { ascending: true })
-    .order("start_time", { ascending: true, nullsFirst: false })
-    .overrideTypes<ShowingRow[]>();
+    .order("start_time", { ascending: true, nullsFirst: false });
 }
 
 // My showings (group's or own, see getUpcomingShowings()) before today, latest first.
@@ -33,8 +35,7 @@ export function getPastShowings() {
     .select(SHOWING_COLUMNS)
     .lt("showing_date", today())
     .order("showing_date", { ascending: false })
-    .order("start_time", { ascending: false, nullsFirst: false })
-    .overrideTypes<ShowingRow[]>();
+    .order("start_time", { ascending: false, nullsFirst: false });
 }
 
 // The owner is not sent: the database sets group_id to my group, or user_id to me if
@@ -77,9 +78,10 @@ export function showingErrorMessage(error: PostgrestError) {
     // showings_insert policy: the listing is not visible to me (or my account is not active)
     case "42501":
       return "Du kan inte spara en visning för den här bostaden.";
-    // showings_note_length
+    // showings_note_length or showings_date_range. The hooks check both before sending,
+    // so this only shows if something got past them
     case "23514":
-      return "Anteckningen får vara max 500 tecken.";
+      return "Kontrollera datum och anteckning.";
     // Invalid date or time
     case "22007":
     case "22008":

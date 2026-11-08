@@ -10,7 +10,7 @@ import { Image } from "expo-image";
 import { Pressable, View } from "react-native";
 
 import { cn } from "@/lib/utils";
-import { formatPrice } from "@/utils/format-price";
+import { formatPrice } from "@shared/format";
 import { cva, type VariantProps } from "class-variance-authority";
 import { useState } from "react";
 import { LikeButton } from "./like-button";

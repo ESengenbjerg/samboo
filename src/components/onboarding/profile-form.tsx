@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
+import { NAME_MAX_LENGTH } from "@/constants/limits";
 import { useSession } from "@/hooks/useSession";
 import { useUpdateProfileAvatar } from "@/hooks/useUpdateProfileAvatar";
 import { getAvatarUrl } from "@/services/profiles";
@@ -117,7 +118,7 @@ export default function ProfileForm() {
           placeholder="Namn"
           returnKeyType="next"
           submitBehavior="submit"
-          maxLength={100}
+          maxLength={NAME_MAX_LENGTH}
           value={profileName}
           onChangeText={setProfileName}
           editable={!isBusy}

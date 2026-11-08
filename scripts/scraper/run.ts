@@ -12,13 +12,13 @@
 // - Listings outside every search (never visited here) are handled by clean_stale_listings() in pg_cron after 7 days
 
 import { chromium } from "playwright";
+import type { Json } from "../../shared/database.types.ts";
 import { ScrapeLayoutError } from "../lib/errors.ts";
 import type {
   Agency,
   IssueKind,
   IssueReason,
   ListingRow,
-  SearchParamsRow,
 } from "../lib/types.ts";
 import * as agency1 from "./agencies/agency1.ts";
 import * as mockdata from "./agencies/mockdata.ts";
@@ -78,8 +78,7 @@ const municipalityFlags = flagValues("municipality");
 // ---------------------- READ SEARCH PARAMS --------------------------
 const { data: searchParams, error: searchError } = await supabaseAdmin
   .from("search_params")
-  .select("user_id, property_types, municipalities, areas")
-  .overrideTypes<SearchParamsRow[]>();
+  .select("user_id, property_types, municipalities, areas");
 
 if (searchError) {
   console.error("Failed to read search_params:", searchError);
@@ -142,7 +141,7 @@ async function flag(
   kind: IssueKind,
   reason: IssueReason,
   message: string,
-  details: Record<string, unknown>,
+  details: { [key: string]: Json | undefined },
 ) {
   console.error(`${agencyName}: ${kind} (${reason}) - ${message}`);
   const issue = await recordIssue(supabaseAdmin, agencyName, kind, reason, {

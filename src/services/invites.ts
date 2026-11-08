@@ -1,22 +1,16 @@
 import { supabase } from "@/lib/supabase";
-import { ReceivedInvite, SentInvite } from "@/types/connected-accounts";
+import { isValidEmail, normalizeEmail } from "@shared/email";
 import type { PostgrestError } from "@supabase/supabase-js";
-
-// The database compares e-mails case-insensitively, but store them clean anyway
-export function normalizeEmail(email: string) {
-  return email.trim().toLowerCase();
-}
-
-export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function validateInviteEmails(emails: string[]): string | null {
   if (emails.length === 0) return "Ange minst en e-postadress.";
-  const invalid = emails.find((e) => !EMAIL_PATTERN.test(normalizeEmail(e)));
+  const invalid = emails.find((e) => !isValidEmail(e));
   if (invalid) return `Ogiltig e-postadress: ${invalid}`;
   return null;
 }
 
 export function createInvite(fromUserId: string, toEmail: string) {
+  // The database compares e-mails case-insensitively, but store them clean anyway
   return supabase
     .from("invites")
     .insert({ from_user_id: fromUserId, to_email: normalizeEmail(toEmail) });
@@ -28,8 +22,7 @@ export function getSentInvites(userId: string) {
     .from("invites")
     .select("id, created_at, to_email, status, responded_at")
     .eq("from_user_id", userId)
-    .order("created_at", { ascending: false })
-    .overrideTypes<SentInvite[]>();
+    .order("created_at", { ascending: false });
 }
 
 // Pending invites addressed to my e-mail, with the sender's name and e-mail.
@@ -39,7 +32,7 @@ export async function getReceivedInvites() {
   const { data, error } = await supabase.rpc("my_pending_invites", undefined, {
     get: true,
   });
-  return { data: data as ReceivedInvite[] | null, error };
+  return { data, error };
 }
 
 // Joins the sender's group. Fails if I am already in a group or the group is full.

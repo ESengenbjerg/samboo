@@ -1,7 +1,9 @@
-import { createShowing, showingErrorMessage } from "@/services/showings";
+import { SHOWING_LAST_DATE, SHOWING_NOTE_MAX_LENGTH } from "@/constants/limits";
+import { createShowing, NOTE_TOO_LONG_MESSAGE, showingErrorMessage } from "@/services/showings";
 import { ShowingValues } from "@/types/showings";
 import {
   isShowingDateInPast,
+  isShowingDateTooLate,
   isValidShowingDate,
   normalizeShowingTime,
 } from "@/utils/showing-validation";
@@ -25,6 +27,10 @@ export function useSaveShowing() {
         setError("Datumet kan inte ligga i det förflutna.");
         return false;
       }
+      if (isShowingDateTooLate(date)) {
+        setError(`Datumet kan inte ligga efter ${SHOWING_LAST_DATE}.`);
+        return false;
+      }
 
       const startTime = normalizeShowingTime(values.time.trim());
       if (startTime === null) {
@@ -37,8 +43,8 @@ export function useSaveShowing() {
       }
 
       const note = values.note.trim();
-      if (note.length > 500) {
-        setError("Anteckningen får vara max 500 tecken.");
+      if (note.length > SHOWING_NOTE_MAX_LENGTH) {
+        setError(NOTE_TOO_LONG_MESSAGE);
         return false;
       }
 
