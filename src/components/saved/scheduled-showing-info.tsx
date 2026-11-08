@@ -15,6 +15,7 @@ import {
 } from "lucide-react-native";
 import { useState } from "react";
 import { Platform, View } from "react-native";
+import { ConfirmDialog } from "../modals/confirm-dialog";
 import { SaveShowingDialog } from "../modals/save-showing-dialog";
 import { Button } from "../ui/button";
 import { Icon } from "../ui/icon";
@@ -114,9 +115,6 @@ export default function ScheduledShowingInfo(showing: ScheduledShowing) {
         </View>
       </View>
 
-      {/* TODO: Add edit action for showing date, time and note. */}
-      {/* TODO: Add delete action with confirmation. */}
-
       {/* Note */}
       {showing.note?.trim() && (
         <View>
@@ -148,7 +146,7 @@ export default function ScheduledShowingInfo(showing: ScheduledShowing) {
         </Button>
         <Button
           variant="link"
-          onPress={() => setDeleteDialogOpen}
+          onPress={openDeleteDialog}
           className="self-start min-h-0 px-0 py-0 justify-start"
           style={Platform.select({
             web: { marginLeft: -12 },
@@ -174,6 +172,21 @@ export default function ScheduledShowingInfo(showing: ScheduledShowing) {
           initialDate={showing.startsAt}
           initialTime={showing.startsAt}
           initialNote={showing.note ?? ""}
+        />
+      )}
+
+      {deleteDialogOpen && (
+        <ConfirmDialog
+          open={true}
+          onOpenChange={() => setDeleteDialogOpen(false)}
+          title={"Radera visning"}
+          description={"Om du raderar visningen försvinner den även för dina gruppmedlemmar om du är med i en grupp."}
+          actionLabel={"Radera visning"}
+          onAction={() => deleteShowing(showing.id)}
+          cancelLabel={"Avbryt"}
+          onCancel={() => setDeleteDialogOpen(false)}
+          isLoading={isDeleting}
+          
         />
       )}
     </View>
