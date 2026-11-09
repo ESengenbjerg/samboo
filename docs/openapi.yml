@@ -1071,8 +1071,8 @@ components:
         area: { type: string, nullable: true, maxLength: 100 }
         price: { type: integer, format: int64, nullable: true, minimum: 1, maximum: 1000000000 }
         rooms: { type: number, nullable: true, exclusiveMinimum: true, minimum: 0, maximum: 100 }
-        latitude: { type: number, nullable: true }
-        longitude: { type: number, nullable: true }
+        latitude: { type: number, nullable: true, minimum: 55, maximum: 70 }
+        longitude: { type: number, nullable: true, minimum: 10, maximum: 25 }
         monthly_fee: { type: integer, format: int64, nullable: true, minimum: 1, maximum: 100000, description: Apartments only }
         living_area: { type: number, nullable: true, exclusiveMinimum: true, minimum: 0, maximum: 10000 }
         is_new_construction: { type: boolean }
