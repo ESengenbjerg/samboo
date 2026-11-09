@@ -1,15 +1,5 @@
-// This file is the main file for scraping.
-// It aims to read all users search_params, Build a scope from them.
-// Then scrape by scope on each agency & save result into listings
-// Then finally match the result to users in user_listings table
-
-// ADDED: removed listings are handled now (see removal.ts and issues.ts):
-// - A listing the scraper no longer finds gets removed_at, but only after a healthy run
-// - A failed run (F1-F4) never touches removed_at, it is logged in scrape_issues
-// - A suspicious run (many listings vanish at once) saves/updates what was found, removes nothing,
-//   and is logged in scrape_issues
-// - Listings removed for more than 10 days are purged by pg_cron in the database, not by this script
-// - Listings outside every search (never visited here) are handled by clean_stale_listings() in pg_cron after 7 days
+// Main file for scraper: reads every search param, scrapes each agency, saves the listings and matches them to users.
+// How removed, failed and suspicious runs are handled: docs/removed_listings.md
 
 import { chromium } from "playwright";
 import type { Json } from "../../shared/database.types.ts";
@@ -39,10 +29,10 @@ import { buildScope } from "./scope.ts";
 
 process.loadEnvFile(".env");
 
-// THIS REQUIRES NODE v.24 (native .ts and process.loadEnvFile, see scripts/.nvmrc)
+// Requires Node 24 (native .ts and process.loadEnvFile, see scripts/.nvmrc)
 const { supabaseAdmin } = await import("../lib/supabaseAdmin.ts");
 
-// Agencies are scraped one after another. ADD NEW AGENCIES HERE!!!
+// Agencies are scraped one after another. Add new agencies here!
 const allAgencies: Agency[] = [mockdata, agency1];
 
 // Optional flags for a limited test run. Without them everything runs as usual
@@ -101,9 +91,7 @@ console.log(`Scope: ${scope.length} distinct searches`);
 console.log(JSON.stringify(scope, null, 2));
 
 // ---------------------- SCRAPE + SAVE --------------------------
-// Why the listings table would reject the row as a whole, or null. SAME LIMITS as the check constraints on listings
-// (supabase/schema.sql; the database allows a larger ld_json, since jsonb::text adds spaces). The mappers already make
-// single bad values null, this is for what cannot be nulled. A skipped row is not saved and not marked as removed
+// Why the listings table would reject the row as a whole, or null. SAME LIMITS as the check constraints on listings (supabase/schema.sql; the database allows a larger ld_json, since jsonb::text adds spaces). The mappers already make single bad values null, this is for what cannot be nulled. A skipped row is not saved and not marked as removed
 const MAX_URL_LENGTH = 500;
 const MAX_LD_JSON_BYTES = 200_000;
 
@@ -183,7 +171,7 @@ try {
         const { error } = await supabaseAdmin
           .from("listings")
           .upsert(rows, { onConflict: "agency,external_id" });
-        // Failure F4: was thrown to the catch below, now it is a failed run in the backlog
+        // Failure F4: the save failed, logged in the backlog
         if (error) {
           await flag(agency.AGENCY, "failed", "F4", error.message, {});
           continue;
@@ -259,6 +247,5 @@ if (matchError) {
   console.log(`${newMatches} new user matches`);
 }
 
-// A non-zero exit code makes a scheduled run show up as failed.
-// When an issue needs the admin's attention (needsAttention), but a single failed agency run does not, so one bad day does not send a notification
+// A non-zero exit code makes a scheduled run show up as failed, so GitHub notifies. Used for unexpected errors and isues the admin must hear about, not for a single failed agency run.
 if (failedAgencies > 0 || needsAttention > 0) process.exitCode = 1;
