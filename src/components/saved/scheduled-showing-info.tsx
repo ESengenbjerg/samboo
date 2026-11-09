@@ -1,6 +1,7 @@
 import { useDeleteShowing } from "@/hooks/useDeleteShowing";
 import { useUpdateShowing } from "@/hooks/useUpdateShowing";
 import { ScheduledShowing } from "@/types/showings";
+import { toIsoDate } from "@/utils/date-format";
 import { goToObject } from "@/utils/go-to-object";
 import { googleMapsUrl } from "@/utils/google-maps-url";
 import { Link } from "expo-router";
@@ -65,7 +66,11 @@ export default function ScheduledShowingInfo({
     showingId: number,
     values: { date: string; time: string; note: string },
   ) {
-    const ok = await updateShowing(showingId, values);
+    const ok = await updateShowing(
+      showingId,
+      values,
+      toIsoDate(showing.startsAt),
+    );
 
     if (ok) {
       setEditDialogOpen(false);

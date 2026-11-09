@@ -98,7 +98,7 @@ export default function ScheduledShowingsSection({
         <Text variant="h2">
           {isInPast ? "Tidigare visningar" : "Bokade visningar"}
         </Text>
-        <Button variant="link" onPress={() => setIsInPast(!isInPast)}>
+        <Button variant="link" onPress={toggleList}>
           <Text>
             {pastShowings.length !== 0
               ? isInPast

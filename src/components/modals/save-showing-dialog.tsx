@@ -8,13 +8,7 @@ import {
   toTimeString,
 } from "@/utils/date-format";
 import { useState } from "react";
-import {
-  Keyboard,
-  Pressable,
-  ScrollView,
-  useWindowDimensions,
-  View,
-} from "react-native";
+import { ScrollView, useWindowDimensions, View } from "react-native";
 import FormError from "../form-error";
 import {
   Dialog,
