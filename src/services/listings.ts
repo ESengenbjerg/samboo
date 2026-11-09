@@ -117,7 +117,9 @@ export async function getSharedLikedListings() {
   const { data, error } = await supabase
     // GET: the function is read-only (STABLE), see getGroupMembers() in groups.ts
     .rpc("shared_likes", undefined, { get: true })
-    .select(LISTING_COLUMNS)
+    .select(`${LISTING_COLUMNS}, removed_at, created_at`)
+
+    // .select(LISTING_COLUMNS)
     // shared_likes() does not skip listings that have disappeared from the agency's site
     .is("removed_at", null)
     .order("created_at", { ascending: false });
