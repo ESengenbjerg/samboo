@@ -1,18 +1,13 @@
-// Deletes avatar files in Storage that no profile points to:
-// replaced images, abandoned uploads and images of deleted accounts (GDPR).
-//
-// The database decides WHICH files are orphans (public.orphan_avatar_objects(), files older than 1 hour
-// that no profiles.avatar_path points to). This script only deletes them through the Storage API.
-// Files must not be deleted with SQL on storage.objects: that leaves the file in the bucket.
-
+// Deletes avatar files in Storage that no profile points to. For performance & GDPR
+// Files needs to be older than 1 hour & no profiles.avatar_path points to. This script only deletes them through the Storage API.
 import { AVATAR_BUCKET } from "../../shared/storage.ts";
 
 process.loadEnvFile(".env");
 
-// Imported here, after loadEnvFile: the admin client reads the keys when it is imported
+// Imported after loadEnvFile
 const { supabaseAdmin } = await import("../lib/supabaseAdmin.ts");
 
-// Delete a maximum of 1000 files per call (limit set by Storage remove() in the API). This amount of removed files probably won't happen in this application.
+// Storage remove() limit/call
 const BATCH_SIZE = 1000;
 
 // Find unused files to delete
@@ -41,7 +36,6 @@ for (let i = 0; i < orphans.length; i += BATCH_SIZE) {
     .remove(batch);
 
   if (removeError) {
-    // Will be visible in the GitHub log
     console.error("Could not delete avatars:", removeError.message);
     process.exitCode = 1;
     break; // Stop here: the next batches would probably fail too. The next run picks up what is left

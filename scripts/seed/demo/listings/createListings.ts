@@ -1,5 +1,5 @@
 // Insert the 50 listings. Returns idOf, which turns a listing number (1-50) into its database id.
-import { supabaseAdmin } from "../../lib/supabaseAdmin.ts";
+import { supabaseAdmin } from "../../../lib/supabaseAdmin.ts";
 import { AGENCY, check, fail, type IdOf } from "../setup/helpers.ts";
 import { buildListingRows, PLACES } from "./listingRows.ts";
 
@@ -14,7 +14,7 @@ export async function createListings(now: number): Promise<IdOf> {
   );
   if (foundMunicipalities.length !== municipalityNames.length) {
     fail(
-      "Municipalities are missing. Run node scripts/places/seedPlaces.ts first.",
+      "Municipalities are missing. Run node scripts/seed/places/seedPlaces.ts first.",
     );
   }
 

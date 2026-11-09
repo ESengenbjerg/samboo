@@ -1,6 +1,6 @@
 // Two personal showings for user 2 on liked listings.
 // User 2 has no group yet, so they move into the group when user 1 accepts the invite.
-import { supabaseAdmin } from "../../lib/supabaseAdmin.ts";
+import { supabaseAdmin } from "../../../lib/supabaseAdmin.ts";
 import { DAY, ok, type IdOf } from "../setup/helpers.ts";
 
 export async function createFriendShowings(

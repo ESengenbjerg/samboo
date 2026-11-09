@@ -1,13 +1,13 @@
-// Build topic, html and text for ONE user
+// Build subject, html and text for ONE user
 // Only functions that turn data into text: no database, no network.
-// The data: one row from due_notifications() (see docs/database-design.md, "Notification mails")
+// The data: one row from due_emails() (see docs/database-design.md, "Emails")
 
 import type { Enums, Tables } from "../../shared/database.types.ts";
 import type { RpcRow } from "../../shared/db.ts";
 import { formatNumber, formatPrice } from "../../shared/format.ts";
 import { propertyTypeLabel } from "../../shared/property-types.ts";
 
-// One listing in due_notifications().new_listings. The function builds the json from these listings columns
+// One listing in due_emails().new_listings. The function builds the json from these listings columns
 export type MailListing = Pick<
   Tables<"listings">,
   | "id"
@@ -24,27 +24,25 @@ export type MailListing = Pick<
   | "url"
 >;
 
-// One entry in due_notifications().partner_likes. Handwritten: the function returns it as jsonb,
-// which the generated types only know as Json
+// One entry in due_emails().partner_likes. Handwritten: the function returns it as jsonb, which the generated types only know as Json
 export type PartnerLike = {
   name: string;
   count: number;
   listings: { id: number; address: string | null }[]; // the 2 latest
 };
 
-// One row from due_notifications(). The json columns get their shape here, and frequency is narrower
-// than the column: users with "none" are never returned
+// One row from due_emails(). The json columns get their shape here, and frequency is narrower than the column: users with "none" are never returned
 export type DueRow = Omit<
-  RpcRow<"due_notifications">,
+  RpcRow<"due_emails">,
   "frequency" | "new_listings" | "partner_likes"
 > & {
-  frequency: Exclude<Enums<"notification_frequency">, "none">;
+  frequency: Exclude<Enums<"email_frequency">, "none">;
   new_listings: MailListing[]; // at most 5
   partner_likes: PartnerLike[];
 };
 
 // ----- Small helpers -----
-// This function replaces symbols, use it on everything from the database that goes into the html version of the mail
+// Replaces symbols, use it on everything from the database that goes into the html version of the mail
 export function escapeHtml(text: string): string {
   text = text.replaceAll("&", "&amp;");
   text = text.replaceAll("<", "&lt;");
@@ -56,11 +54,10 @@ export function escapeHtml(text: string): string {
 }
 
 export function objectsWord(value: number): string {
-  // This is used if 1
   if (value === 1) {
     return "1 nytt objekt";
   }
-  // For 0 and all other numbers
+  // For 0 or several
   return `${value} nya objekt`;
 }
 
@@ -73,16 +70,13 @@ export function listingUrl(appUrl: string, id: number): string {
 
 // ----------------- NEW OBJECTS -----------------
 
-// Convert one listing to two lines
-
 // Line 1 (title): address + ", " + area, but ONLY add area if the address does not already contain it
-//   ("Hytterkullen 16, Öjersjö" + "Öjersjö" -> no extra). No address: use area or municipality.
 export function listingTitle(l: MailListing): string {
   const address: string | null = l.address;
   const area: string | null = l.area;
   const municipality: string | null = l.municipality;
 
-  // Missing address, try to turn area first hand, municipality 2nd hand, otherwise just a string
+  // On address: use area, then municipality, otherwise a generic text
   if (!address) {
     if (area) {
       return `En bostad i ${area}`;
@@ -94,23 +88,23 @@ export function listingTitle(l: MailListing): string {
   }
 
   // From here on, address exists
-  //   If address contains area, just return address with area
+  // If address contains area, just return address with area
   if (area && address.toLowerCase().includes(area.toLowerCase())) {
     return address;
   }
 
-  // If address and area are separate, concaternate
+  // If address and area are separate, concatenate
   if (area) {
     const result = `${address}, ${area}`;
     return result;
   }
 
-  // If no area, just reteurn address
+  // If no area, just return address
   return address;
 }
 
 // Line 2 (facts): the parts that are not null
-// "Lägenhet · 3 495 000 kr · 3 rok · 78 m² · Avgift 4 200 kr/mån · Nyproduktion"
+// "Lägenhet · 3 495 000 kr · 3 rok · 78 kvm · Avgift 4 200 kr/mån · Nyproduktion"
 export function listingFacts(list: MailListing): string {
   const parts: string[] = [];
 
@@ -131,7 +125,7 @@ export function listingFacts(list: MailListing): string {
   return parts.join(" · ");
 }
 
-// ----------------- A GROUP MEMEBER's NEW LIKES  -----------------
+// ----------------- A GROUP MEMBER's NEW LIKES  -----------------
 export function partnerSentence(p: PartnerLike): string {
   if (p.count === 1) {
     return `${p.name} har gillat ${p.listings[0].address ? p.listings[0].address : "ett objekt"}.`;
@@ -153,7 +147,7 @@ export function mailSubject(row: DueRow): string {
   return "Nytt på Samboo";
 }
 
-// Text version of the mail, sent alongside the HTML (for clients and spam filters that perfer plain text)
+// Text version of the mail, sent alongside the HTML (for clients and spam filters that prefer plain text)
 export function mailContent(row: DueRow, appUrl: string): string {
   const lines: string[] = [];
 

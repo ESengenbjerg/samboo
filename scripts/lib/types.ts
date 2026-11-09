@@ -5,7 +5,7 @@ import type { Enums, Tables } from "../../shared/database.types.ts";
 // The columns of search_params that the scraper reads
 export type SearchParamsRow = Pick<
   Tables<"search_params">,
-  "user_id" | "property_types" | "municipalities" | "areas"
+  "user_id" | "property_types" | "municipalities"
 >;
 
 // Our own property_type values: the database enum public.property_type (listings.property_type)
@@ -14,7 +14,6 @@ export type PropertyType = Enums<"property_type">;
 // One distinct search to be done on each agency's site
 export type ScopeItem = {
   municipalities: string[];
-  areas: string[];
   propertyTypes: PropertyType[];
 };
 
@@ -62,10 +61,10 @@ export type Agency = {
 // The columns of an active listing that the removal check needs
 export type ActiveListing = Pick<
   Tables<"listings">,
-  "id" | "external_id" | "url" | "municipality" | "area" | "property_type"
+  "id" | "external_id" | "url" | "municipality" | "property_type"
 >;
 
-// Why a run was flagged. F1-F4 are failures, "mass_removal" is the suspicious case.
+// Why a run was flagged. F1-F4 are failures, "mass_removal" is the suspicious case (see docs/removed_listings.md).
 // IssueKind is the database enum public.scrape_issue_kind.
 // IssueReason stays here: the database does not limit reason, the list belongs to the scraper's rules
 export type IssueKind = Enums<"scrape_issue_kind">;

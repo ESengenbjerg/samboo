@@ -18,13 +18,13 @@ You can try the app against your own Supabase project without setting up e-mail,
 1. Create a new, empty project on [supabase.com](https://supabase.com). Use a separate project for demo data, never one with real users.
 2. Enable the `pg_cron` and `pg_net` extensions (Database → Extensions).
 3. Run all of [supabase/schema.sql](supabase/schema.sql) in the SQL Editor.
-4. Run [supabase/setup-extras.sql](supabase/setup-extras.sql) in the SQL Editor, **except the last three lines** (the `dispatch-scrape`, `dispatch-purge-avatars` and `dispatch-notify` jobs). This file is required: it creates the trigger that gives every new account a profile, the rate limit, the `avatars` bucket for profile pictures and the daily cleanup jobs. The three `dispatch-*` jobs start GitHub Actions workflows in the original repository and need a GitHub token in Vault, so they are not part of the demo. If the SQL Editor refuses the storage policies, create them under Storage → Policies instead.
+4. Run [supabase/setup-extras.sql](supabase/setup-extras.sql) in the SQL Editor, **except the last three lines** (the `dispatch-scrape`, `dispatch-purge-avatars` and `dispatch-email` jobs). This file is required: it creates the trigger that gives every new account a profile, the rate limit, the `avatars` bucket for profile pictures and the daily cleanup jobs. The three `dispatch-*` jobs start GitHub Actions workflows in the original repository and need a GitHub token in Vault, so they are not part of the demo. If the SQL Editor refuses the storage policies, create them under Storage → Policies instead.
 5. Install the dependencies (`npm install`), then copy `.env.example` to `.env` and fill in:
    - `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_KEY` (publishable/anon key) and `SUPABASE_SERVICE_ROLE_KEY` from Project Settings → API. The service role key is only used by the scripts and must never end up in the app.
    - `SEED_USER` and `SEED_FRIEND`: the e-mail addresses of the two demo accounts. No mail is sent to them.
    - `PASSWORD_SEED_USER` and `PASSWORD_FRIEND_USER`: choose your own passwords, at least 8 characters.
-6. Fill in Sweden's counties and municipalities, and the areas of Göteborg, Mölndal and Partille (Node 24): `node scripts/places/seedPlaces.ts`
-7. Create the demo data (Node 24): `node scripts/seed/seedDemo.ts`
+6. Fill in Sweden's counties and municipalities, and the areas of Göteborg, Mölndal and Partille (Node 24): `node scripts/seed/places/seedPlaces.ts`
+7. Create the demo data (Node 24): `node scripts/seed/demo/seedDemo.ts`
 8. Start the app (`npx expo start`) and sign in as `SEED_USER`.
 
 ### What the demo data contains
@@ -37,7 +37,7 @@ The app itself is in Swedish. Labels from the app are quoted in Swedish below, w
 
 What you can try: onboarding, profile picture, accepting or declining the invite, search results, filters and sorting, likes (like something Robin has already liked and it ends up in your shared list), tags, showings, changing your search, leaving the group and deleting your account.
 
-Run `node scripts/seed/seedDemo.ts` again to start over. The script removes the old demo data and creates it again, with dates counted from today. `--remove` only removes the demo data. The script refuses to run if the database has users other than the demo accounts.
+Run `node scripts/seed/demo/seedDemo.ts` again to start over. The script removes the old demo data and creates it again, with dates counted from today. `--remove` only removes the demo data. The script refuses to run if the database has users other than the demo accounts.
 
 The daily cleanup deletes removed listings 10 days after they were removed. The two "Hittas inte" listings are created as removed 2 days ago, so they disappear about 8 days after the script ran. Run the script again to get them back.
 
@@ -47,28 +47,29 @@ The following requires that you have set up SMTP (for example Resend) and config
 
 - signing up for a new account and verifying the e-mail address
 - forgot password and password reset
-- the notification mails about new listings (`scripts/notify`)
+
+The emails about new listings (`scripts/email`) are sent with the Resend API and need `RESEND_API_KEY`, `NOTIFY_FROM` and `APP_URL`.
 
 Scraping of real agency sites (`scripts/scraper`) and the scheduled GitHub Actions jobs are not part of the demo data either.
 
 ## Project structure
 
-| Folder      | What                                                                                   | Run by                         |
-| ----------- | -------------------------------------------------------------------------------------- | ------------------------------ |
-| `src/`      | The app. Routes in `src/app/`, everything else (components, hooks, services) beside it | Metro (Expo)                   |
-| `scripts/`  | Node scripts: scraper, notification mails, seeding, purges, `gen:types`                | Node 24, directly as `.ts`     |
-| `shared/`   | Code that both the app and the scripts import. Never run on its own                    | imported by both of the above  |
-| `supabase/` | The database described in SQL (`schema.sql`, `setup-extras.sql`)                       | pasted into the SQL Editor     |
+| Folder      | What                                                                                   | Run by                        |
+| ----------- | -------------------------------------------------------------------------------------- | ----------------------------- |
+| `src/`      | The app. Routes in `src/app/`, everything else (components, hooks, services) beside it | Metro (Expo)                  |
+| `scripts/`  | Node scripts: scraper, emails, seeding, purges, `gen:types`                            | Node 24, directly as `.ts`    |
+| `shared/`   | Code that both the app and the scripts import. Never run on its own                    | imported by both of the above |
+| `supabase/` | The database described in SQL (`schema.sql`, `setup-extras.sql`)                       | pasted into the SQL Editor    |
 
 ### Why `scripts/` and `shared/` have their own `package.json` and `tsconfig.json`
 
 The app and the scripts are run by two different tools, so they need different settings:
 
-|                     | App (`src/`)                                         | Scripts and `shared/`                                                                   |
-| ------------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Run by              | Metro and Babel, which bundle everything             | Node, which strips the types from `.ts` files itself                                    |
-| Imports             | `@/components/x` or `@shared/x`, no file extension   | Relative paths with the extension: `../lib/types.ts`                                    |
-| Module format       | CommonJS in the root (see below)                     | ES modules: their own `package.json` has `"type": "module"`                             |
+|                     | App (`src/`)                                         | Scripts and `shared/`                                                                    |
+| ------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Run by              | Metro and Babel, which bundle everything             | Node, which strips the types from `.ts` files itself                                     |
+| Imports             | `@/components/x` or `@shared/x`, no file extension   | Relative paths with the extension: `../lib/types.ts`                                     |
+| Module format       | CommonJS in the root (see below)                     | ES modules: their own `package.json` has `"type": "module"`                              |
 | TypeScript settings | root `tsconfig.json` (`moduleResolution: "bundler"`) | `scripts/tsconfig.json` (`NodeNext`, `allowImportingTsExtensions`, `erasableSyntaxOnly`) |
 
 The root `package.json` has no `"type": "module"` on purpose. The config files in the root (`babel.config.js`, `metro.config.js`, `tailwind.config.js`, `eslint.config.js`) use `require` and `module.exports`, which stop working if Node reads every `.js` file as an ES module. So the root stays CommonJS, as Expo expects, and every folder that Node runs as ES modules gets a small `package.json` of its own.

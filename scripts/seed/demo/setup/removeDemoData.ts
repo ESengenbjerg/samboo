@@ -1,5 +1,5 @@
 // Remove the previous demo data (demo users and seed listings).
-import { supabaseAdmin } from "../../lib/supabaseAdmin.ts";
+import { supabaseAdmin } from "../../../lib/supabaseAdmin.ts";
 import { AGENCY, check, fail } from "./helpers.ts";
 import type { AuthUser } from "./safetyCheck.ts";
 

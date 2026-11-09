@@ -1,6 +1,6 @@
 // Create the two demo users. User 1 is not onboarded, user 2 is.
 // Returns their user ids.
-import { supabaseAdmin } from "../../lib/supabaseAdmin.ts";
+import { supabaseAdmin } from "../../../lib/supabaseAdmin.ts";
 import type { SeedConfig } from "../setup/config.ts";
 import { DAY, fail, ok } from "../setup/helpers.ts";
 
@@ -35,11 +35,11 @@ export async function createUsers(
     "Robin",
   );
 
-  // No notification mails for demo users. User 1 goes through onboarding in the app, user 2 is already done
+  // No emails for demo users. User 1 goes through onboarding in the app, user 2 is already done
   ok(
     await supabaseAdmin
       .from("profiles")
-      .update({ notification_frequency: "none" })
+      .update({ email_frequency: "none" })
       .eq("id", user1),
     "update user 1's profile",
   );
@@ -47,7 +47,7 @@ export async function createUsers(
     await supabaseAdmin
       .from("profiles")
       .update({
-        notification_frequency: "none",
+        email_frequency: "none",
         onboarding_completed_at: new Date(now - 3 * DAY).toISOString(),
       })
       .eq("id", user2),

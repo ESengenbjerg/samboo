@@ -1,8 +1,8 @@
 // Sweden's counties (län) and the municipalities (kommuner) in each, 290 in total.
 //
 // BELONGS TO agency1 (scraper/agencies/agency1.ts): it needs the county of a municipality to build the site's search URLs
-// ("county/municipality"). That is a requirement of the agency's site, so it does not come from the database. Can move into scraper/ later.
-// NOT the list that is seeded into the database: that is places/data/swedishPlaces.ts.
+// ("county/municipality"). The list follows the structure of the agency's site, so it does not come from the database.
+// NOT the list that is seeded into the database: that is seed/places/data/swedishPlaces.ts.
 
 export const COUNTIES: Record<string, string[]> = {
   Stockholm: [
@@ -347,19 +347,11 @@ export function slugify(name: string): string {
 const COUNTY_BY_NAME = new Map<string, string>();
 const COUNTY_BY_SLUG = new Map<string, string>();
 
-// Lowercase name -> the name as spelled in the list
-const NAME_BY_LOWERCASE = new Map<string, string>();
 for (const [county, municipalities] of Object.entries(COUNTIES)) {
   for (const m of municipalities) {
     COUNTY_BY_NAME.set(m.toLowerCase(), county);
     COUNTY_BY_SLUG.set(slugify(m), county);
-    NAME_BY_LOWERCASE.set(m.toLowerCase(), m);
   }
-}
-
-// "göteborg" -> "Göteborg". Null for an unknown municipality. Not by slug, so "Habo" never becomes "Håbo"
-export function municipalityName(name: string): string | null {
-  return NAME_BY_LOWERCASE.get(name.trim().toLowerCase()) ?? null;
 }
 
 // "Partille" -> "Västra Götaland". Null for an unknown municipality

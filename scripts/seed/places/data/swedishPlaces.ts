@@ -1,7 +1,8 @@
 // Sweden's counties (län) and the municipalities (kommuner) in each, 290 in total.
 //
-// THE LIST THAT IS SEEDED into the counties and municipalities tables by places/seedPlaces.ts (needed once in a new project, e.g. a fork).
-// After seeding, the tables are the source of truth for the app. A copy of this list also lives in lib/swedishPlaces.ts, where agency1 uses it for URLs.
+// THE LIST THAT IS SEEDED into the counties and municipalities tables by seed/places/seedPlaces.ts (needed once in a new project, e.g. a fork).
+// After seeding, the tables are the source of truth for the app. The mappers (scraper/mappers/parse.ts) read this list to spell municipality names as the
+// database does. agency1 has its own list for URLs in scraper/swedishPlaces.ts.
 
 export const COUNTIES: Record<string, string[]> = {
   Stockholm: [

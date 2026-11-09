@@ -163,7 +163,6 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/PendingInvite' }
-        '429': { $ref: '#/components/responses/RateLimited' }
 
   /rpc/my_group_members:
     get:
@@ -281,7 +280,7 @@ paths:
         no row (a group member's listing outside my search). That is what makes it disappear from `my_new_listing_ids`,
         and it keeps the listing from becoming "new" again if it stops matching my search and later matches again.
         Listings that are not visible to me are silently ignored.
-        This is the only way to change `is_new`; it cannot be written directly.
+        Apart from `like_listing`, this is the only way to change `is_new`; it cannot be written directly.
       operationId: mark_listing_seen
       requestBody:
         required: true
@@ -324,7 +323,6 @@ paths:
                   type: object
                   properties:
                     listing_id: { type: integer, format: int64 }
-        '429': { $ref: '#/components/responses/RateLimited' }
 
   /rpc/shared_likes:
     get:
@@ -343,7 +341,6 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/Listing' }
-        '429': { $ref: '#/components/responses/RateLimited' }
 
   /rpc/my_showing_events:
     get:
@@ -365,7 +362,6 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/ShowingEvent' }
-        '429': { $ref: '#/components/responses/RateLimited' }
 
   /rpc/has_new_notifications:
     get:
@@ -388,7 +384,6 @@ paths:
           content:
             application/json:
               schema: { type: boolean }
-        '429': { $ref: '#/components/responses/RateLimited' }
 
   /rpc/mark_notifications_seen:
     post:
@@ -449,8 +444,8 @@ paths:
       summary: Update my profile
       description: |
         Filter on my own id (`?id=eq.<uid>`). Only `name`, `onboarding_completed_at`, `avatar_path` and
-        `notification_frequency` can be written. `group_id` and `is_active` can only change through functions,
-        `last_notified_at` only by the notification script, `notifications_seen_at` only through `mark_notifications_seen`.
+        `email_frequency` can be written. `group_id` and `is_active` can only change through functions,
+        `last_emailed_at` only by the email script, `notifications_seen_at` only through `mark_notifications_seen`.
       operationId: profiles_update
       requestBody:
         required: true
@@ -459,7 +454,7 @@ paths:
             schema: { $ref: '#/components/schemas/ProfileUpdate' }
       responses:
         '204': { description: Updated. }
-        '400': { description: 'Constraint violated (name not 1-100 characters, avatar_path not `<own user id>/<name>.<jpg|jpeg|png|webp>` or longer than 200, notification_frequency not day/week/none, error 22P02).' }
+        '400': { description: 'Constraint violated (name not 1-100 characters, avatar_path not `<own user id>/<name>.<jpg|jpeg|png|webp>` or longer than 200, email_frequency not day/week/none, error 22P02).' }
         '429': { $ref: '#/components/responses/RateLimited' }
 
   /groups:
@@ -951,8 +946,8 @@ components:
           type: string
           nullable: true
           description: 'Path in the public `avatars` bucket, `<user id>/<name>.<jpg|jpeg|png|webp>`. Build the URL with `supabase.storage.from(''avatars'').getPublicUrl(path)`'
-        notification_frequency: { $ref: '#/components/schemas/NotificationFrequency' }
-        last_notified_at: { type: string, format: date-time, nullable: true, description: When the last notification mail was sent. Read-only }
+        email_frequency: { $ref: '#/components/schemas/EmailFrequency' }
+        last_emailed_at: { type: string, format: date-time, nullable: true, description: When the last email was sent. Read-only }
         notifications_seen_at: { type: string, format: date-time, nullable: true, description: 'When I last opened the notifications page (null = never). Set with mark_notifications_seen. Read-only' }
 
     ShowingEvent:
@@ -980,13 +975,13 @@ components:
           maxLength: 200
           pattern: '^[0-9a-f-]{36}/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$'
           description: 'Must start with the own user id. It is not checked that the file exists, so upload the file first'
-        notification_frequency: { $ref: '#/components/schemas/NotificationFrequency' }
+        email_frequency: { $ref: '#/components/schemas/EmailFrequency' }
 
-    NotificationFrequency:
+    EmailFrequency:
       type: string
       enum: [day, week, none]
       default: day
-      description: 'Postgres enum `public.notification_frequency`. How often the notification mail is sent (about 07:00 Swedish time): day = every morning, week = Friday mornings, none = never. Covers both new matches and group members'' likes'
+      description: 'Postgres enum `public.email_frequency`. How often the email is sent (about 07:00 Swedish time): day = every morning, week = Friday mornings, none = never. Covers both new matches and group members'' likes'
 
     Invite:
       type: object

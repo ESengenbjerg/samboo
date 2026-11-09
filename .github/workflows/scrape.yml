@@ -1,14 +1,13 @@
 name: Scrape listings
 
-# NOTE! In GitHub Action Secrets - needs to put in dotenv variables PRIOR to first test run!
+# Scrapes the agencies and matches the listings to users' searches (see scripts/scraper/run.ts)
 
 on:
   schedule:
-    # Once a day. GitHub cron is always UTC: 02:12 UTC = 03:12 Swedish winter time,
-    # 04:12 summer time. Off the hour on purpose, GitHub delays jobs queued at :00
+    # GitHub cron is UTC. Off the hour on purpose, GitHub delays jobs queued at :00
     - cron: "12 2 * * *"
 
-  workflow_dispatch: # Manual run from the Actions tab, and backup trigger from pg_cron
+  workflow_dispatch:
     inputs:
       skip_if_recent:
         description: "Skip if already run successfully in the last 12 hours (used by pg_cron)"
@@ -18,26 +17,25 @@ on:
 permissions:
   contents: read
 
-# Never run two scrapes at once
 concurrency:
   group: scrape
   cancel-in-progress: false
 
 jobs:
-  # Backup trigger: pg_cron in Supabase also starts this workflow (workflow_dispatch with skip_if_recent = true), because GitHub's schedule does not always fire. Scheduled and pg_cron runs are skipped if the scrape job already succeeded in the last 12 hours.
-  # Runs where the scrape job itself was skipped do not count.
+  # pg_cron also starts this workflow, because GitHub's schedule does not always fire.
+  # Scheduled and pg_cron runs are skipped if the scrape job already succeeded in the last 12 hours.
   guard:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     permissions:
-      actions: read # List earlier runs of this workflow
+      actions: read
     outputs:
       recent: ${{ steps.check.outputs.recent }}
     steps:
       - name: Check for a successful scrape in the last 12 hours
         id: check
         continue-on-error: true # If the check fails, run anyway instead of skipping
-        # A manual run from the Actions tab (skip_if_recent = false) always runs
+        # Manual runs always run
         if: github.event_name == 'schedule' || inputs.skip_if_recent
         env:
           GH_TOKEN: ${{ github.token }}
@@ -72,8 +70,7 @@ jobs:
 
       - run: npx playwright install --with-deps chromium
 
-      # run.ts calls process.loadEnvFile(".env"), which throws if the file is missing.
-      # An empty file is fine: variables already in the environment are not overwritten.
+      # process.loadEnvFile() throws without a .env file. An empty one is fine
       - run: touch .env
 
       - name: Scrape and match

@@ -11,7 +11,7 @@ export function getAvatarUrl(path: string | null) {
 export function getProfile(userId: string) {
   return supabase
     .from("profiles")
-    .select("name, avatar_path, notification_frequency")
+    .select("name, avatar_path, email_frequency")
     .eq("id", userId)
     .single();
 }
@@ -26,7 +26,7 @@ export function updateNotificationFrequency(
 ) {
   return supabase
     .from("profiles")
-    .update({ notification_frequency: frequency })
+    .update({ email_frequency: frequency })
     .eq("id", userId);
 }
 
@@ -49,7 +49,7 @@ export function completeProfile(
     .update({
       name,
       onboarding_completed_at: new Date().toISOString(),
-      notification_frequency: frequency,
+      email_frequency: frequency,
     })
     .eq("id", userId)
     .select("id, name, onboarding_completed_at")

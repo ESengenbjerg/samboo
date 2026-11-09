@@ -1,4 +1,4 @@
-import { municipalityName } from "../../lib/swedishPlaces.ts";
+import { COUNTIES } from "../../seed/places/data/swedishPlaces.ts";
 
 // Shared parsers for the agency mappers. Each turns a raw value from a site into
 // something the listings table accepts, or null. Never undefined.
@@ -72,12 +72,19 @@ export function toPlaceName(value: unknown): string | null {
     : null;
 }
 
+// Lowercase name -> the name in the list that is seeded into the municipalities table
+const MUNICIPALITY_BY_LOWERCASE = new Map(
+  Object.values(COUNTIES)
+    .flat()
+    .map((name) => [name.toLowerCase(), name]),
+);
+
 // The municipality as spelled in the municipalities table ("göteborg" -> "Göteborg"), since matching compares
 // it exactly with the user's search. An unknown name becomes null: it could never match anyway
 export function toMunicipality(value: unknown): string | null {
   const text = toText(value);
   if (!text) return null;
-  const name = municipalityName(text);
+  const name = MUNICIPALITY_BY_LOWERCASE.get(text.toLowerCase()) ?? null;
   if (!name) console.warn(`Unknown municipality "${text}", saving null`);
   return name;
 }
