@@ -52,7 +52,7 @@ The dump keeps function bodies (including comments inside them) and `COMMENT ON`
 
 The limit triggers and functions lock first (the profile row, the group row or an advisory lock) and count after, so two simultaneous requests cannot both pass the limit.
 
-**STABLE functions must be called with `{ get: true }`.** PostgREST runs STABLE functions in a read-only transaction. Called with POST (the `supabase.rpc` default), `check_request()` tries to write its counter and the call fails with 405 / 25006. `my_group_id()`, `my_group_members()`, `my_pending_invites()`, `my_new_listing_ids()`, `my_showing_events()` and `has_new_notifications()` are STABLE, and so must any new STABLE function the app calls.
+**STABLE functions must be called with `{ get: true }`.** PostgREST runs STABLE functions in a read-only transaction. Called with POST (the `supabase.rpc` default), `check_request()` tries to write its counter and the call fails with 405 / 25006. `my_group_id()`, `my_group_members()`, `my_pending_invites()`, `my_new_listing_ids()`, `my_showing_events()`, `has_new_notifications()` and `shared_likes()` are STABLE, and so must any new STABLE function the app calls.
 
 **Trigger order matters.** BEFORE triggers on the same table fire in alphabetical order. The names are chosen so validation runs before counting: `search_params_check_places` before `search_params_limit_changes` (an invalid search is not logged), and `invites_check_recipient` before `invites_limit_per_pair`.
 
