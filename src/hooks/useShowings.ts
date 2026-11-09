@@ -53,7 +53,10 @@ export function useShowings(
           setResult({ key: resultKey, showings: [], failed: true });
           return;
         }
-        setResult({ key: resultKey, showings: (data ?? []).map(toScheduledShowing) });
+        setResult({
+          key: resultKey,
+          showings: (data ?? []).map(toScheduledShowing),
+        });
       });
 
       return () => {
@@ -61,6 +64,16 @@ export function useShowings(
       };
     }, [userId, when]),
   );
+
+  // Removes a showing from a list without fetching again.
+  // Used after a delete that the server has already confirmed.
+  const removeShowing = useCallback((id: number) => {
+    setResult((prev) =>
+      prev
+        ? { ...prev, showings: prev.showings.filter((s) => s.id !== id) }
+        : prev,
+    );
+  }, []);
 
   // Never expose a result that belongs to a previous user
   const current = userId && result?.key === key ? result : null;
@@ -70,5 +83,6 @@ export function useShowings(
     // Loading until we have a result for the current user
     isLoading: !!userId && !current,
     error: current?.failed ? "Kunde inte hämta visningar." : null,
+    removeShowing,
   };
 }

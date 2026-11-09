@@ -1,6 +1,7 @@
 import ScheduledShowingInfo from "@/components/saved/scheduled-showing-info";
 import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
+
 import { useShowings } from "@/hooks/useShowings";
 import { ScheduledShowing } from "@/types/showings";
 import { formatDateLabel, toIsoDate } from "@/utils/date-format";
@@ -13,8 +14,12 @@ export default function ScheduledShowingsSection({
 }: {
   userId: string;
 }) {
-  const { showings, isLoading, error } = useShowings(userId, "upcoming");
-  const { showings: pastShowings } = useShowings(userId, "past");
+  const { showings, isLoading, error, removeShowing } = useShowings(
+    userId,
+    "upcoming",
+  );
+  const { showings: pastShowings, removeShowing: removePastShowing } =
+    useShowings(userId, "past");
   const [isInPast, setIsInPast] = useState(false);
   const displayedShowings = isInPast ? pastShowings : showings;
 
@@ -23,7 +28,8 @@ export default function ScheduledShowingsSection({
   function isFirstForDate(showing: ScheduledShowing, index: number) {
     return (
       index === 0 ||
-      toIsoDate(showing.startsAt) !== toIsoDate(displayedShowings[index - 1].startsAt)
+      toIsoDate(showing.startsAt) !==
+        toIsoDate(displayedShowings[index - 1].startsAt)
     );
   }
 
@@ -66,6 +72,9 @@ export default function ScheduledShowingsSection({
                   area={s.area}
                   startsAt={s.startsAt}
                   note={s.note}
+                  onDeleted={() =>
+                    isInPast ? removePastShowing(s.id) : removeShowing(s.id)
+                  }
                 />
               </View>
             </View>

@@ -21,7 +21,10 @@ import { Button } from "../ui/button";
 import { Icon } from "../ui/icon";
 import { Text } from "../ui/text";
 
-export default function ScheduledShowingInfo(showing: ScheduledShowing) {
+export default function ScheduledShowingInfo({
+  onDeleted,
+  ...showing
+}: ScheduledShowing & { onDeleted: () => void }) {
   const timeText = showing.startsAt.toLocaleTimeString("sv-SE", {
     hour: "2-digit",
     minute: "2-digit",
@@ -66,6 +69,15 @@ export default function ScheduledShowingInfo(showing: ScheduledShowing) {
     if (ok) {
       setEditDialogOpen(false);
       setSaved(true);
+    }
+  }
+
+  async function onDelete() {
+    const ok = await deleteShowing(showing.id);
+
+    if (ok) {
+      setDeleteDialogOpen(false);
+      onDeleted(); // Tells the paretn to remove showing from the list
     }
   }
 
@@ -180,13 +192,14 @@ export default function ScheduledShowingInfo(showing: ScheduledShowing) {
           open={true}
           onOpenChange={() => setDeleteDialogOpen(false)}
           title={"Radera visning"}
-          description={"Om du raderar visningen försvinner den även för dina gruppmedlemmar om du är med i en grupp."}
+          description={
+            "Om du raderar visningen försvinner den även för dina gruppmedlemmar om du är med i en grupp."
+          }
           actionLabel={"Radera visning"}
-          onAction={() => deleteShowing(showing.id)}
+          onAction={onDelete}
           cancelLabel={"Avbryt"}
           onCancel={() => setDeleteDialogOpen(false)}
           isLoading={isDeleting}
-          
         />
       )}
     </View>
