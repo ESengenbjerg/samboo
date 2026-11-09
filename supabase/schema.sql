@@ -59,6 +59,20 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
 
 
 
+CREATE TYPE "public"."email_frequency" AS ENUM (
+    'day',
+    'week',
+    'none'
+);
+
+
+ALTER TYPE "public"."email_frequency" OWNER TO "postgres";
+
+
+COMMENT ON TYPE "public"."email_frequency" IS 'How often a user gets emails (profiles.email_frequency). week = Fridays.';
+
+
+
 CREATE TYPE "public"."invite_status" AS ENUM (
     'pending',
     'accepted',
@@ -71,20 +85,6 @@ ALTER TYPE "public"."invite_status" OWNER TO "postgres";
 
 
 COMMENT ON TYPE "public"."invite_status" IS 'Status of an invite. cancelled = withdrawn by the sender, or closed by accept_invite().';
-
-
-
-CREATE TYPE "public"."notification_frequency" AS ENUM (
-    'day',
-    'week',
-    'none'
-);
-
-
-ALTER TYPE "public"."notification_frequency" OWNER TO "postgres";
-
-
-COMMENT ON TYPE "public"."notification_frequency" IS 'How often a user gets notification mails (profiles.notification_frequency). week = Fridays.';
 
 
 
@@ -501,7 +501,7 @@ $$;
 ALTER FUNCTION "public"."dissolve_group_if_alone"("g" bigint) OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."due_notifications"("p_include_weekly" boolean DEFAULT NULL::boolean) RETURNS TABLE("user_id" "uuid", "name" "text", "email" "text", "frequency" "public"."notification_frequency", "window_end" timestamp with time zone, "new_count" integer, "new_listings" "jsonb", "partner_likes" "jsonb")
+CREATE OR REPLACE FUNCTION "public"."due_emails"("p_include_weekly" boolean DEFAULT NULL::boolean) RETURNS TABLE("user_id" "uuid", "name" "text", "email" "text", "frequency" "public"."email_frequency", "window_end" timestamp with time zone, "new_count" integer, "new_listings" "jsonb", "partner_likes" "jsonb")
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
     AS $$
@@ -513,18 +513,18 @@ CREATE OR REPLACE FUNCTION "public"."due_notifications"("p_include_weekly" boole
   ),
   due as (
     select
-      p.id, p.name, u.email::text as email, p.notification_frequency, p.group_id, c.now_at,
-      greatest(coalesce(p.last_notified_at, p.created_at), c.now_at - interval '8 days') as since
+      p.id, p.name, u.email::text as email, p.email_frequency, p.group_id, c.now_at,
+      greatest(coalesce(p.last_emailed_at, p.created_at), c.now_at - interval '8 days') as since
     from public.profiles p
     join auth.users u on u.id = p.id
     cross join clock c
     where p.is_active
       and u.email_confirmed_at is not null
       and u.email is not null
-      and (p.notification_frequency = 'day' or (p.notification_frequency = 'week' and c.weekly_today))
-      and (p.last_notified_at is null or (p.last_notified_at at time zone 'Europe/Stockholm')::date < c.today)
+      and (p.email_frequency = 'day' or (p.email_frequency = 'week' and c.weekly_today))
+      and (p.last_emailed_at is null or (p.last_emailed_at at time zone 'Europe/Stockholm')::date < c.today)
   )
-  select d.id, d.name, d.email, d.notification_frequency, d.now_at, n.new_count, n.new_listings, pl.partner_likes
+  select d.id, d.name, d.email, d.email_frequency, d.now_at, n.new_count, n.new_listings, pl.partner_likes
   from due d
   cross join lateral (
     select
@@ -575,7 +575,7 @@ CREATE OR REPLACE FUNCTION "public"."due_notifications"("p_include_weekly" boole
 $$;
 
 
-ALTER FUNCTION "public"."due_notifications"("p_include_weekly" boolean) OWNER TO "postgres";
+ALTER FUNCTION "public"."due_emails"("p_include_weekly" boolean) OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."handle_deleted_profile"() RETURNS "trigger"
@@ -1783,8 +1783,8 @@ CREATE TABLE IF NOT EXISTS "public"."profiles" (
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "onboarding_completed_at" timestamp with time zone,
     "avatar_path" "text",
-    "notification_frequency" "public"."notification_frequency" DEFAULT 'day'::"public"."notification_frequency" NOT NULL,
-    "last_notified_at" timestamp with time zone,
+    "email_frequency" "public"."email_frequency" DEFAULT 'day'::"public"."email_frequency" NOT NULL,
+    "last_emailed_at" timestamp with time zone,
     "notifications_seen_at" timestamp with time zone,
     CONSTRAINT "profiles_avatar_path_check" CHECK ((("avatar_path" IS NULL) OR (("char_length"("avatar_path") <= 200) AND ("avatar_path" ~ (('^'::"text" || ("id")::"text") || '/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$'::"text"))))),
     CONSTRAINT "profiles_name_length" CHECK ((("char_length"("name") >= 1) AND ("char_length"("name") <= 100)))
@@ -2511,15 +2511,15 @@ GRANT USAGE ON SCHEMA "public" TO "service_role";
 
 
 
+REVOKE ALL ON TYPE "public"."email_frequency" FROM PUBLIC;
+GRANT ALL ON TYPE "public"."email_frequency" TO "authenticated";
+GRANT ALL ON TYPE "public"."email_frequency" TO "service_role";
+
+
+
 REVOKE ALL ON TYPE "public"."invite_status" FROM PUBLIC;
 GRANT ALL ON TYPE "public"."invite_status" TO "authenticated";
 GRANT ALL ON TYPE "public"."invite_status" TO "service_role";
-
-
-
-REVOKE ALL ON TYPE "public"."notification_frequency" FROM PUBLIC;
-GRANT ALL ON TYPE "public"."notification_frequency" TO "authenticated";
-GRANT ALL ON TYPE "public"."notification_frequency" TO "service_role";
 
 
 
@@ -2771,8 +2771,8 @@ GRANT ALL ON FUNCTION "public"."dissolve_group_if_alone"("g" bigint) TO "service
 
 
 
-REVOKE ALL ON FUNCTION "public"."due_notifications"("p_include_weekly" boolean) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."due_notifications"("p_include_weekly" boolean) TO "service_role";
+REVOKE ALL ON FUNCTION "public"."due_emails"("p_include_weekly" boolean) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."due_emails"("p_include_weekly" boolean) TO "service_role";
 
 
 
@@ -3102,7 +3102,7 @@ GRANT UPDATE("avatar_path") ON TABLE "public"."profiles" TO "authenticated";
 
 
 
-GRANT UPDATE("notification_frequency") ON TABLE "public"."profiles" TO "authenticated";
+GRANT UPDATE("email_frequency") ON TABLE "public"."profiles" TO "authenticated";
 
 
 

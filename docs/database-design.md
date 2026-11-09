@@ -64,7 +64,7 @@ Columns with a fixed list of values are Postgres enums, not text with a check co
 | ------------------------ | ------------------------------------------------------------ | ------------------------------------------------------ |
 | `property_type`          | `listings.property_type`, `search_params.property_types` (array) | `villa`, `radhus`, `lagenhet`, `fritidshus`, `tomt`, `other` |
 | `invite_status`          | `invites.status`                                             | `pending`, `accepted`, `declined`, `cancelled`         |
-| `notification_frequency` | `profiles.notification_frequency`                            | `day`, `week`, `none`                                  |
+| `email_frequency`        | `profiles.email_frequency`                                   | `day`, `week`, `none`                                  |
 | `scrape_issue_kind`      | `scrape_issues.kind`                                         | `failed`, `suspicious`                                 |
 | `scrape_issue_status`    | `scrape_issues.status`                                       | `open`, `resolved`                                     |
 | `showing_event_action`   | `showing_events.action`                                      | `created`, `updated`, `deleted`                        |
@@ -167,12 +167,12 @@ Bucket `avatars`, **public**: anyone with an image URL can open it without signi
 
 A mail about new matches and group members' likes, sent with Resend by `scripts/email` at about 07:00 Swedish time. The database cannot send mail itself.
 
-- **Frequency:** `profiles.notification_frequency`: `day` (every morning), `week` (Friday mornings, Swedish time) or `none`.
-- **Who is due:** `due_notifications()` returns active users with a confirmed e-mail whose frequency fits today and who have not been mailed today (Swedish date). A second run on the same day returns nobody. Users with nothing new are left out, so an empty mail is never sent.
-- **The window:** new means after `last_notified_at` (after sign-up for a new user), but at most 8 days back, so a user who turns mails on again does not get old listings.
+- **Frequency:** `profiles.email_frequency`: `day` (every morning), `week` (Friday mornings, Swedish time) or `none`.
+- **Who is due:** `due_emails()` returns active users with a confirmed e-mail whose frequency fits today and who have not been mailed today (Swedish date). A second run on the same day returns nobody. Users with nothing new are left out, so an empty mail is never sent.
+- **The window:** new means after `last_emailed_at` (after sign-up for a new user), but at most 8 days back, so a user who turns mails on again does not get old listings.
 - **New listings use `listings.created_at`, not `user_listings.created_at`.** Changing the search re-creates match rows for old listings, which would otherwise be mailed as new. As a consequence, a listing that only starts to match later (for example after a price drop) is not mailed. Liked and removed listings are left out.
 - **Partner likes:** per other group member, the listings they liked in the window (`user_listings.liked_at`) that I have not liked myself. The mail turns this into one sentence per member, so many likes never make the mail longer.
-- **No double mails:** the script sets `last_notified_at` after each successful batch and sends each batch with an idempotency key (date + user ids). This is not guaranteed: if a mail was sent but the marking failed, and the set of due users has changed by the rerun, those users can get the mail twice.
+- **No double mails:** the script sets `last_emailed_at` after each successful batch and sends each batch with an idempotency key (date + user ids). This is not guaranteed: if a mail was sent but the marking failed, and the set of due users has changed by the rerun, those users can get the mail twice.
 - Resend rejects a whole batch if one address is invalid. The script then sends that batch one mail at a time.
 
 ## Scheduled jobs

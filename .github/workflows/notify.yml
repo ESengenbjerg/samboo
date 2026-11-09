@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       # Not read by this workflow. dispatch_github_workflow() in Supabase always sends it, and GitHub rejects
-      # the dispatch (422) if the input is not declared. Double runs are harmless: due_notifications() skips
+      # the dispatch (422) if the input is not declared. Double runs are harmless: due_emails() skips
       # users already mailed today, and Resend gets an idempotency key per user and day.
       skip_if_recent:
         description: "Unused here (sent by pg_cron). Users already mailed today are always skipped"

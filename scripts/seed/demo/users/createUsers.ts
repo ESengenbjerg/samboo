@@ -39,7 +39,7 @@ export async function createUsers(
   ok(
     await supabaseAdmin
       .from("profiles")
-      .update({ notification_frequency: "none" })
+      .update({ email_frequency: "none" })
       .eq("id", user1),
     "update user 1's profile",
   );
@@ -47,7 +47,7 @@ export async function createUsers(
     await supabaseAdmin
       .from("profiles")
       .update({
-        notification_frequency: "none",
+        email_frequency: "none",
         onboarding_completed_at: new Date(now - 3 * DAY).toISOString(),
       })
       .eq("id", user2),

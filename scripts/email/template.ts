@@ -1,13 +1,13 @@
 // Build topic, html and text for ONE user
 // Only functions that turn data into text: no database, no network.
-// The data: one row from due_notifications() (see docs/database-design.md, "Emails")
+// The data: one row from due_emails() (see docs/database-design.md, "Emails")
 
 import type { Enums, Tables } from "../../shared/database.types.ts";
 import type { RpcRow } from "../../shared/db.ts";
 import { formatNumber, formatPrice } from "../../shared/format.ts";
 import { propertyTypeLabel } from "../../shared/property-types.ts";
 
-// One listing in due_notifications().new_listings. The function builds the json from these listings columns
+// One listing in due_emails().new_listings. The function builds the json from these listings columns
 export type MailListing = Pick<
   Tables<"listings">,
   | "id"
@@ -24,7 +24,7 @@ export type MailListing = Pick<
   | "url"
 >;
 
-// One entry in due_notifications().partner_likes. Handwritten: the function returns it as jsonb,
+// One entry in due_emails().partner_likes. Handwritten: the function returns it as jsonb,
 // which the generated types only know as Json
 export type PartnerLike = {
   name: string;
@@ -32,13 +32,13 @@ export type PartnerLike = {
   listings: { id: number; address: string | null }[]; // the 2 latest
 };
 
-// One row from due_notifications(). The json columns get their shape here, and frequency is narrower
+// One row from due_emails(). The json columns get their shape here, and frequency is narrower
 // than the column: users with "none" are never returned
 export type DueRow = Omit<
-  RpcRow<"due_notifications">,
+  RpcRow<"due_emails">,
   "frequency" | "new_listings" | "partner_likes"
 > & {
-  frequency: Exclude<Enums<"notification_frequency">, "none">;
+  frequency: Exclude<Enums<"email_frequency">, "none">;
   new_listings: MailListing[]; // at most 5
   partner_likes: PartnerLike[];
 };

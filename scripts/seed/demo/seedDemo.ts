@@ -5,7 +5,7 @@
 //   * User 2 (SEED_FRIEND): onboarded, has a search (Mölndal + Partille), has liked some listings
 //     (two of them "Hittas inte"), has two tags, two planned showings, and a pending group invite to user 1.
 //   * 50 listings with agency = 'seed' in Mölndal, Partille and Göteborg. No images (the app shows its fallback).
-//   Both users are created with a confirmed e-mail and notification_frequency 'none', so no mail is ever needed or sent.
+//   Both users are created with a confirmed e-mail and email_frequency 'none', so no mail is ever needed or sent.
 
 // Every run first removes the previous demo data and then creates it again, so it doubles as a reset.
 // Remove + create:

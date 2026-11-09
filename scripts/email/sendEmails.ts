@@ -54,16 +54,16 @@ if (hour < 7 && !force) {
 }
 
 // Fetch who is due today
-// due_notifications() decides everything: frequency, Friday, not mailed today, active, confirmed e-mail, something new.
+// due_emails() decides everything: frequency, Friday, not mailed today, active, confirmed e-mail, something new.
 // The script never has to check those itself.
 
 // Find due dates for today
-const { data, error } = await supabaseAdmin.rpc("due_notifications");
+const { data, error } = await supabaseAdmin.rpc("due_emails");
 
 // If something goes wrong
 if (error) {
   console.error(
-    "Could not fetch due_notifications from Supabase:",
+    "Could not fetch due_emails from Supabase:",
     error.message,
   );
   process.exit(1); // Exit code 1 makes the workflow run fail (red) in GitHub
@@ -79,7 +79,7 @@ const mails = rows.map((row) => {
 
   return {
     userId: row.user_id,
-    windowEnd: row.window_end, // Time for last_notified_at
+    windowEnd: row.window_end, // Time for last_emailed_at
     payload: {
       from: notifyFrom,
       to: [row.email], // Resend wants an array, even for one recipient
@@ -185,7 +185,7 @@ for (let i = 0; i < mails.length; i += 100) {
 async function markNotified(userIds: string[], windowEnd: string) {
   const { error: markError } = await supabaseAdmin
     .from("profiles")
-    .update({ last_notified_at: windowEnd })
+    .update({ last_emailed_at: windowEnd })
     .in("id", userIds);
 
   if (markError) {
