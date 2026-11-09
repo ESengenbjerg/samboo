@@ -1,5 +1,5 @@
 // User 2 invites user 1 to a group.
-import { supabaseAdmin } from "../../lib/supabaseAdmin.ts";
+import { supabaseAdmin } from "../../../lib/supabaseAdmin.ts";
 import { ok } from "../setup/helpers.ts";
 
 export async function createFriendInvite(

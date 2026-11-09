@@ -1,6 +1,6 @@
 // Create the two demo users. User 1 is not onboarded, user 2 is.
 // Returns their user ids.
-import { supabaseAdmin } from "../../lib/supabaseAdmin.ts";
+import { supabaseAdmin } from "../../../lib/supabaseAdmin.ts";
 import type { SeedConfig } from "../setup/config.ts";
 import { DAY, fail, ok } from "../setup/helpers.ts";
 

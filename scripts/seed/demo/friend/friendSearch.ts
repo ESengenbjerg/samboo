@@ -1,6 +1,6 @@
 // User 2's search, and what user 2 has liked and seen among the matches.
 // Returns the number of matches and the listing numbers user 2 liked (not counting the removed ones).
-import { supabaseAdmin } from "../../lib/supabaseAdmin.ts";
+import { supabaseAdmin } from "../../../lib/supabaseAdmin.ts";
 import { check, fail, ok, type IdOf } from "../setup/helpers.ts";
 import { REMOVED } from "../listings/listingRows.ts";
 

@@ -1,6 +1,6 @@
 // The 50 fake listings as plain rows (no database calls). Same listings every run,
 // only the dates follow the time the script runs.
-import type { PropertyType as AnyPropertyType } from "../../lib/types.ts";
+import type { PropertyType as AnyPropertyType } from "../../../lib/types.ts";
 import { AGENCY, DAY } from "../setup/helpers.ts";
 
 // The demo listings use every property type except "other"

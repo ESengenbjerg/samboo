@@ -2,7 +2,7 @@
 //
 // BELONGS TO agency1 (scraper/agencies/agency1.ts): it needs the county of a municipality to build the site's search URLs
 // ("county/municipality"). The list follows the structure of the agency's site, so it does not come from the database.
-// NOT the list that is seeded into the database: that is places/data/swedishPlaces.ts.
+// NOT the list that is seeded into the database: that is seed/places/data/swedishPlaces.ts.
 
 export const COUNTIES: Record<string, string[]> = {
   Stockholm: [

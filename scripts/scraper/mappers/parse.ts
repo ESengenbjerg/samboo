@@ -1,4 +1,4 @@
-import { COUNTIES } from "../../places/data/swedishPlaces.ts";
+import { COUNTIES } from "../../seed/places/data/swedishPlaces.ts";
 
 // Shared parsers for the agency mappers. Each turns a raw value from a site into
 // something the listings table accepts, or null. Never undefined.

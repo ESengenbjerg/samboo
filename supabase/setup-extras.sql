@@ -7,7 +7,7 @@
 --     public.dispatch_github_workflow(). Without it the dispatch-* jobs below fail every run, and only GitHub's own schedule is left.
 --     Create it in the SQL Editor, never in a file: select vault.create_secret('<token>', 'github_dispatch_token');
 --   * Auth settings (SMTP, e-mail templates, redirect URLs): docs/email-setup.md
---   * Reference data: node scripts/places/seedPlaces.ts
+--   * Reference data: node scripts/seed/places/seedPlaces.ts
 
 
 -- ---------------------------------------------------------------------

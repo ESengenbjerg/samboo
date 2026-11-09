@@ -23,8 +23,8 @@ You can try the app against your own Supabase project without setting up e-mail,
    - `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_KEY` (publishable/anon key) and `SUPABASE_SERVICE_ROLE_KEY` from Project Settings → API. The service role key is only used by the scripts and must never end up in the app.
    - `SEED_USER` and `SEED_FRIEND`: the e-mail addresses of the two demo accounts. No mail is sent to them.
    - `PASSWORD_SEED_USER` and `PASSWORD_FRIEND_USER`: choose your own passwords, at least 8 characters.
-6. Fill in Sweden's counties and municipalities, and the areas of Göteborg, Mölndal and Partille (Node 24): `node scripts/places/seedPlaces.ts`
-7. Create the demo data (Node 24): `node scripts/seed/seedDemo.ts`
+6. Fill in Sweden's counties and municipalities, and the areas of Göteborg, Mölndal and Partille (Node 24): `node scripts/seed/places/seedPlaces.ts`
+7. Create the demo data (Node 24): `node scripts/seed/demo/seedDemo.ts`
 8. Start the app (`npx expo start`) and sign in as `SEED_USER`.
 
 ### What the demo data contains
@@ -37,7 +37,7 @@ The app itself is in Swedish. Labels from the app are quoted in Swedish below, w
 
 What you can try: onboarding, profile picture, accepting or declining the invite, search results, filters and sorting, likes (like something Robin has already liked and it ends up in your shared list), tags, showings, changing your search, leaving the group and deleting your account.
 
-Run `node scripts/seed/seedDemo.ts` again to start over. The script removes the old demo data and creates it again, with dates counted from today. `--remove` only removes the demo data. The script refuses to run if the database has users other than the demo accounts.
+Run `node scripts/seed/demo/seedDemo.ts` again to start over. The script removes the old demo data and creates it again, with dates counted from today. `--remove` only removes the demo data. The script refuses to run if the database has users other than the demo accounts.
 
 The daily cleanup deletes removed listings 10 days after they were removed. The two "Hittas inte" listings are created as removed 2 days ago, so they disappear about 8 days after the script ran. Run the script again to get them back.
 

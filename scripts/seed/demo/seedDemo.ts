@@ -1,4 +1,4 @@
-// Demo data for a forked/cloned project: two users and 50 fake listings, so the app can be tried without e-mail (SMTP/Resend), scraping or an agency mapper. See README.md, "Test with demo data".
+// Demo data for a forked/cloned project: two users and 50 fake listings, so the app can be tried without e-mail (SMTP/Resend), scraping or an agency mapper. See README.md, "Try it with demo data".
 
 // What it creates (all dates are relative to when the script runs):
 //   * User 1 (SEED_USER): the forker. New account, not onboarded, no search, no group.
@@ -9,13 +9,13 @@
 
 // Every run first removes the previous demo data and then creates it again, so it doubles as a reset.
 // Remove + create:
-//   node scripts/seed/seedDemo.ts
+//   node scripts/seed/demo/seedDemo.ts
 
 // Only remove:
-//   node scripts/seed/seedDemo.ts--remove
+//   node scripts/seed/demo/seedDemo.ts --remove
 
 // Run this when the database has other (real) users
-//   node scripts/seed/seedDemo.ts --allow-existing-users
+//   node scripts/seed/demo/seedDemo.ts --allow-existing-users
 
 // Safety:
 //   * Demo users are marked with app_metadata.demo_seed = true. Only users with that mark are ever deleted.
@@ -23,12 +23,12 @@
 //   * By default the script refuses to run if the database has any user without the mark (e.g. our own dev/prod), because the seed listings would show up in real users' results and mails.
 //   * Only listings with agency = 'seed' are deleted. The scraper never touches that agency.
 //
-// Requires: schema.sql has been run and scripts/places/seedPlaces.ts has filled the municipalities.
+// Requires: schema.sql has been run and scripts/seed/places/seedPlaces.ts has filled the municipalities.
 //
 // Each step lives in its own file in this folder. This file only runs them in order.
 
-import { readConfig } from "./setup/config.ts";
 import { REMOVED } from "./listings/listingRows.ts";
+import { readConfig } from "./setup/config.ts";
 
 process.loadEnvFile(".env");
 const config = readConfig();
