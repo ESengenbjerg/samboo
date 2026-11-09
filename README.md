@@ -23,7 +23,7 @@ You can try the app against your own Supabase project without setting up e-mail,
    - `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_KEY` (publishable/anon key) and `SUPABASE_SERVICE_ROLE_KEY` from Project Settings → API. The service role key is only used by the scripts and must never end up in the app.
    - `SEED_USER` and `SEED_FRIEND`: the e-mail addresses of the two demo accounts. No mail is sent to them.
    - `PASSWORD_SEED_USER` and `PASSWORD_FRIEND_USER`: choose your own passwords, at least 8 characters.
-6. Fill in Sweden's counties and municipalities (Node 24): `node scripts/places/seedPlaces.ts`
+6. Fill in Sweden's counties and municipalities, and the areas of Göteborg, Mölndal and Partille (Node 24): `node scripts/places/seedPlaces.ts`
 7. Create the demo data (Node 24): `node scripts/seed/seedDemo.ts`
 8. Start the app (`npx expo start`) and sign in as `SEED_USER`.
 
