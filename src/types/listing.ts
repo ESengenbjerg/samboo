@@ -23,6 +23,7 @@ export type Listing = Pick<
   | "build_year"
   | "plot_area"
   | "floor_level"
+  | "description"
 >;
 
 export type UserListing = Pick<
