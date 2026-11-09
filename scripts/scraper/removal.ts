@@ -15,7 +15,8 @@ export const SUSPICIOUS_MIN_SHARE = 0.5;
 
 const PAGE_SIZE = 1000; // Supabase returns at most 1000 rows per request
 
-// Same rules as match_user_listings: type (empty = all types) AND (municipality OR area, area compared ignoring case)
+// What the scraper visits: type (empty = all types) AND municipality.
+// Areas are left out on purpose: the scraper fetches whole municipalities, areas only limit the matching in match_user_listings
 function isInScope(listing: ActiveListing, scope: ScopeItem[]): boolean {
   return scope.some((item) => {
     const typeOk =
@@ -23,10 +24,8 @@ function isInScope(listing: ActiveListing, scope: ScopeItem[]): boolean {
       (listing.property_type !== null &&
         item.propertyTypes.includes(listing.property_type));
     const placeOk =
-      (listing.municipality !== null &&
-        item.municipalities.includes(listing.municipality)) ||
-      (listing.area !== null &&
-        item.areas.some((a) => a.toLowerCase() === listing.area?.toLowerCase()));
+      listing.municipality !== null &&
+      item.municipalities.includes(listing.municipality);
     return typeOk && placeOk;
   });
 }
@@ -43,7 +42,7 @@ export async function fetchActiveInScope(
   for (let from = 0; ; from += PAGE_SIZE) {
     const { data, error } = await db
       .from("listings")
-      .select("id, external_id, url, municipality, area, property_type")
+      .select("id, external_id, url, municipality, property_type")
       .eq("agency", agency)
       .is("removed_at", null)
       .order("id")

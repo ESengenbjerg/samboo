@@ -62,7 +62,7 @@ export type Agency = {
 // The columns of an active listing that the removal check needs
 export type ActiveListing = Pick<
   Tables<"listings">,
-  "id" | "external_id" | "url" | "municipality" | "area" | "property_type"
+  "id" | "external_id" | "url" | "municipality" | "property_type"
 >;
 
 // Why a run was flagged. F1-F4 are failures, "mass_removal" is the suspicious case.
