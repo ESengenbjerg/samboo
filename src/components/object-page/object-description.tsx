@@ -20,6 +20,7 @@ export default function ObjectDescription({
 
   return (
     <View className="gap-2">
+      <Text variant="h4">Beskrivning</Text>
       <Text numberOfLines={isExpanded ? undefined : COLLAPSED_LINES}>
         {description}
       </Text>
