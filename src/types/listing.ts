@@ -18,9 +18,18 @@ export type Listing = Pick<
   | "address"
   | "image_url"
   | "is_new_construction"
+  | "latitude"
+  | "longitude"
+  | "build_year"
+  | "plot_area"
+  | "floor_level"
+  | "description"
 >;
 
-export type UserListing = Pick<Tables<"user_listings">, "id" | "is_new" | "liked"> & {
+export type UserListing = Pick<
+  Tables<"user_listings">,
+  "id" | "is_new" | "liked"
+> & {
   listings: Listing;
 };
 
@@ -37,10 +46,14 @@ export type MemberUserListing = UserListing &
   Pick<Tables<"user_listings">, "user_id" | "liked_at">;
 
 // A listing in a group member's liked list, with when the member liked it
-export type MemberLikedListing = Listing & Pick<Tables<"user_listings">, "liked_at">;
+export type MemberLikedListing = Listing &
+  Pick<Tables<"user_listings">, "liked_at">;
 
 // Only the listing id of a liked user_listings row (listings.id = user_listings.listing_id)
 export type LikedListingId = Pick<Tables<"user_listings">, "listing_id">;
 
 // Only the listing id of one of my user_listings rows that I have not opened yet (is_new = true)
 export type NewListingId = RpcRow<"my_new_listing_ids">;
+
+// A listing's position. Both are null when the agency has not published one
+export type ListingCoordinates = Pick<Listing, "latitude" | "longitude">;
