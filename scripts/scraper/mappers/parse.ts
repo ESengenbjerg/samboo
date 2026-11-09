@@ -10,10 +10,12 @@ const LIMITS = {
   rooms: (n: number) => n > 0 && n <= 100,
   monthly_fee: (n: number) => Number.isInteger(n) && n >= 1 && n <= 100_000,
   living_area: (n: number) => n > 0 && n <= 10_000,
-  plot_area: (n: number) =>
-    Number.isInteger(n) && n >= 0 && n <= 10_000_000,
+  plot_area: (n: number) => Number.isInteger(n) && n >= 0 && n <= 10_000_000,
   floor_level: (n: number) => Number.isInteger(n) && n >= -5 && n <= 100,
   build_year: (n: number) => Number.isInteger(n) && n >= 1000 && n <= 2100,
+  // A box around Sweden, not its border
+  latitude: (n: number) => n >= 55 && n <= 70,
+  longitude: (n: number) => n >= 10 && n <= 25,
 } satisfies Record<string, (n: number) => boolean>;
 
 // The number if the listings table accepts it, otherwise null. One value the database rejects
