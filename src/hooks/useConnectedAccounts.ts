@@ -20,6 +20,7 @@ import {
   ReceivedInvite,
   SentInvite,
 } from "@/types/connected-accounts";
+import { SkippedShowing } from "@/types/showings";
 import { normalizeEmail } from "@shared/email";
 import type { PostgrestError } from "@supabase/supabase-js";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -51,6 +52,9 @@ export function useConnectedAccounts(userId: string | undefined) {
   const [actionError, setActionError] = useState<string | null>(null);
   // Info about changes made by others, e.g. someone left the group
   const [groupNotice, setGroupNotice] = useState<string | null>(null);
+  // My own showings that did not follow into the group when I accepted an invite
+  const [skippedShowings, setSkippedShowings] = useState<SkippedShowing[]>([]);
+
   // Members from the previous load, to see who disappeared
   const previousMembers = useRef<{
     userId: string;
@@ -239,8 +243,13 @@ export function useConnectedAccounts(userId: string | undefined) {
         );
         return false;
       }
+      setSkippedShowings([]);
       return run(
-        () => acceptInviteRpc(inviteId),
+        async () => {
+          const { data, error } = await acceptInviteRpc(inviteId);
+          if (!error) setSkippedShowings(data);
+          return { error };
+        },
         "Accept invite",
         isInviteAlreadyHandled,
       );
@@ -297,6 +306,7 @@ export function useConnectedAccounts(userId: string | undefined) {
     isSubmitting,
     actionError,
     groupNotice,
+    skippedShowings,
     dismissGroupNotice,
     clearActionError,
     sendInvite,
