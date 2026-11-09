@@ -11,7 +11,7 @@ export function getActiveListings(userId: string) {
       .from("user_listings")
       // !inner removes deleted listings. Without !inner listings is null and
       // app will crash on listing.address
-      .select("id, is_new, liked, listings!inner(*)")
+      .select(`id, is_new, liked, listings!inner(${LISTING_COLUMNS})`)
       .eq("user_id", userId)
       .is("listings.removed_at", null)
       // TODO: Update order to last_seen_at by editing in hook
@@ -25,7 +25,7 @@ export function getLikedListings(userId: string) {
       .from("user_listings")
       // !inner removes deleted listings. Without !inner listings is null and
       // app will crash on listing.address
-      .select("id, is_new, liked, listings!inner(*)")
+      .select(`id, is_new, liked, listings!inner(${LISTING_COLUMNS})`)
       .eq("user_id", userId)
       .eq("liked", true)
       .is("listings.removed_at", null)
