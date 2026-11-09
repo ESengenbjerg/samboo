@@ -213,8 +213,10 @@ export default function ObjectPageScreen({
             </View>
 
             {/* --- PRICE --- */}
-            {listing.price != null && (
+            {listing.price != null ? (
               <Text variant="bold">{formatPrice(listing.price)}</Text>
+            ) : (
+              <Text>(Pris saknas)</Text>
             )}
           </View>
           <Separator />
