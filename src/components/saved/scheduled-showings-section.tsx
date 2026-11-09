@@ -46,9 +46,11 @@ export default function ScheduledShowingsSection({
   return (
     <View>
       <View className="flex-row items-end justify-between mb-4">
-        <Text variant="h2">Bokade visningar</Text>
+        <Text variant="h2">{isInPast ? "Tidigare visningar" : "Bokade visningar"}</Text>
         <Button variant="link" onPress={() => setIsInPast(!isInPast)}>
-          <Text>{isInPast ? "Kommande" : "Tidigare"}</Text>
+          <Text>{pastShowings.length !== 0 ? (
+            isInPast ? "Kommande" : "Tidigare"
+          ) : null}</Text>
         </Button>
       </View>
 
