@@ -75,7 +75,7 @@ const municipalityFlags = flagValues("municipality");
 // ---------------------- READ SEARCH PARAMS --------------------------
 const { data: searchParams, error: searchError } = await supabaseAdmin
   .from("search_params")
-  .select("user_id, property_types, municipalities, areas");
+  .select("user_id, property_types, municipalities");
 
 if (searchError) {
   console.error("Failed to read search_params:", searchError);
@@ -85,7 +85,7 @@ if (searchError) {
 // ---------------------- BUILD SCOPE --------------------------
 const { items, skipped } = buildScope(searchParams ?? []);
 const scope = municipalityFlags.length
-  ? [{ municipalities: municipalityFlags.sort(), areas: [], propertyTypes: [] }]
+  ? [{ municipalities: municipalityFlags.sort(), propertyTypes: [] }]
   : items;
 
 for (const userId of skipped) {

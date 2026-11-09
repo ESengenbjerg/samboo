@@ -14,10 +14,8 @@ export function buildScope(searchParams: SearchParamsRow[]): {
 
   for (const sp of searchParams) {
     const municipalities = sp.municipalities;
-    const areas = sp.areas;
 
-    // A municipality is mandatory for scraping to occur. Areas only narrow a municipality down (see validate_search_places()),
-    // so a search with areas but no municipality is not valid and is skipped
+    // A municipality is mandatory for scraping to occur
     if (municipalities.length === 0) {
       skipped.push(sp.user_id);
       continue;
@@ -25,7 +23,6 @@ export function buildScope(searchParams: SearchParamsRow[]): {
 
     const item: ScopeItem = {
       municipalities: [...municipalities].sort(),
-      areas: [...areas].sort(),
       propertyTypes: [...sp.property_types].sort(),
     };
 

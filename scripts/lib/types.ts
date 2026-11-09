@@ -5,7 +5,7 @@ import type { Enums, Tables } from "../../shared/database.types.ts";
 // The columns of search_params that the scraper reads
 export type SearchParamsRow = Pick<
   Tables<"search_params">,
-  "user_id" | "property_types" | "municipalities" | "areas"
+  "user_id" | "property_types" | "municipalities"
 >;
 
 // Our own property_type values: the database enum public.property_type (listings.property_type)
@@ -14,7 +14,6 @@ export type PropertyType = Enums<"property_type">;
 // One distinct search to be done on each agency's site
 export type ScopeItem = {
   municipalities: string[];
-  areas: string[];
   propertyTypes: PropertyType[];
 };
 
