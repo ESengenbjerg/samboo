@@ -113,13 +113,16 @@ export default function NotificationsScreen() {
       );
       items.push({
         key: "invites",
-        time: inviteTimes.length > 0 ? Math.max(...inviteTimes) : Date.now(),
+        time:
+          inviteTimes.length > 0
+            ? Math.max(...inviteTimes)
+            : Number.MAX_SAFE_INTEGER,
         node: <InvitationNotification accounts={accounts} />,
       });
       // "Now": shown right after accepting an invite
       items.push({
         key: "skipped-showings",
-        time: Date.now(),
+        time: Number.MAX_SAFE_INTEGER,
         node: (
           <SkippedShowingNotification showings={accounts.skippedShowings} />
         ),
