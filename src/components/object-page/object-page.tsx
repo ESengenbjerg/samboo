@@ -24,6 +24,7 @@ import { LikeButton } from "../like-button";
 import { CategoriesDialog } from "../modals/categories-dialog";
 import CategoryTag from "../tags/category-tag";
 import { Icon } from "../ui/icon";
+import ObjectDescription from "./object-description";
 
 type ObjectPageProps = {
   listing: Listing | null;
@@ -267,6 +268,7 @@ export default function ObjectPageScreen({
                 <ObjectInfo key={o} type={o} value={listing[o]} />
               ))}
             </View>
+            <ObjectDescription description={listing.description} />
             <Button
               onPress={() => Linking.openURL(listing.url)}
               className="w-52 mt-4"
