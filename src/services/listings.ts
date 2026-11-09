@@ -1,5 +1,9 @@
 import { supabase } from "@/lib/supabase";
 
+// The listings columns the app reads, the same as the Listing type. Never "*": that would also download ld_json, up to 300 kB per listing, which the app does not use
+const LISTING_COLUMNS =
+  "id, agency, external_id, url, property_type, municipality, area, price, rooms, living_area, monthly_fee, address, image_url, is_new_construction, latitude, longitude, build_year, plot_area, floor_level, description";
+
 // TODO: Remove policy from listings table that give anon permission to read
 export function getActiveListings(userId: string) {
   return (
@@ -121,14 +125,12 @@ export async function getSharedLikedListings() {
 // RLS lets me read listings matched to me or to anyone in my group, so this works
 // for my own listings as well as a group member's
 export function getListingById(listingId: string) {
-  return (
-    supabase
-      .from("listings")
-      .select("*")
-      .eq("id", Number(listingId))
-      .is("removed_at", null)
-      .maybeSingle()
-  );
+  return supabase
+    .from("listings")
+    .select("*")
+    .eq("id", Number(listingId))
+    .is("removed_at", null)
+    .maybeSingle();
 }
 
 // listingId is listings.id (= user_listings.listing_id).
