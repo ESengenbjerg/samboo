@@ -1,4 +1,4 @@
-name: Send notification mails
+name: Send emails
 
 # Sends mail weekly & daily to users with updates
 
@@ -8,7 +8,7 @@ on:
     - cron: "7 5 * * *"
     - cron: "7 6 * * *"
 
-  # Manual run from the Actions tab, and backup trigger from pg_cron (dispatch-notify), because GitHub's schedule does not always fire
+  # Manual run from the Actions tab, and backup trigger from pg_cron (dispatch-email), because GitHub's schedule does not always fire
   workflow_dispatch:
     inputs:
       # Not read by this workflow. dispatch_github_workflow() in Supabase always sends it, and GitHub rejects
@@ -22,13 +22,13 @@ on:
 permissions:
   contents: read
 
-# Never run two notifies at once
+# Never run two email runs at once
 concurrency:
-  group: notify
+  group: email
   cancel-in-progress: false
 
 jobs:
-  notify:
+  email:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -45,7 +45,7 @@ jobs:
       # An empty file is fine: variables already in the environment are not overwritten.
       - run: touch .env
 
-      - name: Send notification mails
+      - name: Send emails
         run: node scripts/email/sendEmails.ts
         env:
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}

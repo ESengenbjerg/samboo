@@ -163,7 +163,7 @@ Bucket `avatars`, **public**: anyone with an image URL can open it without signi
 
 ## Emails
 
-**Naming:** "email" is what is sent with Resend (`scripts/email`). "Notifications" is the inbox in the app, see [In-app notifications](#in-app-notifications). The workflow `notify.yml` and the cron job `dispatch-notify` keep their old names, so the scheduled triggers stay untouched.
+**Naming:** "email" is what is sent with Resend (`scripts/email`). "Notifications" is the inbox in the app, see [In-app notifications](#in-app-notifications).
 
 A mail about new matches and group members' likes, sent with Resend by `scripts/email` at about 07:00 Swedish time. The database cannot send mail itself.
 

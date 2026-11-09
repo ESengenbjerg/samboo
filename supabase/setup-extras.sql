@@ -110,4 +110,4 @@ select cron.schedule('purge-cron-history',        '0 4 * * *',    $$delete from 
 -- Need the Vault secret above.
 select cron.schedule('dispatch-scrape',           '20 4,6 * * *', $$select public.dispatch_github_workflow('scrape.yml')$$);
 select cron.schedule('dispatch-purge-avatars',    '50 4,6 * * *', $$select public.dispatch_github_workflow('purge-avatars.yml')$$);
-select cron.schedule('dispatch-notify',           '20 5,6 * * *', $$select public.dispatch_github_workflow('notify.yml')$$);
+select cron.schedule('dispatch-email',            '20 5,6 * * *', $$select public.dispatch_github_workflow('email.yml')$$);
