@@ -163,7 +163,6 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/PendingInvite' }
-        '429': { $ref: '#/components/responses/RateLimited' }
 
   /rpc/my_group_members:
     get:
@@ -281,7 +280,7 @@ paths:
         no row (a group member's listing outside my search). That is what makes it disappear from `my_new_listing_ids`,
         and it keeps the listing from becoming "new" again if it stops matching my search and later matches again.
         Listings that are not visible to me are silently ignored.
-        This is the only way to change `is_new`; it cannot be written directly.
+        Apart from `like_listing`, this is the only way to change `is_new`; it cannot be written directly.
       operationId: mark_listing_seen
       requestBody:
         required: true
@@ -324,7 +323,6 @@ paths:
                   type: object
                   properties:
                     listing_id: { type: integer, format: int64 }
-        '429': { $ref: '#/components/responses/RateLimited' }
 
   /rpc/shared_likes:
     get:
@@ -343,7 +341,6 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/Listing' }
-        '429': { $ref: '#/components/responses/RateLimited' }
 
   /rpc/my_showing_events:
     get:
@@ -365,7 +362,6 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/ShowingEvent' }
-        '429': { $ref: '#/components/responses/RateLimited' }
 
   /rpc/has_new_notifications:
     get:
@@ -388,7 +384,6 @@ paths:
           content:
             application/json:
               schema: { type: boolean }
-        '429': { $ref: '#/components/responses/RateLimited' }
 
   /rpc/mark_notifications_seen:
     post:
@@ -1066,7 +1061,11 @@ components:
         ld_json: { type: object, description: 'Raw schema.org data from the agency. Max 300 000 bytes as text' }
         last_seen_at: { type: string, format: date-time }
         removed_at: { type: string, format: date-time, nullable: true, description: Set when the listing disappeared from the agency's site, or was not seen for 7 days while someone had it in a list or showing. Deleted after 10 days. }
-        property_type: { $ref: '#/components/schemas/PropertyType' }
+        property_type:
+          allOf:
+            - $ref: '#/components/schemas/PropertyType'
+          nullable: true
+          description: Null when the agency gives no type
         municipality: { type: string, nullable: true, description: 'A name from `municipalities` (null when the agency''s name is unknown)' }
         area: { type: string, nullable: true, maxLength: 100 }
         price: { type: integer, format: int64, nullable: true, minimum: 1, maximum: 1000000000 }
