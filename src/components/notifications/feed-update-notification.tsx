@@ -31,7 +31,7 @@ export default function FeedUpdateNotification({
           onPress={() => router.push(`/search`)}
           className="max-h-7"
         >
-          <Text>Visa</Text>
+          <Text>Visa bostäder</Text>
         </Button>
       </View>
     </>
