@@ -35,7 +35,7 @@ export async function createUsers(
     "Robin",
   );
 
-  // No notification mails for demo users. User 1 goes through onboarding in the app, user 2 is already done
+  // No emails for demo users. User 1 goes through onboarding in the app, user 2 is already done
   ok(
     await supabaseAdmin
       .from("profiles")

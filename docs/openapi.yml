@@ -445,7 +445,7 @@ paths:
       description: |
         Filter on my own id (`?id=eq.<uid>`). Only `name`, `onboarding_completed_at`, `avatar_path` and
         `email_frequency` can be written. `group_id` and `is_active` can only change through functions,
-        `last_emailed_at` only by the notification script, `notifications_seen_at` only through `mark_notifications_seen`.
+        `last_emailed_at` only by the email script, `notifications_seen_at` only through `mark_notifications_seen`.
       operationId: profiles_update
       requestBody:
         required: true
@@ -947,7 +947,7 @@ components:
           nullable: true
           description: 'Path in the public `avatars` bucket, `<user id>/<name>.<jpg|jpeg|png|webp>`. Build the URL with `supabase.storage.from(''avatars'').getPublicUrl(path)`'
         email_frequency: { $ref: '#/components/schemas/EmailFrequency' }
-        last_emailed_at: { type: string, format: date-time, nullable: true, description: When the last notification mail was sent. Read-only }
+        last_emailed_at: { type: string, format: date-time, nullable: true, description: When the last email was sent. Read-only }
         notifications_seen_at: { type: string, format: date-time, nullable: true, description: 'When I last opened the notifications page (null = never). Set with mark_notifications_seen. Read-only' }
 
     ShowingEvent:
@@ -981,7 +981,7 @@ components:
       type: string
       enum: [day, week, none]
       default: day
-      description: 'Postgres enum `public.email_frequency`. How often the notification mail is sent (about 07:00 Swedish time): day = every morning, week = Friday mornings, none = never. Covers both new matches and group members'' likes'
+      description: 'Postgres enum `public.email_frequency`. How often the email is sent (about 07:00 Swedish time): day = every morning, week = Friday mornings, none = never. Covers both new matches and group members'' likes'
 
     Invite:
       type: object

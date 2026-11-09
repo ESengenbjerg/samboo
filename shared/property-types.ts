@@ -1,4 +1,4 @@
-// Swedish labels for our property types, used by the app and the notification mails.
+// Swedish labels for our property types, used by the app and the emails.
 // The values come from the database enum public.property_type: a new value fails tsc here until it has a label.
 
 import type { Enums } from "./database.types.ts";

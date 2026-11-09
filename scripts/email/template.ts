@@ -110,7 +110,7 @@ export function listingTitle(l: MailListing): string {
 }
 
 // Line 2 (facts): the parts that are not null
-// "Lägenhet · 3 495 000 kr · 3 rok · 78 m² · Avgift 4 200 kr/mån · Nyproduktion"
+// "Lägenhet · 3 495 000 kr · 3 rok · 78 kvm · Avgift 4 200 kr/mån · Nyproduktion"
 export function listingFacts(list: MailListing): string {
   const parts: string[] = [];
 

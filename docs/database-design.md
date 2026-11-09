@@ -179,7 +179,7 @@ A mail about new matches and group members' likes, sent with Resend by `scripts/
 
 Cleanup runs inside the database with pg_cron, so it does not depend on GitHub Actions. The jobs are listed in `setup-extras.sql`.
 
-The scraper, the avatar purge and the notification mails run as GitHub Actions. GitHub's schedule does not always fire, so pg_cron also starts each workflow through `dispatch_github_workflow()` (pg_net + the GitHub API, token in Vault). The scrape and avatar purge workflows skip themselves if they already succeeded in the last 12 hours. The email workflow has no such guard: `due_emails()` only returns users who have not been emailed today, so extra runs send nothing. Both triggers can therefore be active at once. No role may call `dispatch_github_workflow()`, not even `service_role`, because it reads a secret. It currently hardcodes the repository `ESengenbjerg/samboo` and the branch `develop`.
+The scraper, the avatar purge and the emails run as GitHub Actions. GitHub's schedule does not always fire, so pg_cron also starts each workflow through `dispatch_github_workflow()` (pg_net + the GitHub API, token in Vault). The scrape and avatar purge workflows skip themselves if they already succeeded in the last 12 hours. The email workflow has no such guard: `due_emails()` only returns users who have not been emailed today, so extra runs send nothing. Both triggers can therefore be active at once. No role may call `dispatch_github_workflow()`, not even `service_role`, because it reads a secret. It currently hardcodes the repository `ESengenbjerg/samboo` and the branch `develop`.
 
 ## Realtime
 
@@ -188,5 +188,4 @@ The scraper, the avatar purge and the notification mails run as GitHub Actions. 
 ## Open points
 
 - `dispatch_github_workflow()` hardcodes the repository, so a fork's backup jobs dispatch to the wrong repo. Plan: read repo and branch from Vault.
-- `profiles.is_active` is never set to `false` by the app. Removing the column would mean rewriting `is_active_user()`, `handle_new_user()` and `my_pending_invites()`, not the policies.
 - `listings.rooms` and `search_params.min_rooms`/`max_rooms` are `numeric(3,1)` (max 99.9), while the check constraints allow up to 100. A value of 100 fails with a numeric overflow instead of the check.
