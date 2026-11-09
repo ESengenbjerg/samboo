@@ -105,7 +105,7 @@ export default function ScheduledShowingInfo({
             })}
           >
             <Icon as={House} className="size-[18px]" />
-            <Text className="text-base" variant="bold">
+            <Text className="text-base font-sans-bold">
               {showing.address}
             </Text>
           </Button>
@@ -150,7 +150,7 @@ export default function ScheduledShowingInfo({
       )}
 
       {/* Delete and edit */}
-      <View className="flex-row">
+      <View className="flex-row gap-4">
         <Button
           variant="link"
           onPress={openEditDialog}
