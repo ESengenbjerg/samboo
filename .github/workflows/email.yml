@@ -1,19 +1,17 @@
 name: Send emails
 
-# Sends mail weekly & daily to users with updates
+# Sends mail weekly or daily to users with updates
 
 on:
   schedule:
-    # On schedule. GitHub cron is always UTC. Off the hour on purpose, GitHub delays jobs queued at :00
+    # 2 times due to winter/summer time, script checks which.
+    # GitHub cron is UTC. Off the hour on purpose, GitHub delays jobs queued at :00
     - cron: "7 5 * * *"
     - cron: "7 6 * * *"
 
-  # Manual run from the Actions tab, and backup trigger from pg_cron (dispatch-email), because GitHub's schedule does not always fire
   workflow_dispatch:
     inputs:
-      # Not read by this workflow. dispatch_github_workflow() in Supabase always sends it, and GitHub rejects
-      # the dispatch (422) if the input is not declared. Double runs are harmless: due_emails() skips
-      # users already mailed today, and Resend gets an idempotency key per user and day.
+      # Not read by this workflow. dispatch_github_workflow() in Supabase always sends it, and GitHub rejects the dispatch (422) if the input is not declared.
       skip_if_recent:
         description: "Unused here (sent by pg_cron). Users already mailed today are always skipped"
         type: boolean
@@ -22,7 +20,6 @@ on:
 permissions:
   contents: read
 
-# Never run two email runs at once
 concurrency:
   group: email
   cancel-in-progress: false
@@ -41,8 +38,7 @@ jobs:
 
       - run: npm ci
 
-      # The script calls process.loadEnvFile(".env"), which throws if the file is missing.
-      # An empty file is fine: variables already in the environment are not overwritten.
+      # process.loadEnvFile() throws without a .env file. An empty one is fine
       - run: touch .env
 
       - name: Send emails
@@ -52,4 +48,4 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           NOTIFY_FROM: ${{ vars.NOTIFY_FROM }}
-          APP_URL: ${{ vars.APP_URL}}
+          APP_URL: ${{ vars.APP_URL }}

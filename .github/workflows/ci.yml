@@ -5,7 +5,7 @@ name: CI
 # Continuous delivery to main branch (manually)
 
 # Checks every PR + pushes to develop and main
-# Concurrency: A new push to the same branch cancels the run that is already in progress, prevent unnessecary queing.
+# Concurrency: A new push to the same branch cancels the run that is already in progress, to prevent unnecessary queueing
 
 on:
   pull_request:
