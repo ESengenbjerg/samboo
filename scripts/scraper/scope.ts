@@ -1,9 +1,8 @@
 import type { ScopeItem, SearchParamsRow } from "../lib/types.ts";
 
 // Builds the scrape scope from every user's search_params.
-// One scope item per distinct search. Searches without a place are skipped, otherwise a whole agency site would be scraped.
-// The scope is a list of searches to be done on each agency's site, i.e. All houses in municipality A and all apartments in municipality B
-
+// One scope item per distinct search. Searches without a municipality are skipped, otherwise a whole agency site would be scraped.
+// The scope is a list of searches to be done on each agency's site, e.g. all houses in municipality A and all apartments in municipality B
 export function buildScope(searchParams: SearchParamsRow[]): {
   items: ScopeItem[];
   skipped: string[];
