@@ -127,7 +127,7 @@ export async function getSharedLikedListings() {
 export function getListingById(listingId: string) {
   return supabase
     .from("listings")
-    .select("*")
+    .select(LISTING_COLUMNS)
     .eq("id", Number(listingId))
     .is("removed_at", null)
     .maybeSingle();
