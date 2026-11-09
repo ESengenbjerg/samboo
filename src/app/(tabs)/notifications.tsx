@@ -13,37 +13,24 @@ import { useNewListingIds } from "@/hooks/useNewListingIds";
 import { useNewMatchesCount } from "@/hooks/useNewMatchesCount";
 import { useSession } from "@/hooks/useSession";
 import { useShowingEvents } from "@/hooks/useShowingEvents";
-import {
-  AnsweredInvite,
-  MemberUpdate,
-  ShowingEvent,
-} from "@/types/notifications";
+import { NotificationDay } from "@/types/notifications";
 import { useFocusEffect } from "expo-router";
-import { useCallback } from "react";
+import { Fragment, ReactNode, useCallback } from "react";
 import { ScrollView, View } from "react-native";
 
-// One GroupUpdate per member with something new
-function MemberUpdates({ updates }: { updates: MemberUpdate[] }) {
-  return updates.map((u) => (
-    <GroupUpdateNotification
-      key={u.member.id}
-      memberId={u.member.id}
-      memberName={u.member.name}
-      newCount={u.newCount}
-    />
-  ));
+// One notification in a day section, with the time it happend so the section can be sorted
+type Item = { key: string; time: number; node: ReactNode };
+
+// Null (no timestamp) counts as oldest
+function toTime(timestamp: string | null) {
+  return timestamp ? new Date(timestamp).getTime() : 0;
 }
 
-// One AnsweredInviteNotification per answered invtite
-function AnsweredInvites({ invites }: { invites: AnsweredInvite[] }) {
-  return invites.map((i) => (
-    <AnsweredInviteNotification key={i.id} invite={i} />
-  ));
-}
-
-// One ShowingUpdateNotification per change another member made to a showing
-function ShowingEvents({ events }: { events: ShowingEvent[] }) {
-  return events.map((e) => <ShowingUpdateNotification key={e.id} event={e} />);
+// Newest notification first
+function Items({ items }: { items: Item[] }) {
+  return [...items]
+    .sort((a, b) => b.time - a.time)
+    .map((i) => <Fragment key={i.key}>{i.node}</Fragment>);
 }
 
 export default function NotificationsScreen() {
@@ -87,6 +74,66 @@ export default function NotificationsScreen() {
     eventsByDay.earlier.length > 0;
   const isEmpty = !hasToday && !hasYesterday && !hasEarlier;
 
+  // Sort notifications in lists separated by day
+  function itemsFor(day: NotificationDay): Item[] {
+    const items: Item[] = [];
+
+    for (const e of eventsByDay[day]) {
+      items.push({
+        key: `showing-${e.id}`,
+        time: toTime(e.created_at),
+        node: <ShowingUpdateNotification event={e} />,
+      });
+    }
+    for (const i of answeredByDay[day]) {
+      items.push({
+        key: `answered-${i.id}`,
+        time: toTime(i.responded_at),
+        node: <AnsweredInviteNotification invite={i} />,
+      });
+    }
+    for (const u of updatesByDay[day]) {
+      items.push({
+        key: `member-${u.member.id}`,
+        time: toTime(u.latestLikedAt),
+        node: (
+          <GroupUpdateNotification
+            memberId={u.member.id}
+            memberName={u.member.name}
+            newCount={u.newCount}
+          />
+        ),
+      });
+    }
+    if (day === "today") {
+      // Always rendered: Keeps confirmation after answering the last invite.
+      // Withput a pending it counts as "now", so the confirmation is on top.
+      const inviteTimes = accounts.receivedInvites.map((i) =>
+        toTime(i.created_at),
+      );
+      items.push({
+        key: "invites",
+        time: inviteTimes.length > 0 ? Math.max(...inviteTimes) : Date.now(),
+        node: <InvitationNotification accounts={accounts} />,
+      });
+      // "Now": shown right after accepting an invite
+      items.push({
+        key: "skipped-showings",
+        time: Date.now(),
+        node: (
+          <SkippedShowingNotification showings={accounts.skippedShowings} />
+        ),
+      });
+      // A cpunt with no time: Last in the section
+      items.push({
+        key: "feed",
+        time: 0,
+        node: <FeedUpdateNotification newObjects={newMatchesCount} />,
+      });
+    }
+    return items;
+  }
+
   return (
     <View className="flex-1 px-6 bg-background gap-2">
       <Text variant="h1" className="pb-4">
@@ -108,15 +155,7 @@ export default function NotificationsScreen() {
                   Idag
                 </Text>
                 <View className="gap-6">
-                  <InvitationNotification accounts={accounts} />
-                  <SkippedShowingNotification
-                    showings={accounts.skippedShowings}
-                  />
-                  <AnsweredInvites invites={answeredByDay.today} />
-                  <FeedUpdateNotification newObjects={newMatchesCount} />
-                  <ShowingEvents events={eventsByDay.today} />
-
-                  <MemberUpdates updates={updatesByDay.today} />
+                  <Items items={itemsFor("today")} />
                 </View>
               </>
             )}
@@ -127,9 +166,7 @@ export default function NotificationsScreen() {
                   Igår
                 </Text>
                 <View className="gap-6">
-                  <AnsweredInvites invites={answeredByDay.yesterday} />
-                  <ShowingEvents events={eventsByDay.yesterday} />
-                  <MemberUpdates updates={updatesByDay.yesterday} />
+                  <Items items={itemsFor("yesterday")} />
                 </View>
               </>
             )}
@@ -140,9 +177,7 @@ export default function NotificationsScreen() {
                   Tidigare
                 </Text>
                 <View className="gap-6">
-                  <AnsweredInvites invites={answeredByDay.earlier} />
-                  <ShowingEvents events={eventsByDay.earlier} />
-                  <MemberUpdates updates={updatesByDay.earlier} />
+                  <Items items={itemsFor("earlier")} />
                 </View>
               </>
             )}
