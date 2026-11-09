@@ -2,18 +2,13 @@
 // Metro picks this file instead of listing-map.tsx on web (the .web.tsx extension).
 
 import { Text } from "@/components/ui/text";
+import type { ListingCoordinates } from "@/types/listing";
 import {
   AdvancedMarker,
   APIProvider,
   Map as GoogleMap,
 } from "@vis.gl/react-google-maps";
 import { View } from "react-native";
-
-// Same props as listing-map.tsx
-type ListingMapProps = {
-  latitude: number | null;
-  longitude: number | null;
-};
 
 const API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 const MAP_ID = process.env.EXPO_PUBLIC_GOOGLE_MAPS_MAP_ID;
@@ -22,7 +17,10 @@ const MAP_ID = process.env.EXPO_PUBLIC_GOOGLE_MAPS_MAP_ID;
 const zoom = 15;
 
 // Create the map component
-export default function ListingMap({ latitude, longitude }: ListingMapProps) {
+export default function ListingMap({
+  latitude,
+  longitude,
+}: ListingCoordinates) {
   // Render nothing without coordinates
   if (latitude == null || longitude == null || !API_KEY || !MAP_ID) return null;
 

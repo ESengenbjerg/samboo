@@ -50,3 +50,6 @@ export type LikedListingId = Pick<Tables<"user_listings">, "listing_id">;
 
 // Only the listing id of one of my user_listings rows that I have not opened yet (is_new = true)
 export type NewListingId = RpcRow<"my_new_listing_ids">;
+
+// A listing's position. Both are null when the agency has not published one
+export type ListingCoordinates = Pick<Listing, "latitude" | "longitude">;
