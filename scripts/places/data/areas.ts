@@ -35,6 +35,8 @@ export const AREAS: Record<string, AreaSeed[]> = {
     { name: "Hammarkullen" },
     { name: "Önnered" },
     { name: "Grimmered" },
+    { name: "Hisings Backa" },
+    { name: "Långedrag" },
   ],
 
   Mölndal: [
