@@ -186,7 +186,7 @@ export type Database = {
           municipality: string | null
           plot_area: number | null
           price: number | null
-          property_type: Database["public"]["Enums"]["property_type"] | null
+          property_type: Database["public"]["Enums"]["property_type"]
           removed_at: string | null
           rooms: number | null
           url: string
@@ -212,7 +212,7 @@ export type Database = {
           municipality?: string | null
           plot_area?: number | null
           price?: number | null
-          property_type?: Database["public"]["Enums"]["property_type"] | null
+          property_type: Database["public"]["Enums"]["property_type"]
           removed_at?: string | null
           rooms?: number | null
           url: string
@@ -238,7 +238,7 @@ export type Database = {
           municipality?: string | null
           plot_area?: number | null
           price?: number | null
-          property_type?: Database["public"]["Enums"]["property_type"] | null
+          property_type?: Database["public"]["Enums"]["property_type"]
           removed_at?: string | null
           rooms?: number | null
           url?: string
@@ -793,7 +793,7 @@ export type Database = {
           municipality: string | null
           plot_area: number | null
           price: number | null
-          property_type: Database["public"]["Enums"]["property_type"] | null
+          property_type: Database["public"]["Enums"]["property_type"]
           removed_at: string | null
           rooms: number | null
           url: string

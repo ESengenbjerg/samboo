@@ -1463,7 +1463,7 @@ CREATE TABLE IF NOT EXISTS "public"."listings" (
     "ld_json" "jsonb" NOT NULL,
     "last_seen_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "removed_at" timestamp with time zone,
-    "property_type" "public"."property_type",
+    "property_type" "public"."property_type" NOT NULL,
     "municipality" "text",
     "area" "text",
     "price" bigint,
