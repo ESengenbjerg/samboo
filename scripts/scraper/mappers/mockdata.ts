@@ -24,9 +24,12 @@ const PROPERTY_TYPES: Record<string, PropertyType> = {
   fritidshus: "fritidshus",
 };
 
-function mapPropertyType(category: unknown): PropertyType | null {
+function mapPropertyType(category: unknown): PropertyType {
   const text = toText(category);
-  if (!text) return null;
+  if (!text) {
+    console.warn(`No property type, saving as "other"`);
+    return "other";
+  }
 
   const mapped = PROPERTY_TYPES[text.toLowerCase()];
   if (!mapped) {
