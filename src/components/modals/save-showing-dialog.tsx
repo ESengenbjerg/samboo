@@ -59,11 +59,7 @@ export function SaveShowingDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-80">
-        <Pressable
-          onPress={Keyboard.dismiss}
-          accessible={false}
-          className="gap-4"
-        >
+        
           <DialogHeader>
             <DialogTitle className="pb-6">Spara visning</DialogTitle>
           </DialogHeader>
@@ -71,6 +67,8 @@ export function SaveShowingDialog({
           <ScrollView
             nestedScrollEnabled
             showsVerticalScrollIndicator
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
             contentContainerClassName="gap-4"
             style={{ maxHeight: height * 0.75 }}
           >
@@ -109,7 +107,6 @@ export function SaveShowingDialog({
               </Button>
             </DialogFooter>
           </ScrollView>
-        </Pressable>
       </DialogContent>
     </Dialog>
   );
