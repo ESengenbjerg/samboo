@@ -1062,7 +1062,7 @@ declare
 begin
   -- Collected before anything is changed
   select coalesce(jsonb_agg(jsonb_build_object(
-           'address',      coalesce(l.ld_json ->> 'streetAddress', l.area, l.municipality),
+           'address',      coalesce(l.address, l.area, l.municipality),
            'url',          l.url,
            'showing_date', s.showing_date,
            'start_time',   s.start_time

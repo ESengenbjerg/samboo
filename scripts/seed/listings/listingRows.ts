@@ -135,7 +135,7 @@ export function buildListingRows(now: number) {
       longitude,
       description,
       image_url: null,
-      // Same keys as the mockdata agency. streetAddress is read by move_personal_showings()
+      // Same keys as the mockdata agency
       ld_json: {
         demo: true,
         category: type,
