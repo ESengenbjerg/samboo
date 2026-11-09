@@ -8,8 +8,6 @@ import { Text } from "../ui/text";
 
 type ShowingUpdateNotificationProps = {
   event: ShowingEvent;
-  // Highlight events that are new since the last visit (event.is_unseen)
-  highlight: boolean;
 };
 
 // "2026-11-12" + "17:30:00" -> "12 nov 17:30". Without the time if it is null
@@ -22,7 +20,6 @@ function formatWhen(date: string, time: string | null) {
 
 export default function ShowingUpdateNotification({
   event,
-  highlight,
 }: ShowingUpdateNotificationProps) {
   const where = event.address ?? "en bostad";
   const when = formatWhen(event.showing_date, event.start_time);

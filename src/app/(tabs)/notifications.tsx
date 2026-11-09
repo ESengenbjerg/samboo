@@ -4,7 +4,6 @@ import GroupUpdateNotification from "@/components/notifications/group-update-not
 import InvitationNotification from "@/components/notifications/invitation-notification";
 import ShowingUpdateNotification from "@/components/notifications/showing-update-notification";
 import SkippedShowingNotification from "@/components/notifications/skipped-showings-notification";
-import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { useAnsweredInvites } from "@/hooks/useAnsweredInvites";
 import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
@@ -14,14 +13,13 @@ import { useNewListingIds } from "@/hooks/useNewListingIds";
 import { useNewMatchesCount } from "@/hooks/useNewMatchesCount";
 import { useSession } from "@/hooks/useSession";
 import { useShowingEvents } from "@/hooks/useShowingEvents";
-import { useNotificationsStore } from "@/stores/notifications";
 import {
   AnsweredInvite,
   MemberUpdate,
   ShowingEvent,
 } from "@/types/notifications";
 import { useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { ScrollView, View } from "react-native";
 
 // One GroupUpdate per member with something new
@@ -44,16 +42,8 @@ function AnsweredInvites({ invites }: { invites: AnsweredInvite[] }) {
 }
 
 // One ShowingUpdateNotification per change another member made to a showing
-function ShowingEvents({
-  events,
-  highlight,
-}: {
-  events: ShowingEvent[];
-  highlight: boolean;
-}) {
-  return events.map((e) => (
-    <ShowingUpdateNotification key={e.id} event={e} highlight={highlight} />
-  ));
+function ShowingEvents({ events }: { events: ShowingEvent[] }) {
+  return events.map((e) => <ShowingUpdateNotification key={e.id} event={e} />);
 }
 
 export default function NotificationsScreen() {
@@ -67,11 +57,6 @@ export default function NotificationsScreen() {
   const { updatesByDay } = useGroupUpdates(userId, newListingIds);
   const { answeredByDay } = useAnsweredInvites(accounts);
   const { eventsByDay } = useShowingEvents(userId);
-
-  // Mark all notifications as seen: Turns off the dot and higlights
-  // right away instead of when leaving
-  const markSeen = useNotificationsStore((s) => s.markSeen);
-  const [allRead, setAllRead] = useState(false);
 
   // Turns off the dot on the bell, that indicate new notifications,
   // when the user leaves the page
@@ -102,29 +87,12 @@ export default function NotificationsScreen() {
     eventsByDay.earlier.length > 0;
   const isEmpty = !hasToday && !hasYesterday && !hasEarlier;
 
-  function onMarkAllRead() {
-    setAllRead(true);
-    markSeen();
-  }
-
   return (
     <View className="flex-1 px-6 bg-background gap-2">
-      <View className="flex-row items-center justify-between pb-4">
-        <Text variant="h1">
-          Nya händelser
-        </Text>
-        {!isEmpty && (
-          <Button
-            size="sm"
-            variant="link"
-            onPress={onMarkAllRead}
-            disabled={allRead}
-            className="px-0"
-          >
-            <Text>Markera som lästa</Text>
-          </Button>
-        )}
-      </View>
+      <Text variant="h1" className="pb-4">
+        Nya händelser
+      </Text>
+
       <ScrollView
         className="bg-background"
         contentContainerClassName="pb-8"
@@ -146,10 +114,8 @@ export default function NotificationsScreen() {
                   />
                   <AnsweredInvites invites={answeredByDay.today} />
                   <FeedUpdateNotification newObjects={newMatchesCount} />
-                  <ShowingEvents
-                    events={eventsByDay.today}
-                    highlight={!allRead}
-                  />
+                  <ShowingEvents events={eventsByDay.today} />
+
                   <MemberUpdates updates={updatesByDay.today} />
                 </View>
               </>
@@ -162,10 +128,7 @@ export default function NotificationsScreen() {
                 </Text>
                 <View className="gap-6">
                   <AnsweredInvites invites={answeredByDay.yesterday} />
-                  <ShowingEvents
-                    events={eventsByDay.yesterday}
-                    highlight={!allRead}
-                  />
+                  <ShowingEvents events={eventsByDay.yesterday} />
                   <MemberUpdates updates={updatesByDay.yesterday} />
                 </View>
               </>
@@ -178,10 +141,7 @@ export default function NotificationsScreen() {
                 </Text>
                 <View className="gap-6">
                   <AnsweredInvites invites={answeredByDay.earlier} />
-                  <ShowingEvents
-                    events={eventsByDay.earlier}
-                    highlight={!allRead}
-                  />
+                  <ShowingEvents events={eventsByDay.earlier} />
                   <MemberUpdates updates={updatesByDay.earlier} />
                 </View>
               </>
