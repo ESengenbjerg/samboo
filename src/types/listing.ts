@@ -18,9 +18,14 @@ export type Listing = Pick<
   | "address"
   | "image_url"
   | "is_new_construction"
+  | "latitude"
+  | "longitude"
 >;
 
-export type UserListing = Pick<Tables<"user_listings">, "id" | "is_new" | "liked"> & {
+export type UserListing = Pick<
+  Tables<"user_listings">,
+  "id" | "is_new" | "liked"
+> & {
   listings: Listing;
 };
 
@@ -37,7 +42,8 @@ export type MemberUserListing = UserListing &
   Pick<Tables<"user_listings">, "user_id" | "liked_at">;
 
 // A listing in a group member's liked list, with when the member liked it
-export type MemberLikedListing = Listing & Pick<Tables<"user_listings">, "liked_at">;
+export type MemberLikedListing = Listing &
+  Pick<Tables<"user_listings">, "liked_at">;
 
 // Only the listing id of a liked user_listings row (listings.id = user_listings.listing_id)
 export type LikedListingId = Pick<Tables<"user_listings">, "listing_id">;
