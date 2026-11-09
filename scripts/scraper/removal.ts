@@ -1,28 +1,25 @@
-// This file decides which listings are "removed" after a scrape.
-// Agency specific checks (is the page healthy?) live in agencies/, the universal rules live here.
+// Decides which listings are "removed" after a scrape. Rules and thresholds: docs/removed_listings.md
 // The db client is passed in, because run.ts loads .env AFTER its static imports.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../../shared/database.types.ts";
 import type { ActiveListing, ScopeItem } from "../lib/types.ts";
 
-// Failure F3: this share (or more) of the listing pages failed -> the scraper is probably broken
+// Failure F3: share of listing page that may fail
 export const FAILED_DETAIL_SHARE = 0.5;
 
-// Suspicious: at least this many listings would be removed AND more than this share of the active ones
+// Suspicious: at least this many removals AND more than this share of the active listings
 export const SUSPICIOUS_MIN_REMOVALS = 5;
 export const SUSPICIOUS_MIN_SHARE = 0.5;
 
 const PAGE_SIZE = 1000; // Supabase returns at most 1000 rows per request
 
-// What the scraper visits: type (empty = all types) AND municipality.
-// Areas are left out on purpose: the scraper fetches whole municipalities, areas only limit the matching in match_user_listings
+// Type (empty = all types) AND municipality. Areas do not count: the scraper fetches whole municipalities
 function isInScope(listing: ActiveListing, scope: ScopeItem[]): boolean {
   return scope.some((item) => {
     const typeOk =
       item.propertyTypes.length === 0 ||
-      (listing.property_type !== null &&
-        item.propertyTypes.includes(listing.property_type));
+      item.propertyTypes.includes(listing.property_type);
     const placeOk =
       listing.municipality !== null &&
       item.municipalities.includes(listing.municipality);
@@ -30,7 +27,6 @@ function isInScope(listing: ActiveListing, scope: ScopeItem[]): boolean {
   });
 }
 
-// All active listings of an agency that the current scope covers.
 // Call this BEFORE the upsert, so new listings do not inflate the count
 export async function fetchActiveInScope(
   db: SupabaseClient<Database>,
@@ -56,7 +52,7 @@ export async function fetchActiveInScope(
   return active.filter((listing) => isInScope(listing, scope));
 }
 
-// Active listings the scraper did not see. A listing whose page failed to load is NOT missing, we just could not read it, so it is left alone
+// Active listings not seen in this run. A listing whose page failed to load is left alone
 export function findMissing(
   active: ActiveListing[],
   seenExternalIds: Set<number>,
@@ -69,7 +65,7 @@ export function findMissing(
   );
 }
 
-// Failure F3: too many listing pages failed
+// Failure F3
 export function tooManyPagesFailed(
   okCount: number,
   failedCount: number,
@@ -78,8 +74,7 @@ export function tooManyPagesFailed(
   return failedCount > 0 && failedCount / total >= FAILED_DETAIL_SHARE;
 }
 
-// Suspicious: too many of the active listings would disappear at once.
-// Both limits are needed: a narrow scope with 3 listings can in reality drop 2 in a day
+// Suspicious
 export function isSuspiciousRemoval(
   activeCount: number,
   removeCount: number,
@@ -97,6 +92,7 @@ export async function markRemoved(
 ): Promise<void> {
   if (listings.length === 0) return;
 
+  // Never overwrite an earlier removed_at: the 10 days to purge are counted from it
   const { error } = await db
     .from("listings")
     .update({ removed_at: removedAt })
@@ -104,6 +100,6 @@ export async function markRemoved(
       "id",
       listings.map((l) => l.id),
     )
-    .is("removed_at", null); // Never overwrite an earlier removed_at, days need to be counted for permanent delete from database.
+    .is("removed_at", null);
   if (error) throw error;
 }
