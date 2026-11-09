@@ -179,7 +179,7 @@ A mail about new matches and group members' likes, sent with Resend by `scripts/
 
 Cleanup runs inside the database with pg_cron, so it does not depend on GitHub Actions. The jobs are listed in `setup-extras.sql`.
 
-The scraper, the avatar purge and the notification mails run as GitHub Actions. GitHub's schedule does not always fire, so pg_cron also starts each workflow through `dispatch_github_workflow()` (pg_net + the GitHub API, token in Vault). Each workflow skips itself if it already succeeded in the last 12 hours, so both triggers can be active at once. No role may call `dispatch_github_workflow()`, not even `service_role`, because it reads a secret. It currently hardcodes the repository `ESengenbjerg/samboo` and the branch `develop`.
+The scraper, the avatar purge and the notification mails run as GitHub Actions. GitHub's schedule does not always fire, so pg_cron also starts each workflow through `dispatch_github_workflow()` (pg_net + the GitHub API, token in Vault). The scrape and avatar purge workflows skip themselves if they already succeeded in the last 12 hours. The email workflow has no such guard: `due_emails()` only returns users who have not been emailed today, so extra runs send nothing. Both triggers can therefore be active at once. No role may call `dispatch_github_workflow()`, not even `service_role`, because it reads a secret. It currently hardcodes the repository `ESengenbjerg/samboo` and the branch `develop`.
 
 ## Realtime
 

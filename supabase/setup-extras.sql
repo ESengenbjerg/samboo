@@ -105,7 +105,8 @@ select cron.schedule('purge-old-showings',        '50 3 * * *',   $$select publi
 select cron.schedule('purge-old-showing-events',  '55 3 * * *',   $$select public.purge_old_showing_events()$$);
 select cron.schedule('purge-cron-history',        '0 4 * * *',    $$delete from cron.job_run_details where end_time < now() - interval '7 days'$$);
 
--- Backups for GitHub's own schedule, which does not always fire. Each workflow skips itself if it already succeeded in the last 12 hours.
+-- Backups for GitHub's own schedule, which does not always fire. Scrape and avatar purge skip themselves if they already succeeded in the last 12 hours.
+-- The email workflow has no such guard: due_emails() only returns users who have not been emailed today.
 -- Need the Vault secret above.
 select cron.schedule('dispatch-scrape',           '20 4,6 * * *', $$select public.dispatch_github_workflow('scrape.yml')$$);
 select cron.schedule('dispatch-purge-avatars',    '50 4,6 * * *', $$select public.dispatch_github_workflow('purge-avatars.yml')$$);
