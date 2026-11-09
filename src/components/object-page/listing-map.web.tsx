@@ -2,7 +2,11 @@
 // Metro picks this file instead of listing-map.tsx on web (the .web.tsx extension).
 
 import { Text } from "@/components/ui/text";
-import { APIProvider, Map as GoogleMap } from "@vis.gl/react-google-maps";
+import {
+  AdvancedMarker,
+  APIProvider,
+  Map as GoogleMap,
+} from "@vis.gl/react-google-maps";
 import { View } from "react-native";
 
 // Same props as listing-map.tsx
@@ -39,7 +43,9 @@ export default function ListingMap({ latitude, longitude }: ListingMapProps) {
             gestureHandling="cooperative"
             disableDefaultUI
             clickableIcons={false}
-          />
+          >
+            <AdvancedMarker position={posision} />
+          </GoogleMap>
         </APIProvider>
       </View>
     </View>
