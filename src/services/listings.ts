@@ -101,7 +101,9 @@ export function getLikedListingsForUsers(userIds: string[]) {
       .from("user_listings")
       // !inner removes deleted listings, see getLikedListings()
       // liked_at is used by the notifications page to sort the members' updates by day
-      .select("id, user_id, is_new, liked, liked_at, listings!inner(*)")
+      .select(
+        `id, user_id, is_new, liked, liked_at, listings!inner(${LISTING_COLUMNS})`,
+      )
       .in("user_id", userIds)
       .eq("liked", true)
       .is("listings.removed_at", null)
