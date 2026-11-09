@@ -1,3 +1,4 @@
+import FormError from "@/components/form-error";
 import AnsweredInviteNotification from "@/components/notifications/answered-invitation-notification";
 import { default as FeedUpdateNotification } from "@/components/notifications/feed-update-notification";
 import GroupUpdateNotification from "@/components/notifications/group-update-notification";
@@ -39,22 +40,55 @@ export default function NotificationsScreen() {
   const accounts = useConnectedAccounts(userId);
 
   // Refetches by itself every time the page is opened
-  const { newMatchesCount } = useNewMatchesCount(userId);
-  const { newListingIds } = useNewListingIds(session?.user.id);
-  const { updatesByDay } = useGroupUpdates(userId, newListingIds);
+  const {
+    newMatchesCount,
+    error: newMatchesCountError,
+    isLoading: newMatchesCountIsLoading,
+  } = useNewMatchesCount(userId);
+  const {
+    newListingIds,
+    error: newListingIdsError,
+    isLoading: newListingIdsIsLoading,
+  } = useNewListingIds(session?.user.id);
+  const {
+    updatesByDay,
+    error: updatesByDayError,
+    isLoading: updatesByDayIsLoading,
+  } = useGroupUpdates(userId, newListingIds);
+  const {
+    eventsByDay,
+    isReady,
+    error: eventsByDayError,
+    isLoading: eventsByDayIsLoading,
+  } = useShowingEvents(userId);
   const { answeredByDay } = useAnsweredInvites(accounts);
-  const { eventsByDay } = useShowingEvents(userId);
+
+  const displayError =
+    accounts.error ||
+    newMatchesCountError ||
+    newListingIdsError ||
+    updatesByDayError ||
+    eventsByDayError;
+
+  const isBusy =
+    accounts.isLoading ||
+    newMatchesCountIsLoading ||
+    newListingIdsIsLoading ||
+    updatesByDayIsLoading ||
+    eventsByDayIsLoading;
 
   // Turns off the dot on the bell, that indicate new notifications,
   // when the user leaves the page
-  useMarkNotificationsSeen();
+  useMarkNotificationsSeen(isReady);
 
-  // Reload invites every time the page is opened
-  const { refresh } = accounts;
+  // Reload invites every time the page is opened. The notice about lost showings
+  // is only shown for the visit right after accepting, so it is cleared on leave
+  const { refresh, clearSkippedShowings } = accounts;
   useFocusEffect(
     useCallback(() => {
       refresh();
-    }, [refresh]),
+      return () => clearSkippedShowings();
+    }, [refresh, clearSkippedShowings]),
   );
 
   const hasToday =
@@ -107,7 +141,6 @@ export default function NotificationsScreen() {
     }
     if (day === "today") {
       // Always rendered: Keeps confirmation after answering the last invite.
-      // Withput a pending it counts as "now", so the confirmation is on top.
       const inviteTimes = accounts.receivedInvites.map((i) =>
         toTime(i.created_at),
       );
@@ -127,7 +160,7 @@ export default function NotificationsScreen() {
           <SkippedShowingNotification showings={accounts.skippedShowings} />
         ),
       });
-      // A cpunt with no time: Last in the section
+      // A count with no time: Last in the section
       items.push({
         key: "feed",
         time: 0,
@@ -143,14 +176,16 @@ export default function NotificationsScreen() {
         Nya händelser
       </Text>
 
+      {displayError && <FormError>{displayError}</FormError>}
+
       <ScrollView
         className="bg-background"
         contentContainerClassName="pb-8"
         showsVerticalScrollIndicator={false}
       >
-        {isEmpty ? (
-          <Text>Inga nya händelser</Text>
-        ) : (
+        {isBusy && <Text>Laddar...</Text>}
+        {!isBusy && !displayError && isEmpty && <Text>Inga nya händelser</Text>}
+        {!isEmpty && (
           <View className="gap-2">
             {hasToday && (
               <>

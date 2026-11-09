@@ -257,6 +257,9 @@ export function useConnectedAccounts(userId: string | undefined) {
     [isInGroup, run],
   );
 
+  // The notice is only for the visit right after accepting. Call it when the user leaves
+  const clearSkippedShowings = useCallback(() => setSkippedShowings([]), []);
+
   const declineInvite = useCallback(
     (inviteId: number) =>
       run(() => declineInviteRpc(inviteId), "Decline invite"),
@@ -307,6 +310,7 @@ export function useConnectedAccounts(userId: string | undefined) {
     actionError,
     groupNotice,
     skippedShowings,
+    clearSkippedShowings,
     dismissGroupNotice,
     clearActionError,
     sendInvite,

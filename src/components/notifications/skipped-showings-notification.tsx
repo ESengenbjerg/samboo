@@ -33,17 +33,17 @@ export default function SkippedShowingNotification({
         {showings.map((s) => (
           <View
             key={`${s.url}-${s.showing_date}`}
-            className="flex-row items-center justify-between gap-2"
+            className="flex-row justify-between"
           >
             <View className="flex-1">
-              <Text variant="bold">{s.address}</Text>
+              <Text variant="bold">{s.address ?? "Bostad"}</Text>
               <Text>{formatShowingWhen(s.showing_date, s.start_time)}</Text>
             </View>
             <Button
               size="sm"
-              variant="secondary"
+              variant="destructive"
               onPress={() => router.push("/(tabs)/saved")}
-              className="max-h-7"
+              className="max-h-7 mt-4 ml-4"
             >
               <Text>Till visningar</Text>
             </Button>
