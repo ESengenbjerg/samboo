@@ -48,7 +48,12 @@ export function useShowings(
       if (cancelled) return;
       if (error) {
         console.error("Failed to load showings: ", error);
-        setResult({ key: resultKey, showings: [], failed: true });
+        // Keep the previous rows so a failed fetch doesn't look like an empty list
+        setResult((prev) => ({
+          key: resultKey,
+          showings: prev?.key === resultKey ? prev.showings : [],
+          failed: true,
+        }));
         return;
       }
       setResult({

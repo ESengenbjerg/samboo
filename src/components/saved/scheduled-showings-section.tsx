@@ -15,8 +15,10 @@ type Feedback = { type: "success" | "error"; text: string };
 
 export default function ScheduledShowingsSection({
   userId,
+  onScrollToFeedback,
 }: {
   userId: string;
+  onScrollToFeedback?: () => void;
 }) {
   const { showings, isLoading, error, removeShowing, refetch } = useShowings(
     userId,
@@ -24,6 +26,7 @@ export default function ScheduledShowingsSection({
   );
   const {
     showings: pastShowings,
+    error: pastError,
     removeShowing: removePastShowing,
     refetch: refetchPast,
   } = useShowings(userId, "past");
@@ -35,6 +38,7 @@ export default function ScheduledShowingsSection({
     setIsInPast(false);
   }
   const displayedShowings = isInPast ? pastShowings : showings;
+  const listError = isInPast ? pastError : error;
 
   // Message about the last edit or delete. Lives here and not on each showing,
   // since a deleted showing disappears and an edited showing can be used to other list.
@@ -75,6 +79,8 @@ export default function ScheduledShowingsSection({
       type: "error",
       text: "Kunde inte radera visningen. Försök igen.",
     });
+    // The message is at the top of the section, the user may have scrolled past it
+    onScrollToFeedback?.();
   }
 
   function toggleList() {
@@ -109,7 +115,8 @@ export default function ScheduledShowingsSection({
         </Button>
       </View>
 
-      {feedback && (
+      {/* A success message is hidden if the list could not be loaded, so the two don't contradict each other */}
+      {feedback && !(feedback.type === "success" && listError) && (
         <View className="mb-4">
           {feedback.type === "error" ? (
             <FormError>{feedback.text}</FormError>
@@ -120,8 +127,8 @@ export default function ScheduledShowingsSection({
       )}
 
       {isLoading && <Text>Laddar visningar...</Text>}
-      {error && <FormError>{error}</FormError>}
-      {!isLoading && !error && displayedShowings.length === 0 && (
+      {listError && <FormError>{listError}</FormError>}
+      {!isLoading && !listError && displayedShowings.length === 0 && (
         <Text>Inga bokade visningar</Text>
       )}
 
