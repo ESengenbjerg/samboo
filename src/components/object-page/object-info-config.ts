@@ -1,5 +1,6 @@
 import {
   BedDoubleIcon,
+  Calendar,
   HandCoins,
   House,
   Layers,
@@ -14,6 +15,7 @@ export const OBJECT_INFO = {
   plot_area: { icon: Trees, title: "Tomtarea", suffix: "" },
   floor_level: { icon: Layers, title: "Våning", suffix: "" },
   monthly_fee: { icon: HandCoins, title: "Avgift", suffix: " kr/mån" },
+  build_year: { icon: Calendar, title: "Byggår", suffix: "" },
 };
 
 export type ObjectInfoType = keyof typeof OBJECT_INFO;
