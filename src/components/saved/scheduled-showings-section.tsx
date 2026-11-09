@@ -1,13 +1,17 @@
 import ScheduledShowingInfo from "@/components/saved/scheduled-showing-info";
 import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
-
 import { useShowings } from "@/hooks/useShowings";
 import { ScheduledShowing } from "@/types/showings";
 import { formatDateLabel, toIsoDate } from "@/utils/date-format";
-import { useState } from "react";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import { View } from "react-native";
+import FormError from "../form-error";
+import FormMessage from "../form-message";
 import { Button } from "../ui/button";
+
+type Feedback = { type: "success" | "error"; text: string };
 
 export default function ScheduledShowingsSection({
   userId,
@@ -24,14 +28,59 @@ export default function ScheduledShowingsSection({
     refetch: refetchPast,
   } = useShowings(userId, "past");
 
-  // An edited showing can move between upcoming and past, so reload both
-  function reloadShowings() {
-    refetch();
-    refetchPast();
+  const [isInPast, setIsInPast] = useState(false);
+  // If the last past showing is deleted or edited into the future there is nothing
+  // left to show in the past list, and the user shuld be sent back to upcoming.
+  if (isInPast && pastShowings.length === 0) {
+    setIsInPast(false);
+  }
+  const displayedShowings = isInPast ? pastShowings : showings;
+
+  // Message about the last edit or delete. Lives here and not on each showing,
+  // since a deleted showing disappears and an edited showing can be used to other list.
+  // Hidden when the user starts the next action.
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
+
+  function clearFeedback() {
+    setFeedback(null);
   }
 
-  const [isInPast, setIsInPast] = useState(false);
-  const displayedShowings = isInPast ? pastShowings : showings;
+  // Hide the message when the user leaves the screen, e.g. opens a list or
+  // switches tab. The screen stays mounted, so the message would still be
+  // there when the user comes back. The cleanup function runs when focus is lost
+  useFocusEffect(
+    useCallback(() => {
+      return () => setFeedback(null);
+    }, []),
+  );
+
+  // An edited showing can move between upcoming and past, so reload both
+  function onShowingUpdated() {
+    refetch();
+    refetchPast();
+    setFeedback({ type: "success", text: "Visningen är uppdaterad." });
+  }
+
+  function onShowingDeleted(id: number) {
+    if (isInPast) {
+      removePastShowing(id);
+    } else {
+      removeShowing(id);
+    }
+    setFeedback({ type: "success", text: "Visningen är raderad." });
+  }
+
+  function onShowingDeleteFailed() {
+    setFeedback({
+      type: "error",
+      text: "Kunde inte radera visningen. Försök igen.",
+    });
+  }
+
+  function toggleList() {
+    clearFeedback();
+    setIsInPast(!isInPast);
+  }
 
   // Find out if the showing is the first for that date,
   // to know when to add the date as heading
@@ -46,16 +95,32 @@ export default function ScheduledShowingsSection({
   return (
     <View>
       <View className="flex-row items-end justify-between mb-4">
-        <Text variant="h2">{isInPast ? "Tidigare visningar" : "Bokade visningar"}</Text>
+        <Text variant="h2">
+          {isInPast ? "Tidigare visningar" : "Bokade visningar"}
+        </Text>
         <Button variant="link" onPress={() => setIsInPast(!isInPast)}>
-          <Text>{pastShowings.length !== 0 ? (
-            isInPast ? "Kommande" : "Tidigare"
-          ) : null}</Text>
+          <Text>
+            {pastShowings.length !== 0
+              ? isInPast
+                ? "Kommande"
+                : "Tidigare"
+              : null}
+          </Text>
         </Button>
       </View>
 
+      {feedback && (
+        <View className="mb-4">
+          {feedback.type === "error" ? (
+            <FormError>{feedback.text}</FormError>
+          ) : (
+            <FormMessage>{feedback.text}</FormMessage>
+          )}
+        </View>
+      )}
+
       {isLoading && <Text>Laddar visningar...</Text>}
-      {error && <Text>{error}</Text>}
+      {error && <FormError>{error}</FormError>}
       {!isLoading && !error && displayedShowings.length === 0 && (
         <Text>Inga bokade visningar</Text>
       )}
@@ -84,10 +149,10 @@ export default function ScheduledShowingsSection({
                   area={s.area}
                   startsAt={s.startsAt}
                   note={s.note}
-                  onDeleted={() =>
-                    isInPast ? removePastShowing(s.id) : removeShowing(s.id)
-                  }
-                  onUpdated={reloadShowings}
+                  onDeleted={() => onShowingDeleted(s.id)}
+                  onUpdated={onShowingUpdated}
+                  onDeleteFailed={onShowingDeleteFailed}
+                  onStartAction={clearFeedback}
                 />
               </View>
             </View>

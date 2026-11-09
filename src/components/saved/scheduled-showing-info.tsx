@@ -24,8 +24,15 @@ import { Text } from "../ui/text";
 export default function ScheduledShowingInfo({
   onDeleted,
   onUpdated,
+  onDeleteFailed,
+  onStartAction,
   ...showing
-}: ScheduledShowing & { onDeleted: () => void; onUpdated: () => void }) {
+}: ScheduledShowing & {
+  onDeleted: () => void;
+  onUpdated: () => void;
+  onDeleteFailed: () => void;
+  onStartAction: () => void;
+}) {
   const timeText = showing.startsAt.toLocaleTimeString("sv-SE", {
     hour: "2-digit",
     minute: "2-digit",
@@ -34,7 +41,6 @@ export default function ScheduledShowingInfo({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
-  const [saved, setSaved] = useState(false);
   const {
     updateShowing,
     isUpdating,
@@ -42,22 +48,16 @@ export default function ScheduledShowingInfo({
     clearError: clearUpdateError,
   } = useUpdateShowing();
 
-  const {
-    deleteShowing,
-    isDeleting,
-    error: deleteError,
-    clearError: clearDeleteError,
-  } = useDeleteShowing();
+  const { deleteShowing, isDeleting } = useDeleteShowing();
 
   function openEditDialog() {
     clearUpdateError(); // Clears error from last time
-    setSaved(false);
+    onStartAction(); // Tells the parent to hide message from last action
     setEditDialogOpen(true);
   }
 
   function openDeleteDialog() {
-    clearDeleteError(); // Clears error from last time
-    setSaved(false);
+    onStartAction(); // Tells the parent to hide message from last action
     setDeleteDialogOpen(true);
   }
 
@@ -69,7 +69,6 @@ export default function ScheduledShowingInfo({
 
     if (ok) {
       setEditDialogOpen(false);
-      setSaved(true);
       onUpdated(); // Tells the parent to fetch the list again
     }
   }
@@ -78,8 +77,11 @@ export default function ScheduledShowingInfo({
     const ok = await deleteShowing(showing.id);
 
     if (ok) {
-      setDeleteDialogOpen(false);
-      onDeleted(); // Tells the parent to remove showing from the list
+      // Tells the parent to remove showing from the list
+      onDeleted();
+    } else {
+      // Tells the parent to show an error
+      onDeleteFailed();
     }
   }
 
@@ -173,8 +175,6 @@ export default function ScheduledShowingInfo({
           </Text>
         </Button>
       </View>
-
-      {saved && <Text>Visning uppdaterad</Text>}
 
       {editDialogOpen && (
         <SaveShowingDialog
