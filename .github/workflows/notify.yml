@@ -46,7 +46,7 @@ jobs:
       - run: touch .env
 
       - name: Send notification mails
-        run: node scripts/notify/sendNotifications.ts
+        run: node scripts/email/sendEmails.ts
         env:
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

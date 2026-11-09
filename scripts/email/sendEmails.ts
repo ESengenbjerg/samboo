@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { buildMail, type DueRow } from "./template.ts";
 
 const force = process.argv.includes("--force");
-// Use: node scripts/notify/sendNotifications.ts --force
+// Use: node scripts/email/sendEmails.ts --force
 
 // Resend's error body can contain e-mail addresses, and the Actions log is public: log only the error name
 async function resendError(res: Response) {

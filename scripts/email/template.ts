@@ -1,6 +1,6 @@
 // Build topic, html and text for ONE user
 // Only functions that turn data into text: no database, no network.
-// The data: one row from due_notifications() (see docs/database-design.md, "Notification mails")
+// The data: one row from due_notifications() (see docs/database-design.md, "Emails")
 
 import type { Enums, Tables } from "../../shared/database.types.ts";
 import type { RpcRow } from "../../shared/db.ts";

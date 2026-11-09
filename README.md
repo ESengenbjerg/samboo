@@ -47,7 +47,7 @@ The following requires that you have set up SMTP (for example Resend) and config
 
 - signing up for a new account and verifying the e-mail address
 - forgot password and password reset
-- the notification mails about new listings (`scripts/notify`)
+- the notification mails about new listings (`scripts/email`)
 
 Scraping of real agency sites (`scripts/scraper`) and the scheduled GitHub Actions jobs are not part of the demo data either.
 

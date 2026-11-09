@@ -161,9 +161,11 @@ Bucket `avatars`, **public**: anyone with an image URL can open it without signi
 - **One image per user in the end.** The app deletes the previous file after saving the new path (best effort). `orphan_avatar_objects()` finds files older than 1 hour that no profile points to, and `scripts/avatars/purgeOrphanAvatars.ts` deletes them through the Storage API (workflow `purge-avatars.yml`). Files are never deleted with SQL on `storage.objects`: that leaves the file in the bucket.
 - **Later: private bucket.** Because the table stores a path and not a URL, the bucket can be made private and the app can switch to signed URLs without changing the data.
 
-## Notification mails
+## Emails
 
-A mail about new matches and group members' likes, sent with Resend by `scripts/notify` at about 07:00 Swedish time. The database cannot send mail itself.
+**Naming:** "email" is what is sent with Resend (`scripts/email`). "Notifications" is the inbox in the app, see [In-app notifications](#in-app-notifications). The workflow `notify.yml` and the cron job `dispatch-notify` keep their old names, so the scheduled triggers stay untouched.
+
+A mail about new matches and group members' likes, sent with Resend by `scripts/email` at about 07:00 Swedish time. The database cannot send mail itself.
 
 - **Frequency:** `profiles.notification_frequency`: `day` (every morning), `week` (Friday mornings, Swedish time) or `none`.
 - **Who is due:** `due_notifications()` returns active users with a confirmed e-mail whose frequency fits today and who have not been mailed today (Swedish date). A second run on the same day returns nobody. Users with nothing new are left out, so an empty mail is never sent.
