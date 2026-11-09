@@ -5,7 +5,6 @@ import { buildMail, type DueRow } from "./template.ts";
 const force = process.argv.includes("--force");
 // Use: node scripts/email/sendEmails.ts --force
 
-// Resend's error body can contain e-mail addresses, and the Actions log is public: log only the error name
 async function resendError(res: Response) {
   try {
     const body = (await res.json()) as { name?: string };
@@ -15,16 +14,13 @@ async function resendError(res: Response) {
   }
 }
 
-// Fetch credentials
 process.loadEnvFile(".env");
 
-// Imported here, after loadEnvFile: the admin client reads the keys when it is imported
+// Imported after loadEnvFile
 const { supabaseAdmin } = await import("../lib/supabaseAdmin.ts");
 
-// Read the settings from env
 const ResendAPI = process.env.RESEND_API_KEY;
 const notifyFrom = process.env.NOTIFY_FROM;
-
 const appUrl = process.env.APP_URL;
 
 if (!appUrl) {
@@ -37,10 +33,6 @@ if (!notifyFrom) {
   process.exit(1);
 }
 
-// Check if it is 07 or later in Sweden?
-// The workflow runs at 05:07 and 06:07 UTC. Only one of them is 07 in Sweden (summer/winter time).
-// Exit code 0 = green run in GitHub: being too early is not an error.
-
 const hour = Number(
   new Intl.DateTimeFormat("sv-SE", {
     timeZone: "Europe/Stockholm",
@@ -48,24 +40,22 @@ const hour = Number(
   }).format(new Date()),
 );
 
+// The workflow runs at 05:07 and 06:07 UTC. Only one of them is 07 in Sweden (summer/winter time).
+// Exit code 0 = green run in GitHub: being too early is not an error.
 if (hour < 7 && !force) {
   console.log(`Too early in Sweden (hour ${hour}), nothing is sent`);
   process.exit(0);
 }
 
-// Fetch who is due today
-// due_emails() decides everything: frequency, Friday, not mailed today, active, confirmed e-mail, something new.
+// due_emails() decides frequency, Friday, not mailed today, active, confirmed e-mail, something new.
 // The script never has to check those itself.
 
-// Find due dates for today
+// Find who is due today
 const { data, error } = await supabaseAdmin.rpc("due_emails");
 
 // If something goes wrong
 if (error) {
-  console.error(
-    "Could not fetch due_emails from Supabase:",
-    error.message,
-  );
+  console.error("Could not fetch due_emails from Supabase:", error.message);
   process.exit(1); // Exit code 1 makes the workflow run fail (red) in GitHub
 }
 
