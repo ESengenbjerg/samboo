@@ -35,32 +35,51 @@ export function useShowings(
   const [result, setResult] = useState<ShowingsResult | null>(null);
   const key = `${userId}:${when}`;
 
+  // Loads the showings from the server. Returns a cleanup function that
+  // makes us ignore the response if the user changed or the screen lost focus
+  const fetchShowings = useCallback(() => {
+    if (!userId) return;
+
+    let cancelled = false;
+    const resultKey = `${userId}:${when}`;
+    const load = when === "past" ? getPastShowings : getUpcomingShowings;
+
+    load().then(({ data, error }) => {
+      if (cancelled) return;
+      if (error) {
+        console.error("Failed to load showings: ", error);
+        // Keep the previous rows so a failed fetch doesn't look like an empty list
+        setResult((prev) => ({
+          key: resultKey,
+          showings: prev?.key === resultKey ? prev.showings : [],
+          failed: true,
+        }));
+        return;
+      }
+      setResult({
+        key: resultKey,
+        showings: (data ?? []).map(toScheduledShowing),
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, when]);
+
   // Reloads every time the screen comes into focus, so a showing saved on
   // another screen shows up when the user comes back to this one
-  useFocusEffect(
-    useCallback(() => {
-      if (!userId) return;
+  useFocusEffect(fetchShowings);
 
-      // Ignore the response if the user changed or the screen lost focus
-      let cancelled = false;
-      const resultKey = `${userId}:${when}`;
-      const load = when === "past" ? getPastShowings : getUpcomingShowings;
-
-      load().then(({ data, error }) => {
-        if (cancelled) return;
-        if (error) {
-          console.error("Failed to load showings: ", error);
-          setResult({ key: resultKey, showings: [], failed: true });
-          return;
-        }
-        setResult({ key: resultKey, showings: (data ?? []).map(toScheduledShowing) });
-      });
-
-      return () => {
-        cancelled = true;
-      };
-    }, [userId, when]),
-  );
+  // Removes a showing from a list without fetching again.
+  // Used after a delete that the server has already confirmed.
+  const removeShowing = useCallback((id: number) => {
+    setResult((prev) =>
+      prev
+        ? { ...prev, showings: prev.showings.filter((s) => s.id !== id) }
+        : prev,
+    );
+  }, []);
 
   // Never expose a result that belongs to a previous user
   const current = userId && result?.key === key ? result : null;
@@ -70,5 +89,7 @@ export function useShowings(
     // Loading until we have a result for the current user
     isLoading: !!userId && !current,
     error: current?.failed ? "Kunde inte hämta visningar." : null,
+    removeShowing,
+    refetch: fetchShowings,
   };
 }

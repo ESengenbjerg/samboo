@@ -8,13 +8,7 @@ import {
   toTimeString,
 } from "@/utils/date-format";
 import { useState } from "react";
-import {
-  Keyboard,
-  Pressable,
-  ScrollView,
-  useWindowDimensions,
-  View,
-} from "react-native";
+import { ScrollView, useWindowDimensions, View } from "react-native";
 import FormError from "../form-error";
 import {
   Dialog,
@@ -35,6 +29,9 @@ type SaveShowingDialogProps = {
   onSave: (values: { date: string; time: string; note: string }) => void;
   isSaving: boolean;
   error: string | null;
+  initialDate?: Date;
+  initialTime?: Date;
+  initialNote?: string;
 };
 
 export function SaveShowingDialog({
@@ -43,21 +40,20 @@ export function SaveShowingDialog({
   onSave,
   isSaving,
   error,
+  initialDate,
+  initialTime,
+  initialNote,
 }: SaveShowingDialogProps) {
   // Starts on today, the user picks the real date
-  const [date, setDate] = useState(startOfToday);
-  const [time, setTime] = useState(defaultShowingTime);
-  const [note, setNote] = useState("");
+  const [date, setDate] = useState(initialDate ?? startOfToday);
+  const [time, setTime] = useState(initialTime ?? defaultShowingTime);
+  const [note, setNote] = useState(initialNote ?? "");
   const { height } = useWindowDimensions();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-80">
-        <Pressable
-          onPress={Keyboard.dismiss}
-          accessible={false}
-          className="gap-4"
-        >
+        
           <DialogHeader>
             <DialogTitle className="pb-6">Spara visning</DialogTitle>
           </DialogHeader>
@@ -65,6 +61,8 @@ export function SaveShowingDialog({
           <ScrollView
             nestedScrollEnabled
             showsVerticalScrollIndicator
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
             contentContainerClassName="gap-4"
             style={{ maxHeight: height * 0.75 }}
           >
@@ -103,7 +101,6 @@ export function SaveShowingDialog({
               </Button>
             </DialogFooter>
           </ScrollView>
-        </Pressable>
       </DialogContent>
     </Dialog>
   );
