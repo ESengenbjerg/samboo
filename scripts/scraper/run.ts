@@ -79,7 +79,7 @@ const scope = municipalityFlags.length
   : items;
 
 for (const userId of skipped) {
-  console.warn(`Skipping search without a place (user ${userId})`);
+  console.warn(`Skipping search without a municipality (user ${userId})`);
 }
 
 if (scope.length === 0) {
@@ -247,5 +247,5 @@ if (matchError) {
   console.log(`${newMatches} new user matches`);
 }
 
-// A non-zero exit code makes a scheduled run show up as failed, so GitHub notifies. Used for unexpected errors and isues the admin must hear about, not for a single failed agency run.
+// A non-zero exit code makes a scheduled run show up as failed, so GitHub notifies. Used for unexpected errors and issues the admin must hear about, not for a single failed agency run.
 if (failedAgencies > 0 || needsAttention > 0) process.exitCode = 1;
