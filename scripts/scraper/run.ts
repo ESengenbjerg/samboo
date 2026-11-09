@@ -72,9 +72,6 @@ if (agencies.length === 0) {
 
 const municipalityFlags = flagValues("municipality");
 
-// // node scripts/scraper/run.ts --dry-run  -> print scope and URLs, scrape nothing
-// const dryRun = process.argv.includes("--dry-run"); // For test
-
 // ---------------------- READ SEARCH PARAMS --------------------------
 const { data: searchParams, error: searchError } = await supabaseAdmin
   .from("search_params")
@@ -102,14 +99,6 @@ if (scope.length === 0) {
 
 console.log(`Scope: ${scope.length} distinct searches`);
 console.log(JSON.stringify(scope, null, 2));
-
-// if (dryRun) {
-//   for (const agency of agencies) {
-//     console.log(`\n${agency.AGENCY}:`);
-//     for (const url of agency.buildUrls(scope)) console.log(`  ${url}`);
-//   }
-//   process.exit(0);
-// }
 
 // ---------------------- SCRAPE + SAVE --------------------------
 // Why the listings table would reject the row as a whole, or null. SAME LIMITS as the check constraints on listings
