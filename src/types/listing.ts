@@ -20,6 +20,9 @@ export type Listing = Pick<
   | "is_new_construction"
   | "latitude"
   | "longitude"
+  | "build_year"
+  | "plot_area"
+  | "floor_level"
 >;
 
 export type UserListing = Pick<
