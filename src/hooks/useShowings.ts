@@ -35,35 +35,36 @@ export function useShowings(
   const [result, setResult] = useState<ShowingsResult | null>(null);
   const key = `${userId}:${when}`;
 
+  // Loads the showings from the server. Returns a cleanup function that
+  // makes us ignore the response if the user changed or the screen lost focus
+  const fetchShowings = useCallback(() => {
+    if (!userId) return;
+
+    let cancelled = false;
+    const resultKey = `${userId}:${when}`;
+    const load = when === "past" ? getPastShowings : getUpcomingShowings;
+
+    load().then(({ data, error }) => {
+      if (cancelled) return;
+      if (error) {
+        console.error("Failed to load showings: ", error);
+        setResult({ key: resultKey, showings: [], failed: true });
+        return;
+      }
+      setResult({
+        key: resultKey,
+        showings: (data ?? []).map(toScheduledShowing),
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, when]);
+
   // Reloads every time the screen comes into focus, so a showing saved on
   // another screen shows up when the user comes back to this one
-  useFocusEffect(
-    useCallback(() => {
-      if (!userId) return;
-
-      // Ignore the response if the user changed or the screen lost focus
-      let cancelled = false;
-      const resultKey = `${userId}:${when}`;
-      const load = when === "past" ? getPastShowings : getUpcomingShowings;
-
-      load().then(({ data, error }) => {
-        if (cancelled) return;
-        if (error) {
-          console.error("Failed to load showings: ", error);
-          setResult({ key: resultKey, showings: [], failed: true });
-          return;
-        }
-        setResult({
-          key: resultKey,
-          showings: (data ?? []).map(toScheduledShowing),
-        });
-      });
-
-      return () => {
-        cancelled = true;
-      };
-    }, [userId, when]),
-  );
+  useFocusEffect(fetchShowings);
 
   // Removes a showing from a list without fetching again.
   // Used after a delete that the server has already confirmed.
@@ -84,5 +85,6 @@ export function useShowings(
     isLoading: !!userId && !current,
     error: current?.failed ? "Kunde inte hämta visningar." : null,
     removeShowing,
+    refetch: fetchShowings,
   };
 }

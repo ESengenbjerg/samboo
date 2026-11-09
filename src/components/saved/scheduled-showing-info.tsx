@@ -23,8 +23,9 @@ import { Text } from "../ui/text";
 
 export default function ScheduledShowingInfo({
   onDeleted,
+  onUpdated,
   ...showing
-}: ScheduledShowing & { onDeleted: () => void }) {
+}: ScheduledShowing & { onDeleted: () => void; onUpdated: () => void }) {
   const timeText = showing.startsAt.toLocaleTimeString("sv-SE", {
     hour: "2-digit",
     minute: "2-digit",
@@ -69,6 +70,7 @@ export default function ScheduledShowingInfo({
     if (ok) {
       setEditDialogOpen(false);
       setSaved(true);
+      onUpdated(); // Tells the parent to fetch the list again
     }
   }
 
@@ -77,7 +79,7 @@ export default function ScheduledShowingInfo({
 
     if (ok) {
       setDeleteDialogOpen(false);
-      onDeleted(); // Tells the paretn to remove showing from the list
+      onDeleted(); // Tells the parent to remove showing from the list
     }
   }
 

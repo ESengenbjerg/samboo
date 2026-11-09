@@ -14,12 +14,22 @@ export default function ScheduledShowingsSection({
 }: {
   userId: string;
 }) {
-  const { showings, isLoading, error, removeShowing } = useShowings(
+  const { showings, isLoading, error, removeShowing, refetch } = useShowings(
     userId,
     "upcoming",
   );
-  const { showings: pastShowings, removeShowing: removePastShowing } =
-    useShowings(userId, "past");
+  const {
+    showings: pastShowings,
+    removeShowing: removePastShowing,
+    refetch: refetchPast,
+  } = useShowings(userId, "past");
+
+  // An edited showing can move between upcoming and past, so reload both
+  function reloadShowings() {
+    refetch();
+    refetchPast();
+  }
+
   const [isInPast, setIsInPast] = useState(false);
   const displayedShowings = isInPast ? pastShowings : showings;
 
@@ -75,6 +85,7 @@ export default function ScheduledShowingsSection({
                   onDeleted={() =>
                     isInPast ? removePastShowing(s.id) : removeShowing(s.id)
                   }
+                  onUpdated={reloadShowings}
                 />
               </View>
             </View>
