@@ -10,7 +10,7 @@ Why the Supabase database is built the way it is. The facts live elsewhere:
 | [supabase/setup-extras.sql](../supabase/setup-extras.sql) | What the dump does not contain: the trigger on `auth.users`, the RLS event trigger, role settings, the `avatars` bucket and its policies, pg_cron jobs | By hand, when one of those changes                 |
 | This file                                                 | Design decisions, and rules that span several tables or functions                                                                                      | When a decision changes                            |
 | [docs/openapi.yml](openapi.yml)                           | The API the app uses                                                                                                                                   | With every change to functions, grants or policies |
-| [shared/database.types.ts](../shared/database.types.ts)   | TypeScript types for every table, function and enum, generated from the database. The app and the scripts both import them                            | `npm run gen:types` after every database change    |
+| [shared/database.types.ts](../shared/database.types.ts)   | TypeScript types for every table, function and enum, generated from the database. The app and the scripts both import them                             | `npm run gen:types` after every database change    |
 | [docs/removed_listings.md](removed_listings.md)           | How the scraper marks listings as removed                                                                                                              | With the scraper                                   |
 
 New project: run `schema.sql`, then `setup-extras.sql`, then `node scripts/seed/places/seedPlaces.ts`.
@@ -60,14 +60,14 @@ The limit triggers and functions lock first (the profile row, the group row or a
 
 Columns with a fixed list of values are Postgres enums, not text with a check constraint:
 
-| Type                     | Column                                                       | Values                                                 |
-| ------------------------ | ------------------------------------------------------------ | ------------------------------------------------------ |
-| `property_type`          | `listings.property_type`, `search_params.property_types` (array) | `villa`, `radhus`, `lagenhet`, `fritidshus`, `tomt`, `other` |
-| `invite_status`          | `invites.status`                                             | `pending`, `accepted`, `declined`, `cancelled`         |
-| `email_frequency`        | `profiles.email_frequency`                                   | `day`, `week`, `none`                                  |
-| `scrape_issue_kind`      | `scrape_issues.kind`                                         | `failed`, `suspicious`                                 |
-| `scrape_issue_status`    | `scrape_issues.status`                                       | `open`, `resolved`                                     |
-| `showing_event_action`   | `showing_events.action`                                      | `created`, `updated`, `deleted`                        |
+| Type                   | Column                                                           | Values                                                       |
+| ---------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------ |
+| `property_type`        | `listings.property_type`, `search_params.property_types` (array) | `villa`, `radhus`, `lagenhet`, `fritidshus`, `tomt`, `other` |
+| `invite_status`        | `invites.status`                                                 | `pending`, `accepted`, `declined`, `cancelled`               |
+| `email_frequency`      | `profiles.email_frequency`                                       | `day`, `week`, `none`                                        |
+| `scrape_issue_kind`    | `scrape_issues.kind`                                             | `failed`, `suspicious`                                       |
+| `scrape_issue_status`  | `scrape_issues.status`                                           | `open`, `resolved`                                           |
+| `showing_event_action` | `showing_events.action`                                          | `created`, `updated`, `deleted`                              |
 
 - **Why enums:** the type generator cannot read check constraints, so a text column only becomes `string`. An enum becomes a union type and a runtime list (`Constants.public.Enums`) in `shared/database.types.ts`, so the app and the scripts take the values from the database instead of keeping their own copies.
 - **For the API nothing changed:** the values are the same strings in JSON. An unknown value fails with `22P02` (invalid input value for enum) instead of `23514` (check constraint).
