@@ -65,7 +65,7 @@ export type ActiveListing = Pick<
   "id" | "external_id" | "url" | "municipality" | "property_type"
 >;
 
-// Why a run was flagged. F1-F4 are failures, "mass_removal" is the suspicious case.
+// Why a run was flagged. F1-F4 are failures, "mass_removal" is the suspicious case (see docs/removed_listings.md).
 // IssueKind is the database enum public.scrape_issue_kind.
 // IssueReason stays here: the database does not limit reason, the list belongs to the scraper's rules
 export type IssueKind = Enums<"scrape_issue_kind">;
