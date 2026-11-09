@@ -1,9 +1,9 @@
 import type { Browser } from "playwright";
-import { ScrapeLayoutError } from "../../lib/errors.ts";
-import { countyOf, slugify } from "../../lib/swedishPlaces.ts";
 import type { Json } from "../../../shared/database.types.ts";
+import { ScrapeLayoutError } from "../../lib/errors.ts";
 import type { ListingRow, ScopeItem } from "../../lib/types.ts";
 import { mapListing, type Agency1LdJson } from "../mappers/agency1.ts";
+import { countyOf, slugify } from "../swedishPlaces.ts";
 
 // Env is read inside the functions, so it works even though run.ts
 // loads the .env file after the static imports have run.

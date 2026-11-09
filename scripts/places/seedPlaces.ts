@@ -1,7 +1,7 @@
 // This file aims to fill the counties, municipalities and areas tables once, from the lists in places/data/swedishPlaces.ts and places/data/areas.ts.
 
 // After this the tables are the source of truth for the app. The list is kept as seed data (e.g. for a fork). It is separate from
-// lib/swedishPlaces.ts, which belongs to agency1.
+// scraper/swedishPlaces.ts, which belongs to agency1.
 // Counties first, because every municipality points to its county. Safe to run again: existing rows are updated, nothing is duplicated.
 // Usage: node scripts/places/seedPlaces.ts
 
