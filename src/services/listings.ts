@@ -139,7 +139,7 @@ export function getListingById(listingId: string) {
 export function getListing(userId: string, listingId: string) {
   return supabase
     .from("user_listings")
-    .select("id, is_new, liked, listings!inner(*)")
+    .select(`id, is_new, liked, listings!inner(${LISTING_COLUMNS})`)
     .eq("user_id", userId)
     .eq("listing_id", Number(listingId))
     .is("listings.removed_at", null)
