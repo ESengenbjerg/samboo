@@ -27,6 +27,7 @@ export function useNewMatchesCount(userId: string | undefined) {
       setIsFetching(true);
       getNewMatchesCount(userId).then(({ count, error }) => {
         if (cancelled) return;
+        setIsFetching(false);
         if (error) {
           console.error("Failed to count new matches: ", error);
           setResult({ userId, count: 0, failed: true });

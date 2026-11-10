@@ -33,6 +33,7 @@ export function useNewListingIds(userId: string | undefined) {
       setIsFetching(true);
       getNewListingIds().then(({ data, error }) => {
         if (cancelled) return;
+        setIsFetching(false);
         if (error) {
           console.error("Failed to load new listings: ", error);
           setResult({ userId, ids: EMPTY, failed: true });
