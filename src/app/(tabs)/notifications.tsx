@@ -97,19 +97,20 @@ export default function NotificationsScreen() {
   // when the user leaves the page
   useMarkNotificationsSeen(allReady);
 
-  // Reload invites every time the page is opened. The confirmation of an answered invite
-  // and the notice about lost showings are only shown for the visit right after
-  // answering, so they are cleared on leave
-  const { refresh, clearSkippedShowings } = accounts;
+  // Reload invites every time the page is opened. The confirmation of an answered invite,
+  // the notice about lost showings and an old error are only relevant for the visit
+  // they happened in, so they are cleared on leave
+  const { refresh, clearSkippedShowings, clearActionError } = accounts;
   const { clearAnswer } = answer;
   useFocusEffect(
     useCallback(() => {
       refresh();
       return () => {
         clearSkippedShowings();
+        clearActionError();
         clearAnswer();
       };
-    }, [refresh, clearSkippedShowings, clearAnswer]),
+    }, [refresh, clearSkippedShowings, clearActionError, clearAnswer]),
   );
 
   const hasToday =
