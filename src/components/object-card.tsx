@@ -86,7 +86,7 @@ export function ObjectCard({
           />
           <OnCardTag
             isNew={isNew}
-            isNewConstruction={isSmall ? false : isNewConstruction}
+            isNewConstruction={isSmall && isNew ? false : isNewConstruction}
           />
         </View>
 
