@@ -81,7 +81,7 @@ nvm use 24
 
 You can try the app against your own Supabase project without setting up e-mail, scraping or agency mappers. The demo seeder creates two accounts and 50 made-up listings. Both accounts will have confirmed e-mail, and therefore you may log in directly after seeding them.
 
-The `FOR NOTIFICATIONS` and `GOOGLE MAPS` sections in `.env` can be left empty for the demo. The map is then hidden and no e-mails are sent.
+The `EMAILS` and `GOOGLE MAPS` sections in `.env` can be left empty for the demo. The map is then hidden and no e-mails are sent.
 
 1. Create a new, empty project on [supabase.com](https://supabase.com). Use a separate project for demo data, never one with real users.
 2. Enable the `pg_cron` and `pg_net` extensions (Database → Extensions).
@@ -117,7 +117,7 @@ The following requires that you have set up SMTP (for example Resend) and config
 - signing up for a new account and verifying the e-mail address
 - forgot password and password reset
 
-The emails about new listings (`scripts/email`) are sent with the Resend API and need `RESEND_API_KEY`, `NOTIFY_FROM` and `APP_URL`.
+The e-mails about new listings (`scripts/email`) are sent with the Resend API and need `RESEND_API_KEY`, `NOTIFY_FROM` and `APP_URL`.
 
 Scraping of real agency sites (`scripts/scraper`) and the scheduled GitHub Actions jobs are not part of the demo data either.
 
@@ -133,12 +133,12 @@ Scraping of real agency sites (`scripts/scraper`) and the scheduled GitHub Actio
 ### Why `scripts/` and `shared/` have their own `package.json` and `tsconfig.json`
 
 The app and the scripts are run by two different tools, so they need different settings:
-|
-| | App (`src/`) | Scripts and `shared/` |
+
+|                     | App (`src/`)                                         | Scripts and `shared/`                                                                    |
 | ------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Run by | Metro and Babel, which bundle everything | Node, which strips the types from `.ts` files itself |
-| Imports | `@/components/x` or `@shared/x`, no file extension | Relative paths with the extension: `../lib/types.ts` |
-| Module format | CommonJS in the root (see below) | ES modules: their own `package.json` has `"type": "module"` |
+| Run by              | Metro and Babel, which bundle everything             | Node, which strips the types from `.ts` files itself                                     |
+| Imports             | `@/components/x` or `@shared/x`, no file extension   | Relative paths with the extension: `../lib/types.ts`                                     |
+| Module format       | CommonJS in the root (see below)                     | ES modules: their own `package.json` has `"type": "module"`                              |
 | TypeScript settings | root `tsconfig.json` (`moduleResolution: "bundler"`) | `scripts/tsconfig.json` (`NodeNext`, `allowImportingTsExtensions`, `erasableSyntaxOnly`) |
 
 The root `package.json` has no `"type": "module"` on purpose. The config files in the root (`babel.config.js`, `metro.config.js`, `tailwind.config.js`, `eslint.config.js`) use `require` and `module.exports`, which stop working if Node reads every `.js` file as an ES module. So the root stays CommonJS, as Expo expects, and every folder that Node runs as ES modules gets a small `package.json` of its own.
@@ -174,4 +174,4 @@ Maria Tedeman & Emilie Sengenbjerg
 
 ## License
 
-MIT, see [LICENSE](LICENSE)
+MIT, see [LICENSE](LICENSE).
