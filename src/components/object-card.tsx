@@ -84,14 +84,20 @@ export function ObjectCard({
             style={{ width: "100%", height: "100%" }}
             contentFit="cover"
           />
-          <OnCardTag isNew={isNew} isNewConstruction={isNewConstruction} />
+          <OnCardTag
+            isNew={isNew}
+            isNewConstruction={isSmall ? false : isNewConstruction}
+          />
         </View>
 
         {!isSmall ? (
           <>
             <CardHeader className="flex-row overflow-hidden justify-between">
-              <View className="flex-1">
-                <CardTitle numberOfLines={1} className="max-w-[90%]">
+              <View className="flex-1 gap-1">
+                <CardTitle
+                  numberOfLines={1}
+                  className="max-w-[90%] leading-tight"
+                >
                   {address}
                 </CardTitle>
                 <CardDescription numberOfLines={1} className="max-w-[90%]">
