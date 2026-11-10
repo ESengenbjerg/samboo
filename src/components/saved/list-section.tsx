@@ -8,6 +8,7 @@ import { useSharedLikedListings } from "@/hooks/useSharedLikedListings";
 import { Listing } from "@/types/listing";
 import { nameEndsWithS } from "@/utils/name-ends-with-s";
 import { View } from "react-native";
+import { Spinner } from "../ui/spinner";
 
 export default function SavedListSection({ userId }: { userId: string }) {
   const { listings, isLoading, error } = useLikedListings(userId);
@@ -30,7 +31,6 @@ export default function SavedListSection({ userId }: { userId: string }) {
     return list.filter((l) => newListingIds.has(l.id)).length;
   }
 
-
   return (
     <View>
       <Text variant="h1" className="mb-8">
@@ -38,7 +38,7 @@ export default function SavedListSection({ userId }: { userId: string }) {
       </Text>
       {/* List container */}
       <View className="gap-4">
-        {isLoadingShared && <Text>Laddar gemensam lista...</Text>}
+        {isLoadingShared && <Spinner size="large" />}
         {sharedError && <Text>{sharedError}</Text>}
 
         {/*  Shared list -- only visible if session user is in a group */}
@@ -52,7 +52,7 @@ export default function SavedListSection({ userId }: { userId: string }) {
           />
         )}
 
-        {isLoadingGroup && <Text>Laddar grupp...</Text>}
+        {isLoadingGroup && <Spinner size="large" />}
         {groupError && <Text>{groupError}</Text>}
 
         {/* Group members lists */}
@@ -69,7 +69,7 @@ export default function SavedListSection({ userId }: { userId: string }) {
             />
           ))}
 
-        {isLoading && <Text>Laddar...</Text>}
+        {isLoading && <Spinner size="large" />}
         {error && <Text>{error}</Text>}
 
         {/* My list */}

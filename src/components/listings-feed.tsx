@@ -1,5 +1,6 @@
 import { ObjectCard } from "@/components/object-card";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { FeedListing, useFilteredListings } from "@/hooks/useFilteredListings";
 import { useSession } from "@/hooks/useSession";
@@ -7,9 +8,10 @@ import { BasePath, goToObject } from "@/utils/go-to-object";
 import { isNewConstruction } from "@/utils/is-new-construction";
 import { Link } from "expo-router";
 import { useState } from "react";
-import { ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import ListingsFilterBar from "./filter/listings-filter-bar";
 import FormError from "./form-error";
+import { ViewColumnIcon, ViewGridIcon } from "./view-icons";
 
 type ListingsProps = {
   title: string;
@@ -32,6 +34,7 @@ export default function ListingsFeed({
   const userId = session?.user.id;
 
   const [view, setView] = useState<"column" | "grid">("column");
+
   const {
     visibleListings,
     error: filterError,
@@ -40,33 +43,45 @@ export default function ListingsFeed({
 
   return (
     <View className="flex-1 px-6 bg-background gap-2">
-      <View className="flex-row justify-between">
-        <View className="self-start">
+      <View>
+        <View className="flex-row items-center justify-between">
           <Text variant="h1">{title}</Text>
 
-          {showUpdateFilter && (
-            <Button variant="link" className="px-0 pt-0 self-start">
-              <Link href="/(tabs)/update-filter">
-                <Text>Uppdatera bevakning</Text>
-              </Link>
-            </Button>
-          )}
+          {/* Feed view toggle */}
+          <View className="flex-row gap-1.5">
+            <Pressable
+              onPress={() => setView("column")}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Kolumnvy"
+              accessibilityState={{ selected: view === "column" }}
+            >
+              <ViewColumnIcon filled={view === "column"} />
+            </Pressable>
+            <Pressable
+              onPress={() => setView("grid")}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Rutnätsvy"
+              accessibilityState={{ selected: view === "grid" }}
+            >
+              <ViewGridIcon filled={view === "grid"} />
+            </Pressable>
+          </View>
         </View>
 
-        {/* TODO: Replace with correct component */}
-        <Button
-          onPress={() =>
-            view === "column" ? setView("grid") : setView("column")
-          }
-          className="h-11"
-        >
-          <Text>Toggle</Text>
-        </Button>
+        {showUpdateFilter && (
+          <Button variant="link" className="px-0 pt-0 self-start">
+            <Link href="/(tabs)/update-filter">
+              <Text>Uppdatera bevakning</Text>
+            </Link>
+          </Button>
+        )}
       </View>
 
       <ListingsFilterBar filters={filters} />
 
-      {isLoading && <Text>Laddar...</Text>}
+      {isLoading && <Spinner size="large" />}
       {error && <FormError>{error}</FormError>}
       {filterError && <FormError>{filterError}</FormError>}
 

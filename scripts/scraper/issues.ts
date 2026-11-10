@@ -1,6 +1,5 @@
-// This file handles the backlog (scrape_issues table): failed and suspicious runs per agency.
-// There is at most ONE open row per agency and kind. A repeated problem raises "occurrences" instead of adding rows, and a clean run closes the rows.
-//
+// The backlog (scrape_issues table): failed and suspicious runs per agency, see docs/removed_listings.md.
+
 // The db client is passed in, because run.ts loads .env AFTER its static imports.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -69,7 +68,7 @@ export function shouldNotify(issue: ScrapeIssue): boolean {
   return issue.reason === "F2" || issue.occurrences >= NOTIFY_FAILED_AFTER_RUNS;
 }
 
-// There is no mail/push service yet. A GitHub Actions annotation plus a failing exit code (see run.ts) makes GitHub notify the repo about the failed workflow run.
+// Admin is notified through GitHub, an Actions annotation + a failing exit code (see run.ts)
 export async function notifyAdmin(
   db: SupabaseClient<Database>,
   issue: ScrapeIssue,

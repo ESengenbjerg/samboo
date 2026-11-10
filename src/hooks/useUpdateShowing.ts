@@ -13,7 +13,10 @@ export function useUpdateShowing() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const update = useCallback(async (id: number, values: ShowingValues) => {
+  // originalDate is the showing's current date ("2027-01-15"). A past showing keeps its
+  // date when only the note or time is edited, so the date is only checked if it changed
+  const update = useCallback(
+    async (id: number, values: ShowingValues, originalDate: string) => {
     setError(null);
 
     const date = values.date.trim();
@@ -21,7 +24,7 @@ export function useUpdateShowing() {
       setError("Skriv datumet som ÅÅÅÅ-MM-DD, t.ex. 2027-01-01.");
       return false;
     }
-    if (isShowingDateInPast(date)) {
+    if (date !== originalDate && isShowingDateInPast(date)) {
       setError("Datumet kan inte ligga i det förflutna.");
       return false;
     }
@@ -60,7 +63,9 @@ export function useUpdateShowing() {
       return false;
     }
     return true;
-  }, []);
+    },
+    [],
+  );
 
   const clearError = useCallback(() => setError(null), []);
 

@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { SkippedShowing } from "@/types/showings";
 import { isValidEmail, normalizeEmail } from "@shared/email";
 import type { PostgrestError } from "@supabase/supabase-js";
 
@@ -37,9 +38,17 @@ export async function getReceivedInvites() {
 
 // Joins the sender's group. Fails if I am already in a group or the group is full.
 // A pending invite from me to the sender is cancelled by the database
-export function acceptInvite(inviteId: number) {
-  return supabase.rpc("accept_invite", { invite_id: inviteId });
+export async function acceptInvite(inviteId: number) {
+  const { data, error } = await supabase.rpc("accept_invite", {
+    invite_id: inviteId,
+  });
+  // The visits that did not follow into the group (empty if none)
+  const skipped: SkippedShowing[] = Array.isArray(data)
+    ? (data as unknown as SkippedShowing[])
+    : [];
+  return { data: skipped, error };
 }
+
 
 export function declineInvite(inviteId: number) {
   return supabase.rpc("decline_invite", { invite_id: inviteId });

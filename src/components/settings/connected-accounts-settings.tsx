@@ -9,6 +9,7 @@ import InfoMessage from "../info-message";
 import { ConfirmDialog } from "../modals/confirm-dialog";
 import { Button } from "../ui/button";
 import { Icon } from "../ui/icon";
+import { Spinner } from "../ui/spinner";
 import { Text } from "../ui/text";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
@@ -60,7 +61,7 @@ export default function ConnectedAccountsSettings({
       )}
 
       {isBusy ? (
-        <Text>Laddar...</Text>
+        <Spinner size="large" />
       ) : !isInGroup ? (
         <Text>Du har inga kopplade konton ännu.</Text>
       ) : (

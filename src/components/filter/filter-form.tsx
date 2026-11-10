@@ -26,6 +26,7 @@ import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Switch } from "../ui/switch";
 import FilterSelect from "./filter-select";
 import GeoPicker from "./geo-picker";
+import { Spinner } from "../ui/spinner";
 
 const INTERVAL_OPTIONS: { value: InformationInterval; label: string }[] = [
   { value: "day", label: "Varje dag" },
@@ -163,7 +164,7 @@ export default function FilterForm({
       {/* --- MUNICIPALITIES AND AREA --- */}
       <View className="gap-6 z-10">
         {isLoadingPlaces ? (
-          <Text>Laddar kommuner...</Text>
+          <Spinner size="large" />
         ) : placesError ? (
           <FormError>{placesError}</FormError>
         ) : (

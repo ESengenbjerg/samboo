@@ -108,7 +108,7 @@ export function CategoriesDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[80vw]">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Kategorisera objekt</DialogTitle>
         </DialogHeader>

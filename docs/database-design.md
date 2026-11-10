@@ -10,10 +10,10 @@ Why the Supabase database is built the way it is. The facts live elsewhere:
 | [supabase/setup-extras.sql](../supabase/setup-extras.sql) | What the dump does not contain: the trigger on `auth.users`, the RLS event trigger, role settings, the `avatars` bucket and its policies, pg_cron jobs | By hand, when one of those changes                 |
 | This file                                                 | Design decisions, and rules that span several tables or functions                                                                                      | When a decision changes                            |
 | [docs/openapi.yml](openapi.yml)                           | The API the app uses                                                                                                                                   | With every change to functions, grants or policies |
-| [shared/database.types.ts](../shared/database.types.ts)   | TypeScript types for every table, function and enum, generated from the database. The app and the scripts both import them                            | `npm run gen:types` after every database change    |
+| [shared/database.types.ts](../shared/database.types.ts)   | TypeScript types for every table, function and enum, generated from the database. The app and the scripts both import them                             | `npm run gen:types` after every database change    |
 | [docs/removed_listings.md](removed_listings.md)           | How the scraper marks listings as removed                                                                                                              | With the scraper                                   |
 
-New project: run `schema.sql`, then `setup-extras.sql`, then `node scripts/places/seedPlaces.ts`.
+New project: run `schema.sql`, then `setup-extras.sql`, then `node scripts/seed/places/seedPlaces.ts`.
 
 Updating `schema.sql` after a database change (needs the Supabase CLI, `supabase login` once, and Docker running, since the CLI runs `pg_dump` in a container). From the repo root:
 
@@ -33,7 +33,7 @@ The dump keeps function bodies (including comments inside them) and `COMMENT ON`
 ## Security model
 
 - **RLS on every table, policies only for `authenticated`.** `anon` has no grants at all in `public`: no tables, sequences or functions, and no default privileges for objects that `postgres` creates later. The only thing left is `USAGE` on the schema, inherited from `PUBLIC` (a Postgres default). It allows looking up names but not reading or calling anything, and it is kept because Supabase's own roles (Auth, Storage, Realtime) may depend on it. Supabase's default privileges for objects created by `supabase_admin` still mention `anon`; they cannot be changed from `postgres` and do not apply to our objects. Tables that only scripts and functions use (`scrape_issues`, `search_params_log`, `api_rate_limit`, `seen_listings`, `showing_events`) have RLS on and no policies, so only `service_role` and security definer functions reach them.
-- **`is_active_user()` is the gate.** Nearly every policy and RPC calls it: the profile must exist, be active and have a confirmed e-mail. An already issued JWT stays valid until it expires, but once the profile is deleted or deactivated the function returns `false` and RLS blocks everything. `profiles.is_active` is never set by the app: it is a manual kill switch that is checked live on every request.
+- **`is_active_user()` is the gate.** Nearly every policy and RPC calls it: the profile must exist, be active and have a confirmed e-mail. An already issued JWT stays valid until it expires, but once the profile is deleted or deactivated the function returns `false` and RLS blocks everything. `profiles.is_active` is never set by the app: it is a manual kill switch that is checked live on every request. It exists for copyright reasons, so the listing data can be kept from someone who should not have it. Deleting that person's account is not enough, because the e-mail address becomes free and they can sign up again. With `is_active = false` the row in `auth.users` stays, so the address remains taken and blocked. It blocks that address, not the person: a different address can still sign up.
 - **Narrow grants, then RLS.** Supabase's default privileges give new tables and sequences `ALL` for `authenticated` (no longer for `anon`, see above), and new functions `EXECUTE` for `authenticated` and, through Postgres itself, for `PUBLIC`. This database revokes that and grants only what the app needs. Direct writes are limited to a few columns (for example `profiles.name`, `user_listings.liked`, `showings.note`). Everything else, such as `profiles.group_id` and `user_listings.is_new`, changes only through functions. **Every new table or function must get its grants revoked and granted explicitly**, otherwise it is open to `authenticated` by default.
 - **Security definer functions to avoid recursion.** A policy that reads another table with its own policy can loop (error 42P17). `can_see_listing()` (used by the `showings` insert policy) and `my_avatar_count()` (used by the storage policy) exist only to break such loops.
 - **Messages in Swedish.** Functions and triggers use `raise exception` with Swedish text, so the app can show the message as is.
@@ -52,7 +52,7 @@ The dump keeps function bodies (including comments inside them) and `COMMENT ON`
 
 The limit triggers and functions lock first (the profile row, the group row or an advisory lock) and count after, so two simultaneous requests cannot both pass the limit.
 
-**STABLE functions must be called with `{ get: true }`.** PostgREST runs STABLE functions in a read-only transaction. Called with POST (the `supabase.rpc` default), `check_request()` tries to write its counter and the call fails with 405 / 25006. `my_group_id()`, `my_group_members()`, `my_pending_invites()`, `my_new_listing_ids()`, `my_showing_events()` and `has_new_notifications()` are STABLE, and so must any new STABLE function the app calls.
+**STABLE functions must be called with `{ get: true }`.** PostgREST runs STABLE functions in a read-only transaction. Called with POST (the `supabase.rpc` default), `check_request()` tries to write its counter and the call fails with 405 / 25006. `my_group_id()`, `my_group_members()`, `my_pending_invites()`, `my_new_listing_ids()`, `my_showing_events()`, `has_new_notifications()` and `shared_likes()` are STABLE, and so must any new STABLE function the app calls.
 
 **Trigger order matters.** BEFORE triggers on the same table fire in alphabetical order. The names are chosen so validation runs before counting: `search_params_check_places` before `search_params_limit_changes` (an invalid search is not logged), and `invites_check_recipient` before `invites_limit_per_pair`.
 
@@ -60,14 +60,14 @@ The limit triggers and functions lock first (the profile row, the group row or a
 
 Columns with a fixed list of values are Postgres enums, not text with a check constraint:
 
-| Type                     | Column                                                       | Values                                                 |
-| ------------------------ | ------------------------------------------------------------ | ------------------------------------------------------ |
-| `property_type`          | `listings.property_type`, `search_params.property_types` (array) | `villa`, `radhus`, `lagenhet`, `fritidshus`, `tomt`, `other` |
-| `invite_status`          | `invites.status`                                             | `pending`, `accepted`, `declined`, `cancelled`         |
-| `notification_frequency` | `profiles.notification_frequency`                            | `day`, `week`, `none`                                  |
-| `scrape_issue_kind`      | `scrape_issues.kind`                                         | `failed`, `suspicious`                                 |
-| `scrape_issue_status`    | `scrape_issues.status`                                       | `open`, `resolved`                                     |
-| `showing_event_action`   | `showing_events.action`                                      | `created`, `updated`, `deleted`                        |
+| Type                   | Column                                                           | Values                                                       |
+| ---------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------ |
+| `property_type`        | `listings.property_type`, `search_params.property_types` (array) | `villa`, `radhus`, `lagenhet`, `fritidshus`, `tomt`, `other` |
+| `invite_status`        | `invites.status`                                                 | `pending`, `accepted`, `declined`, `cancelled`               |
+| `email_frequency`      | `profiles.email_frequency`                                       | `day`, `week`, `none`                                        |
+| `scrape_issue_kind`    | `scrape_issues.kind`                                             | `failed`, `suspicious`                                       |
+| `scrape_issue_status`  | `scrape_issues.status`                                           | `open`, `resolved`                                           |
+| `showing_event_action` | `showing_events.action`                                          | `created`, `updated`, `deleted`                              |
 
 - **Why enums:** the type generator cannot read check constraints, so a text column only becomes `string`. An enum becomes a union type and a runtime list (`Constants.public.Enums`) in `shared/database.types.ts`, so the app and the scripts take the values from the database instead of keeping their own copies.
 - **For the API nothing changed:** the values are the same strings in JSON. An unknown value fails with `22P02` (invalid input value for enum) instead of `23514` (check constraint).
@@ -85,7 +85,7 @@ Columns with a fixed list of values are Postgres enums, not text with a check co
   - Areas narrow a municipality down. With areas chosen in a municipality, a listing there must have one of them (ignoring upper and lower case), and a listing without an area is hidden.
   - Unknown values (price, rooms, fee, living area) pass the filter, because agencies often leave them out.
   - New construction is shown unless the user turns it off.
-- **Places are reference data.** `municipalities` (290) is the one source of truth for municipality names. The app, the scraper's mapping and `validate_search_places()` all read it, and `listings.municipality` has a foreign key to it. `areas` is entered by hand, only for municipalities we can check ourselves. `listings.area` is free text from the agencies and is not the source of `areas`.
+- **Places are reference data.** `municipalities` (290) is the one source of truth for municipality names. The app and `validate_search_places()` read it, and `listings.municipality` has a foreign key to it. The scraper's mapping takes the spelling from the list that is seeded into the table (`scripts/seed/places/data/swedishPlaces.ts`), so a change to that list must also reach the table, or the foreign key fails the whole batch. agency1's list for search URLs (`scripts/scraper/swedishPlaces.ts`) follows the agency's site and is separate. `areas` is entered by hand, only for municipalities we can check ourselves. `listings.area` is free text from the agencies and is not the source of `areas`.
 - **`is_new`** belongs to the app (the "NYTT" flag). It is cleared by `mark_listing_seen()` when the listing page opens, and by `like_listing()`. It is not used for mails, see below.
 - **`seen_listings` remembers what a user has opened**, because `is_new` cannot do that alone. `is_new` lives on a `user_listings` row, and that row is missing for a group member's listing outside my search, and is deleted by `match_user_listings()` when the listing stops matching. `mark_listing_seen()` and `like_listing()` always write a row (user, listing), whether or not a `user_listings` row exists. The table is used in two places:
   - `match_user_listings()` creates a new row with `is_new = false` if the listing is already seen, so a listing does not get "NYTT" again after a search change.
@@ -161,23 +161,25 @@ Bucket `avatars`, **public**: anyone with an image URL can open it without signi
 - **One image per user in the end.** The app deletes the previous file after saving the new path (best effort). `orphan_avatar_objects()` finds files older than 1 hour that no profile points to, and `scripts/avatars/purgeOrphanAvatars.ts` deletes them through the Storage API (workflow `purge-avatars.yml`). Files are never deleted with SQL on `storage.objects`: that leaves the file in the bucket.
 - **Later: private bucket.** Because the table stores a path and not a URL, the bucket can be made private and the app can switch to signed URLs without changing the data.
 
-## Notification mails
+## Emails
 
-A mail about new matches and group members' likes, sent with Resend by `scripts/notify` at about 07:00 Swedish time. The database cannot send mail itself.
+**Naming:** "email" is what is sent with Resend (`scripts/email`). "Notifications" is the inbox in the app, see [In-app notifications](#in-app-notifications).
 
-- **Frequency:** `profiles.notification_frequency`: `day` (every morning), `week` (Friday mornings, Swedish time) or `none`.
-- **Who is due:** `due_notifications()` returns active users with a confirmed e-mail whose frequency fits today and who have not been mailed today (Swedish date). A second run on the same day returns nobody. Users with nothing new are left out, so an empty mail is never sent.
-- **The window:** new means after `last_notified_at` (after sign-up for a new user), but at most 8 days back, so a user who turns mails on again does not get old listings.
+A mail about new matches and group members' likes, sent with Resend by `scripts/email` at about 07:00 Swedish time. The database cannot send mail itself.
+
+- **Frequency:** `profiles.email_frequency`: `day` (every morning), `week` (Friday mornings, Swedish time) or `none`.
+- **Who is due:** `due_emails()` returns active users with a confirmed e-mail whose frequency fits today and who have not been mailed today (Swedish date). A second run on the same day returns nobody. Users with nothing new are left out, so an empty mail is never sent.
+- **The window:** new means after `last_emailed_at` (after sign-up for a new user), but at most 8 days back, so a user who turns mails on again does not get old listings.
 - **New listings use `listings.created_at`, not `user_listings.created_at`.** Changing the search re-creates match rows for old listings, which would otherwise be mailed as new. As a consequence, a listing that only starts to match later (for example after a price drop) is not mailed. Liked and removed listings are left out.
 - **Partner likes:** per other group member, the listings they liked in the window (`user_listings.liked_at`) that I have not liked myself. The mail turns this into one sentence per member, so many likes never make the mail longer.
-- **No double mails:** the script sets `last_notified_at` after each successful batch and sends each batch with an idempotency key (date + user ids). This is not guaranteed: if a mail was sent but the marking failed, and the set of due users has changed by the rerun, those users can get the mail twice.
+- **No double mails:** the script sets `last_emailed_at` after each successful batch and sends each batch with an idempotency key (date + user ids). This is not guaranteed: if a mail was sent but the marking failed, and the set of due users has changed by the rerun, those users can get the mail twice.
 - Resend rejects a whole batch if one address is invalid. The script then sends that batch one mail at a time.
 
 ## Scheduled jobs
 
 Cleanup runs inside the database with pg_cron, so it does not depend on GitHub Actions. The jobs are listed in `setup-extras.sql`.
 
-The scraper, the avatar purge and the notification mails run as GitHub Actions. GitHub's schedule does not always fire, so pg_cron also starts each workflow through `dispatch_github_workflow()` (pg_net + the GitHub API, token in Vault). Each workflow skips itself if it already succeeded in the last 12 hours, so both triggers can be active at once. No role may call `dispatch_github_workflow()`, not even `service_role`, because it reads a secret. It currently hardcodes the repository `ESengenbjerg/samboo` and the branch `develop`.
+The scraper, the avatar purge and the emails run as GitHub Actions. GitHub's schedule does not always fire, so pg_cron also starts each workflow through `dispatch_github_workflow()` (pg_net + the GitHub API, token in Vault). The scrape and avatar purge workflows skip themselves if they already succeeded in the last 12 hours. The email workflow has no such guard: `due_emails()` only returns users who have not been emailed today, so extra runs send nothing. Both triggers can therefore be active at once. No role may call `dispatch_github_workflow()`, not even `service_role`, because it reads a secret. It currently hardcodes the repository `ESengenbjerg/samboo` and the branch `develop`.
 
 ## Realtime
 
@@ -186,5 +188,4 @@ The scraper, the avatar purge and the notification mails run as GitHub Actions. 
 ## Open points
 
 - `dispatch_github_workflow()` hardcodes the repository, so a fork's backup jobs dispatch to the wrong repo. Plan: read repo and branch from Vault.
-- `profiles.is_active` is never set to `false` by the app. Removing the column would mean rewriting `is_active_user()`, `handle_new_user()` and `my_pending_invites()`, not the policies.
 - `listings.rooms` and `search_params.min_rooms`/`max_rooms` are `numeric(3,1)` (max 99.9), while the check constraints allow up to 100. A value of 100 fails with a numeric overflow instead of the check.

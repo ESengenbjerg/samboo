@@ -69,9 +69,13 @@ export function PrivacyDialog({ open, onOpenChange }: PrivacyDialogProps) {
             <View className="gap-1">
               <Text variant="bold">Tjänster vi använder</Text>
               <Text>
-                Supabase (databas och inloggning), Resend (mail) och Vercel
-                (webbversionen). Dina uppgifter lagras i Supabase på servrar i
-                Irland, inom EU.
+                Supabase (databas och inloggning), Resend (mail), Vercel
+                (webbversionen) och Google Maps (kartan på objektsidan). Dina
+                uppgifter lagras i Supabase på servrar i Irland, inom EU. När du
+                öppnar ett objekt med karta hämtas kartan direkt från Google,
+                som då får tillgång till din IP-adress och information om din
+                webbläsare. Google behandlar dessa uppgifter enligt sin egen
+                integritetspolicy och kan göra det utanför EU.
               </Text>
             </View>
 

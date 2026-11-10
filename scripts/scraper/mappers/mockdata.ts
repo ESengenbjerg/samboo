@@ -24,9 +24,12 @@ const PROPERTY_TYPES: Record<string, PropertyType> = {
   fritidshus: "fritidshus",
 };
 
-function mapPropertyType(category: unknown): PropertyType | null {
+function mapPropertyType(category: unknown): PropertyType {
   const text = toText(category);
-  if (!text) return null;
+  if (!text) {
+    console.warn(`No property type, saving as "other"`);
+    return "other";
+  }
 
   const mapped = PROPERTY_TYPES[text.toLowerCase()];
   if (!mapped) {
@@ -69,8 +72,8 @@ export function mapListing(data: MockdataLdJson): MappedListing {
     plot_area: withinLimits("plot_area", toNumber(data.plotArea)),
     image_url: toHttpsUrl(data.image, 500),
     description: toText(data.description, 5000, true),
-    latitude: toNumber(data.geo?.latitude),
-    longitude: toNumber(data.geo?.longitude),
+    latitude: withinLimits("latitude", toNumber(data.geo?.latitude)),
+    longitude: withinLimits("longitude", toNumber(data.geo?.longitude)),
     monthly_fee: withinLimits("monthly_fee", toPositive(data.monthlyFee)),
     living_area: withinLimits("living_area", toPositive(data.livingArea)),
     build_year: withinLimits("build_year", toNumber(data.buildYear)),

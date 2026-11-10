@@ -40,7 +40,7 @@ export default function AnsweredInviteNotification({
             onPress={() => router.push("/saved")}
             className="max-h-7"
           >
-            <Text>Visa</Text>
+            <Text>Se listor</Text>
           </Button>
         )}
       </View>

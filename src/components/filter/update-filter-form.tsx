@@ -1,6 +1,5 @@
 import FilterForm from "@/components/filter/filter-form";
 import FormError from "@/components/form-error";
-import { Text } from "@/components/ui/text";
 import { useProfile } from "@/hooks/useProfile";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { useSession } from "@/hooks/useSession";
@@ -15,6 +14,7 @@ import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { View } from "react-native";
 import FormMessage from "../form-message";
+import { Spinner } from "../ui/spinner";
 
 export default function UpdateFilterForm() {
   const { session } = useSession();
@@ -52,7 +52,7 @@ export default function UpdateFilterForm() {
 
   // Reads start values once, and must not render until saved search and profile are fetched
   if (!userId || isLoading || isLoadingProfile) {
-    return <Text>Laddar bevakning...</Text>;
+    return <Spinner size="large" />;
   }
 
   if (error) {

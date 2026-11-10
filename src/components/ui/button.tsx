@@ -34,16 +34,25 @@ const buttonVariants = cva(
           Platform.select({ web: "hover:bg-secondary/80" }),
         ),
         ghost: cn(
-          "active:bg-accent dark:active:bg-accent/50",
-          Platform.select({ web: "hover:bg-accent dark:hover:bg-accent/50" }),
+          "active:underline",
+          Platform.select({ web: "hover:underline" }),
         ),
         link: "",
       },
       size: {
-        default: cn('min-h-11 px-4 py-2 sm:min-h-9', Platform.select({ web: 'has-[>svg]:px-3' })),
-        sm: cn('min-h-9 gap-1.5 rounded-md px-3 sm:min-h-8', Platform.select({ web: 'has-[>svg]:px-2.5' })),
-        lg: cn('min-h-11 rounded-md px-6 sm:min-h-10', Platform.select({ web: 'has-[>svg]:px-4' })),
-        icon: 'h-11 w-11 sm:h-9 sm:w-9',
+        default: cn(
+          "min-h-11 px-4 py-2 sm:min-h-9",
+          Platform.select({ web: "has-[>svg]:px-3" }),
+        ),
+        sm: cn(
+          "min-h-9 gap-1.5 rounded-md px-3 sm:min-h-8",
+          Platform.select({ web: "has-[>svg]:px-2.5" }),
+        ),
+        lg: cn(
+          "min-h-11 rounded-md px-6 sm:min-h-10",
+          Platform.select({ web: "has-[>svg]:px-4" }),
+        ),
+        icon: "h-11 w-11 sm:h-9 sm:w-9",
       },
     },
     defaultVariants: {
@@ -68,10 +77,7 @@ const buttonTextVariants = cva(
           Platform.select({ web: "group-hover:text-accent-foreground" }),
         ),
         secondary: "text-secondary-foreground",
-        ghost: cn(
-          "group-active:text-accent-foreground",
-          Platform.select({ web: "group-hover:text-accent-foreground" }),
-        ),
+        ghost: "",
         link: cn(
           "text-foreground underline",
           Platform.select({ web: "underline-offset-4" }),

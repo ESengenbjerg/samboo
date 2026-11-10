@@ -23,12 +23,12 @@ export type ClientFilter = {
   showNewConstruction: boolean;
 };
 
-// profiles.notification_frequency, the database enum public.notification_frequency
-export type InformationInterval = Enums<"notification_frequency">;
+// profiles.email_frequency, the database enum public.email_frequency
+export type InformationInterval = Enums<"email_frequency">;
 
 // Checks a value from the UI (radio groups give string) against the database's list
 export function isInformationInterval(value: string): value is InformationInterval {
-  return (Constants.public.Enums.notification_frequency as readonly string[]).includes(value);
+  return (Constants.public.Enums.email_frequency as readonly string[]).includes(value);
 }
 
 type OnboardingState = {

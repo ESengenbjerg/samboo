@@ -1,4 +1,4 @@
-import { municipalityName } from "../../lib/swedishPlaces.ts";
+import { COUNTIES } from "../../seed/places/data/swedishPlaces.ts";
 
 // Shared parsers for the agency mappers. Each turns a raw value from a site into
 // something the listings table accepts, or null. Never undefined.
@@ -10,10 +10,12 @@ const LIMITS = {
   rooms: (n: number) => n > 0 && n <= 100,
   monthly_fee: (n: number) => Number.isInteger(n) && n >= 1 && n <= 100_000,
   living_area: (n: number) => n > 0 && n <= 10_000,
-  plot_area: (n: number) =>
-    Number.isInteger(n) && n >= 0 && n <= 10_000_000,
+  plot_area: (n: number) => Number.isInteger(n) && n >= 0 && n <= 10_000_000,
   floor_level: (n: number) => Number.isInteger(n) && n >= -5 && n <= 100,
   build_year: (n: number) => Number.isInteger(n) && n >= 1000 && n <= 2100,
+  // A box around Sweden, not its border
+  latitude: (n: number) => n >= 55 && n <= 70,
+  longitude: (n: number) => n >= 10 && n <= 25,
 } satisfies Record<string, (n: number) => boolean>;
 
 // The number if the listings table accepts it, otherwise null. One value the database rejects
@@ -70,12 +72,19 @@ export function toPlaceName(value: unknown): string | null {
     : null;
 }
 
+// Lowercase name -> the name in the list that is seeded into the municipalities table
+const MUNICIPALITY_BY_LOWERCASE = new Map(
+  Object.values(COUNTIES)
+    .flat()
+    .map((name) => [name.toLowerCase(), name]),
+);
+
 // The municipality as spelled in the municipalities table ("göteborg" -> "Göteborg"), since matching compares
 // it exactly with the user's search. An unknown name becomes null: it could never match anyway
 export function toMunicipality(value: unknown): string | null {
   const text = toText(value);
   if (!text) return null;
-  const name = municipalityName(text);
+  const name = MUNICIPALITY_BY_LOWERCASE.get(text.toLowerCase()) ?? null;
   if (!name) console.warn(`Unknown municipality "${text}", saving null`);
   return name;
 }

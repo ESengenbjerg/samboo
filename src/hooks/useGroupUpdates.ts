@@ -19,7 +19,7 @@ export function useGroupUpdates(
   userId: string | undefined,
   newListingIds: Set<number>,
 ) {
-  const { lists, isLoading, error } = useGroupLikedListings(userId);
+  const { lists, isLoading, isReady, error } = useGroupLikedListings(userId);
 
   const updatesByDay = useMemo(() => {
     const byDay: MemberUpdatesByDay = { today: [], yesterday: [], earlier: [] };
@@ -54,5 +54,5 @@ export function useGroupUpdates(
     return byDay;
   }, [lists, newListingIds]);
 
-  return { updatesByDay, isLoading, error };
+  return { updatesByDay, isLoading, isReady, error };
 }

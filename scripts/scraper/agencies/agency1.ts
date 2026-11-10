@@ -1,9 +1,9 @@
 import type { Browser } from "playwright";
-import { ScrapeLayoutError } from "../../lib/errors.ts";
-import { countyOf, slugify } from "../../lib/swedishPlaces.ts";
 import type { Json } from "../../../shared/database.types.ts";
+import { ScrapeLayoutError } from "../../lib/errors.ts";
 import type { ListingRow, ScopeItem } from "../../lib/types.ts";
 import { mapListing, type Agency1LdJson } from "../mappers/agency1.ts";
+import { countyOf, slugify } from "../swedishPlaces.ts";
 
 // Env is read inside the functions, so it works even though run.ts
 // loads the .env file after the static imports have run.
@@ -51,7 +51,7 @@ export function buildUrls(scope: ScopeItem[]): string[] {
       // The user chose types, but none of them exist on this site
       if (item.propertyTypes.length > 0 && types.length === 0) return null;
 
-      // TODO areas: need "county/municipality/area" slugs, so they are skipped for now
+      // Whole municipalities only: areas limit the matching in match_user_listings, not the scrape
       const places = item.municipalities
         .map((m) => {
           const place = municipalityPlace(m);
@@ -91,7 +91,7 @@ export function pageUrl(searchUrl: string, page: number): string {
 }
 
 // First path segment of the listings we keep. The site also returns other kinds
-// (holiday homes, new-build projects) that we have no property_type for
+// (holiday homes, new-build projects) that we do not scrape
 const LISTING_SEGMENTS = new Set([
   "hus",
   "radhus",

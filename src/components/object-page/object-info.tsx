@@ -15,13 +15,16 @@ type ObjectInfoProps = {
 export default function ObjectInfo({ type, value }: ObjectInfoProps) {
   if (value == null) return null;
 
+  // A year has no thousands separator: "1987", not "1 987".
   // property_type is the only text value: "lagenhet" -> "Lägenhet", not "Lagenhet"
   const text =
-    typeof value === "string"
-      ? isPropertyType(value)
-        ? PROPERTY_TYPE_LABELS[value]
-        : capitalize(value)
-      : formatNumber(value);
+    type === "build_year"
+      ? String(value)
+      : typeof value === "string"
+        ? isPropertyType(value)
+          ? PROPERTY_TYPE_LABELS[value]
+          : capitalize(value)
+        : formatNumber(value);
 
   const { icon, title, suffix } = OBJECT_INFO[type];
 

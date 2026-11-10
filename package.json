@@ -24,6 +24,7 @@
     "@rn-primitives/toggle-group": "^1.5.2",
     "@rn-primitives/tooltip": "^1.5.2",
     "@supabase/supabase-js": "^2.117.3",
+    "@vis.gl/react-google-maps": "^1.10.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "expo": "^58.0.19",

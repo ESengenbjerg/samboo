@@ -22,7 +22,7 @@ const CATEGORIES: Record<string, string[]> = {
   lagenhet: ["lagenhet"],
 };
 
-// One search URL per scope item. The site mixes municipalities and areas in one "area" filter
+// One search URL per scope item. The site calls its place filter "area"
 export function buildUrls(scope: ScopeItem[]): string[] {
   const urls = scope
     .map((item) => {
@@ -32,7 +32,7 @@ export function buildUrls(scope: ScopeItem[]): string[] {
       if (item.propertyTypes.length > 0 && categories.length === 0) return null;
 
       const url = new URL(baseUrl());
-      for (const place of [...item.municipalities, ...item.areas]) {
+      for (const place of item.municipalities) {
         url.searchParams.append("area", place);
       }
       for (const category of categories) {
