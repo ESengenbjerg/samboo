@@ -248,7 +248,10 @@ export function useConnectedAccounts(userId: string | undefined) {
         );
         return false;
       }
-      setSkippedShowings([]);
+
+      // skippedShowings is not cleared here: a second tap on the same invite is answered
+      // "already handled", which would wipe the list and never fill it again.
+      // A successful accept replaces it below, and it is cleared when the user leaves
       return run(
         async () => {
           const { data, error } = await acceptInviteRpc(inviteId);
