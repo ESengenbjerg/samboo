@@ -15,6 +15,9 @@ type ShowingEventsResult = {
 // Pass undefined until the session is loaded. Refetches every time the page is opened
 export function useShowingEvents(userId: string | undefined) {
   const [result, setResult] = useState<ShowingEventsResult | null>(null);
+  // true while the fetch of this visit is running. result still holds the previous visit's
+  // data meanwhile, so isLoading alone can not tell if the data is up to date
+  const [isFetching, setIsFetching] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -23,8 +26,10 @@ export function useShowingEvents(userId: string | undefined) {
       // Ignore the response if the user changed or the screen lost focus
       let cancelled = false;
 
+      setIsFetching(true);
       getShowingEvents().then(({ data, error }) => {
         if (cancelled) return;
+        setIsFetching(false);
         if (error) {
           console.error("Failed to load showing events: ", error);
           setResult({ userId, events: [], failed: true });
@@ -55,6 +60,8 @@ export function useShowingEvents(userId: string | undefined) {
   return {
     eventsByDay,
     isLoading: !!userId && !current,
+    // true when this visit's fetch has finished successfully
+    isReady: !!current && !current.failed && !isFetching,
     error: current?.failed ? "Kunde inte hämta ändringar i visningar." : null,
   };
 }

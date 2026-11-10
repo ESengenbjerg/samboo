@@ -21,6 +21,9 @@ type GroupLikedListingsResult = {
 // Empty if I am not in a group. Pass undefined until the session is loaded
 export function useGroupLikedListings(userId: string | undefined) {
   const [result, setResult] = useState<GroupLikedListingsResult | null>(null);
+  // true while the fetch of this visit is running. result still holds the previous visit's
+  // data meanwhile, so isLoading alone can not tell if the data is up to date
+  const [isFetching, setIsFetching] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -30,10 +33,14 @@ export function useGroupLikedListings(userId: string | undefined) {
       let cancelled = false;
 
       async function load(id: string) {
+        setIsFetching(true);
+
         const membersResult = await getGroupMembers();
+
         if (cancelled) return;
         if (membersResult.error) {
           console.error("Failed to load group members: ", membersResult.error);
+          setIsFetching(false);
           setResult({ userId: id, lists: [], failed: true });
           return;
         }
@@ -41,6 +48,7 @@ export function useGroupLikedListings(userId: string | undefined) {
         const members = membersResult.data ?? [];
         // Not in a group, nothing more to fetch
         if (members.length === 0) {
+          setIsFetching(false);
           setResult({ userId: id, lists: [] });
           return;
         }
@@ -50,6 +58,8 @@ export function useGroupLikedListings(userId: string | undefined) {
           members.map((m) => m.id),
         );
         if (cancelled) return;
+        setIsFetching(false);
+
         if (error) {
           console.error("Failed to load group liked listings: ", error);
           setResult({ userId: id, lists: [], failed: true });
@@ -79,6 +89,8 @@ export function useGroupLikedListings(userId: string | undefined) {
     lists: current?.lists ?? [],
     // Loading until we have a result for the current user
     isLoading: !!userId && !current,
+    // true when this visit's fetch has finished successfully
+    isReady: !!current && !current.failed && !isFetching,
     error: current?.failed ? "Kunde inte hämta gruppens listor." : null,
   };
 }

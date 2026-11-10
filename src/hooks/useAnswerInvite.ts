@@ -1,6 +1,6 @@
 import { ConnectedAccounts } from "@/hooks/useConnectedAccounts";
 import { InviteStatus } from "@/types/connected-accounts";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 type Answer = Extract<InviteStatus, "accepted" | "declined">;
 
@@ -29,5 +29,11 @@ export function useAnswerInvite(accounts: ConnectedAccounts) {
     }
   }
 
-  return { answeredInvite, answeredFromName, onAnswer };
+  // For pages that stay mounted, e.g. a tab: forget the answer when the user leaves
+  const clearAnswer = useCallback(() => {
+    setAnsweredInvite(null);
+    setAnsweredFromName(null);
+  }, []);
+
+  return { answeredInvite, answeredFromName, onAnswer, clearAnswer };
 }

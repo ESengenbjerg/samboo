@@ -44,7 +44,7 @@ export default function GroupUpdateNotification({
           </Text>
         </View>
         <Button size="sm" onPress={onPress} className="max-h-7">
-          <Text>Visa</Text>
+          <Text>Visa lista</Text>
         </Button>
       </View>
     </>

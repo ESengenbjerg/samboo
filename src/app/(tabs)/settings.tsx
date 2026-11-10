@@ -24,12 +24,14 @@ export default function SettingsScreen() {
   const accounts = useConnectedAccounts(session?.user.id);
 
   // Reload connected accounts every time the tab is opened.
-  // Catches changes Realtime cannot send, e.g. another member leaving the group
-  const { refresh } = accounts;
+  // Catches changes Realtime cannot send, e.g. another member leaving the group.
+  // The notice about lost showings is only for the visit right after accepting
+  const { refresh, clearSkippedShowings } = accounts;
   useFocusEffect(
     useCallback(() => {
       refresh();
-    }, [refresh]),
+      return () => clearSkippedShowings();
+    }, [refresh, clearSkippedShowings]),
   );
 
   const scrollRef = useRef<ScrollViewInstance>(null);

@@ -20,12 +20,16 @@ import {
   ReceivedInvite,
   SentInvite,
 } from "@/types/connected-accounts";
+import { SkippedShowing } from "@/types/showings";
 import { normalizeEmail } from "@shared/email";
 import type { PostgrestError } from "@supabase/supabase-js";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type ConnectedAccountsData = {
   userId: string;
+  // The refreshCount this result was loaded for. If it is lower than the current
+  // refreshCount, a newer load is running and the data is stale
+  loadedFor: number;
   members: GroupMember[];
   receivedInvites: ReceivedInvite[];
   sentInvites: SentInvite[];
@@ -51,6 +55,9 @@ export function useConnectedAccounts(userId: string | undefined) {
   const [actionError, setActionError] = useState<string | null>(null);
   // Info about changes made by others, e.g. someone left the group
   const [groupNotice, setGroupNotice] = useState<string | null>(null);
+  // My own showings that did not follow into the group when I accepted an invite
+  const [skippedShowings, setSkippedShowings] = useState<SkippedShowing[]>([]);
+
   // Members from the previous load, to see who disappeared
   const previousMembers = useRef<{
     userId: string;
@@ -78,6 +85,7 @@ export function useConnectedAccounts(userId: string | undefined) {
         console.log("Connected accounts error:", error);
         setData({
           userId,
+          loadedFor: refreshCount,
           members: [],
           receivedInvites: [],
           sentInvites: [],
@@ -115,6 +123,7 @@ export function useConnectedAccounts(userId: string | undefined) {
 
       setData({
         userId,
+        loadedFor: refreshCount,
         members: newMembers,
         receivedInvites: received.data ?? [],
         sentInvites: sent.data ?? [],
@@ -239,14 +248,25 @@ export function useConnectedAccounts(userId: string | undefined) {
         );
         return false;
       }
+
+      // skippedShowings is not cleared here: a second tap on the same invite is answered
+      // "already handled", which would wipe the list and never fill it again.
+      // A successful accept replaces it below, and it is cleared when the user leaves
       return run(
-        () => acceptInviteRpc(inviteId),
+        async () => {
+          const { data, error } = await acceptInviteRpc(inviteId);
+          if (!error) setSkippedShowings(data);
+          return { error };
+        },
         "Accept invite",
         isInviteAlreadyHandled,
       );
     },
     [isInGroup, run],
   );
+
+  // The notice is only for the visit right after accepting. Call it when the user leaves
+  const clearSkippedShowings = useCallback(() => setSkippedShowings([]), []);
 
   const declineInvite = useCallback(
     (inviteId: number) =>
@@ -292,11 +312,15 @@ export function useConnectedAccounts(userId: string | undefined) {
     pendingSentInvites: sentInvites.filter((i) => i.status === "pending"),
     // Loading until we have a result for the current user
     isLoading: !!userId && !current,
+    // true when the latest load has finished successfully
+    isReady: !!current && !current.failed && current.loadedFor === refreshCount,
     error: current?.failed ? "Kunde inte hämta dina kopplade konton." : null,
     refresh,
     isSubmitting,
     actionError,
     groupNotice,
+    skippedShowings,
+    clearSkippedShowings,
     dismissGroupNotice,
     clearActionError,
     sendInvite,
