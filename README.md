@@ -86,12 +86,12 @@ The `FOR NOTIFICATIONS` and `GOOGLE MAPS` sections in `.env` can be left empty f
 1. Create a new, empty project on [supabase.com](https://supabase.com). Use a separate project for demo data, never one with real users.
 2. Enable the `pg_cron` and `pg_net` extensions (Database → Extensions).
 3. Run all of [supabase/schema.sql](supabase/schema.sql) in the SQL Editor.
-4. Run [supabase/setup-extras.sql](supabase/setup-extras.sql) in the SQL Editor, **except the last three lines** (the `dispatch-scrape`, `dispatch-purge-avatars` and `dispatch-notify` jobs). This file is required: it creates the trigger that gives every new account a profile, the rate limit, the `avatars` bucket for profile pictures and the daily cleanup jobs. The three `dispatch-*` jobs start GitHub Actions workflows in the original repository and need a GitHub token in Vault, so they are not part of the demo. If the SQL Editor refuses the storage policies, create them under Storage → Policies instead.
+4. Run [supabase/setup-extras.sql](supabase/setup-extras.sql) in the SQL Editor, **except the last three lines** (the `dispatch-scrape`, `dispatch-purge-avatars` and `dispatch-email` jobs). This file is required: it creates the trigger that gives every new account a profile, the rate limit, the `avatars` bucket for profile pictures and the daily cleanup jobs. The three `dispatch-*` jobs start GitHub Actions workflows in the original repository and need a GitHub token in Vault, so they are not part of the demo. If the SQL Editor refuses the storage policies, create them under Storage → Policies instead.
 5. Fill in `.env` (created under [Installation](#installation)):
    - `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_KEY` (publishable/anon key) and `SUPABASE_SERVICE_ROLE_KEY` from Project Settings → API. The service role key is only used by the scripts and must never end up in the app.
    - `SEED_USER`, `SEED_FRIEND` and their passwords are prefilled. Change them if you like (passwords need at least 8 characters). No mail is sent to these addresses.
-6. Run `nvm use 24`, then fill in Sweden's counties and municipalities, and the areas of Göteborg, Mölndal and Partille, from the project root: `node scripts/places/seedPlaces.ts`
-7. Create the demo data, from the project root: `node scripts/seed/seedDemo.ts`
+6. Run `nvm use 24`, then fill in Sweden's counties and municipalities, and the areas of Göteborg, Mölndal and Partille, from the project root: `node scripts/seed/places/seedPlaces.ts`
+7. Create the demo data, from the project root: `node scripts/seed/demo/seedDemo.ts`
 8. Start the app and sign in as `SEED_USER`:
    - `npx expo start --web` to run it in the browser, or
    - `npx expo start` and scan the QR code with Expo Go.
@@ -126,7 +126,7 @@ Scraping of real agency sites (`scripts/scraper`) and the scheduled GitHub Actio
 | Folder      | What                                                                                   | Run by                        |
 | ----------- | -------------------------------------------------------------------------------------- | ----------------------------- |
 | `src/`      | The app. Routes in `src/app/`, everything else (components, hooks, services) beside it | Metro (Expo)                  |
-| `scripts/`  | Node scripts: scraper, notification mails, seeding, purges, `gen:types`                | Node 24, directly as `.ts`    |
+| `scripts/`  | Node scripts: scraper, emils, seeding, purges, `gen:types`                             | Node 24, directly as `.ts`    |
 | `shared/`   | Code that both the app and the scripts import. Never run on its own                    | imported by both of the above |
 | `supabase/` | The database described in SQL (`schema.sql`, `setup-extras.sql`)                       | pasted into the SQL Editor    |
 
