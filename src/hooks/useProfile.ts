@@ -39,7 +39,7 @@ export function useProfile(userId: string | undefined) {
               name: data.name,
               avatarPath: data.avatar_path,
               avatarUrl: getAvatarUrl(data.avatar_path),
-              notificationFrequency: data.notification_frequency,
+              notificationFrequency: data.email_frequency,
             }
           : null,
       });

@@ -28,9 +28,12 @@ const PROPERTY_TYPES: Record<string, PropertyType> = {
 };
 
 // Find property type by parsing
-function mapPropertyType(type: unknown): PropertyType | null {
+function mapPropertyType(type: unknown): PropertyType {
   const text = toText(type);
-  if (!text) return null;
+  if (!text) {
+    console.warn(`No property type, saving as "other"`);
+    return "other";
+  }
 
   const key = text.split(/[ ,]/)[0]?.toLowerCase() ?? "";
   const mapped = PROPERTY_TYPES[key];

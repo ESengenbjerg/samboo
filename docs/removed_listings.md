@@ -13,7 +13,7 @@ A broken scrape must never make listings look removed. Therefore every run is ju
 - An active listing that the scraper does not find gets `removed_at` immediately, in the first run where it is missing. There is no delay. The listing is shown to the user as "Hittas inte" (not found) in the app.
 - If a removed listing is found again, `removed_at` is set back to null and it is active for the user again.
 - Removed listings are permanently deleted after 10 days (including the users' connections to the listing).
-- Only active listings in the scope of the scrape are compared: the same agency, and a municipality/area and property type that match the users' searches. Listings outside every search are handled by the database instead, see [Stale listings](#stale-listings-outside-every-search).
+- Only active listings in the scope of the scrape are compared: the same agency, and a municipality and property type that match the users' searches. Areas do not count here: the scraper fetches whole municipalities. Listings outside every search are handled by the database instead, see [Stale listings](#stale-listings-outside-every-search).
 
 ## Outcome of a run (per agency)
 

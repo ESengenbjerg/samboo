@@ -1,6 +1,6 @@
 // Reads the command line flags and the demo accounts from .env, and checks that they are usable.
 // Call after process.loadEnvFile(".env").
-import { normalizeEmail } from "../../../shared/email.ts";
+import { normalizeEmail } from "../../../../shared/email.ts";
 import { fail } from "./helpers.ts";
 
 export type Account = { email: string; password: string };

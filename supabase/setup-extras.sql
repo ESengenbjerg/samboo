@@ -7,7 +7,7 @@
 --     public.dispatch_github_workflow(). Without it the dispatch-* jobs below fail every run, and only GitHub's own schedule is left.
 --     Create it in the SQL Editor, never in a file: select vault.create_secret('<token>', 'github_dispatch_token');
 --   * Auth settings (SMTP, e-mail templates, redirect URLs): docs/email-setup.md
---   * Reference data: node scripts/places/seedPlaces.ts
+--   * Reference data: node scripts/seed/places/seedPlaces.ts
 
 
 -- ---------------------------------------------------------------------
@@ -105,8 +105,9 @@ select cron.schedule('purge-old-showings',        '50 3 * * *',   $$select publi
 select cron.schedule('purge-old-showing-events',  '55 3 * * *',   $$select public.purge_old_showing_events()$$);
 select cron.schedule('purge-cron-history',        '0 4 * * *',    $$delete from cron.job_run_details where end_time < now() - interval '7 days'$$);
 
--- Backups for GitHub's own schedule, which does not always fire. Each workflow skips itself if it already succeeded in the last 12 hours.
+-- Backups for GitHub's own schedule, which does not always fire. Scrape and avatar purge skip themselves if they already succeeded in the last 12 hours.
+-- The email workflow has no such guard: due_emails() only returns users who have not been emailed today.
 -- Need the Vault secret above.
 select cron.schedule('dispatch-scrape',           '20 4,6 * * *', $$select public.dispatch_github_workflow('scrape.yml')$$);
 select cron.schedule('dispatch-purge-avatars',    '50 4,6 * * *', $$select public.dispatch_github_workflow('purge-avatars.yml')$$);
-select cron.schedule('dispatch-notify',           '20 5,6 * * *', $$select public.dispatch_github_workflow('notify.yml')$$);
+select cron.schedule('dispatch-email',            '20 5,6 * * *', $$select public.dispatch_github_workflow('email.yml')$$);

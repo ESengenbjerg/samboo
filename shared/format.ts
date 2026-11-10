@@ -1,4 +1,4 @@
-// Number formatting shared by the app and the notification mails, so prices look the same everywhere.
+// Number formatting shared by the app and the emails, so prices look the same everywhere.
 
 const SWEDISH_NUMBER = new Intl.NumberFormat("sv-SE");
 

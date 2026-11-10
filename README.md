@@ -106,7 +106,7 @@ The app itself is in Swedish. Labels from the app are quoted in Swedish below, w
 
 What you can try: onboarding, profile picture, accepting or declining the invite, search results, filters and sorting, likes (like something Robin has already liked and it ends up in your shared list), tags, showings, changing your search, leaving the group and deleting your account.
 
-Run `node scripts/seed/seedDemo.ts` again to start over. The script removes the old demo data and creates it again, with dates counted from today. `--remove` only removes the demo data. The script refuses to run if the database has users other than the demo accounts.
+Run `node scripts/seed/demo/seedDemo.ts` again to start over. The script removes the old demo data and creates it again, with dates counted from today. `--remove` only removes the demo data. The script refuses to run if the database has users other than the demo accounts.
 
 The daily cleanup deletes removed listings 10 days after they were removed. The two "Hittas inte" listings are created as removed 2 days ago, so they disappear about 8 days after the script ran. Run the script again to get them back.
 
@@ -116,7 +116,8 @@ The following requires that you have set up SMTP (for example Resend) and config
 
 - signing up for a new account and verifying the e-mail address
 - forgot password and password reset
-- the notification mails about new listings (`scripts/notify`)
+
+The emails about new listings (`scripts/email`) are sent with the Resend API and need `RESEND_API_KEY`, `NOTIFY_FROM` and `APP_URL`.
 
 Scraping of real agency sites (`scripts/scraper`) and the scheduled GitHub Actions jobs are not part of the demo data either.
 
@@ -133,6 +134,11 @@ Scraping of real agency sites (`scripts/scraper`) and the scheduled GitHub Actio
 
 The app and the scripts are run by two different tools, so they need different settings:
 
+|                     | App (`src/`)                                         | Scripts and `shared/`                                                                    |
+| ------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Run by              | Metro and Babel, which bundle everything             | Node, which strips the types from `.ts` files itself                                     |
+| Imports             | `@/components/x` or `@shared/x`, no file extension   | Relative paths with the extension: `../lib/types.ts`                                     |
+| Module format       | CommonJS in the root (see below)                     | ES modules: their own `package.json` has `"type": "module"`                              |
 |                     | App (`src/`)                                         | Scripts and `shared/`                                                                    |
 | ------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | Run by              | Metro and Babel, which bundle everything             | Node, which strips the types from `.ts` files itself                                     |

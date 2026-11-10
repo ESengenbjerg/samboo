@@ -186,7 +186,7 @@ export type Database = {
           municipality: string | null
           plot_area: number | null
           price: number | null
-          property_type: Database["public"]["Enums"]["property_type"] | null
+          property_type: Database["public"]["Enums"]["property_type"]
           removed_at: string | null
           rooms: number | null
           url: string
@@ -212,7 +212,7 @@ export type Database = {
           municipality?: string | null
           plot_area?: number | null
           price?: number | null
-          property_type?: Database["public"]["Enums"]["property_type"] | null
+          property_type: Database["public"]["Enums"]["property_type"]
           removed_at?: string | null
           rooms?: number | null
           url: string
@@ -238,7 +238,7 @@ export type Database = {
           municipality?: string | null
           plot_area?: number | null
           price?: number | null
-          property_type?: Database["public"]["Enums"]["property_type"] | null
+          property_type?: Database["public"]["Enums"]["property_type"]
           removed_at?: string | null
           rooms?: number | null
           url?: string
@@ -283,36 +283,36 @@ export type Database = {
         Row: {
           avatar_path: string | null
           created_at: string
+          email_frequency: Database["public"]["Enums"]["email_frequency"]
           group_id: number | null
           id: string
           is_active: boolean
-          last_notified_at: string | null
+          last_emailed_at: string | null
           name: string
-          notification_frequency: Database["public"]["Enums"]["notification_frequency"]
           notifications_seen_at: string | null
           onboarding_completed_at: string | null
         }
         Insert: {
           avatar_path?: string | null
           created_at?: string
+          email_frequency?: Database["public"]["Enums"]["email_frequency"]
           group_id?: number | null
           id: string
           is_active?: boolean
-          last_notified_at?: string | null
+          last_emailed_at?: string | null
           name: string
-          notification_frequency?: Database["public"]["Enums"]["notification_frequency"]
           notifications_seen_at?: string | null
           onboarding_completed_at?: string | null
         }
         Update: {
           avatar_path?: string | null
           created_at?: string
+          email_frequency?: Database["public"]["Enums"]["email_frequency"]
           group_id?: number | null
           id?: string
           is_active?: boolean
-          last_notified_at?: string | null
+          last_emailed_at?: string | null
           name?: string
-          notification_frequency?: Database["public"]["Enums"]["notification_frequency"]
           notifications_seen_at?: string | null
           onboarding_completed_at?: string | null
         }
@@ -690,11 +690,11 @@ export type Database = {
       delete_my_account: { Args: never; Returns: undefined }
       dispatch_github_workflow: { Args: { workflow: string }; Returns: number }
       dissolve_group_if_alone: { Args: { g: number }; Returns: undefined }
-      due_notifications: {
+      due_emails: {
         Args: { p_include_weekly?: boolean }
         Returns: {
           email: string
-          frequency: Database["public"]["Enums"]["notification_frequency"]
+          frequency: Database["public"]["Enums"]["email_frequency"]
           name: string
           new_count: number
           new_listings: Json
@@ -793,7 +793,7 @@ export type Database = {
           municipality: string | null
           plot_area: number | null
           price: number | null
-          property_type: Database["public"]["Enums"]["property_type"] | null
+          property_type: Database["public"]["Enums"]["property_type"]
           removed_at: string | null
           rooms: number | null
           url: string
@@ -808,8 +808,8 @@ export type Database = {
       shares_group_with: { Args: { target: string }; Returns: boolean }
     }
     Enums: {
+      email_frequency: "day" | "week" | "none"
       invite_status: "pending" | "accepted" | "declined" | "cancelled"
-      notification_frequency: "day" | "week" | "none"
       property_type:
         | "villa"
         | "radhus"
@@ -947,8 +947,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      email_frequency: ["day", "week", "none"],
       invite_status: ["pending", "accepted", "declined", "cancelled"],
-      notification_frequency: ["day", "week", "none"],
       property_type: [
         "villa",
         "radhus",
