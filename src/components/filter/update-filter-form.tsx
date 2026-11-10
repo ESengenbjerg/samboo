@@ -1,6 +1,5 @@
 import FilterForm from "@/components/filter/filter-form";
 import FormError from "@/components/form-error";
-import { Text } from "@/components/ui/text";
 import { useProfile } from "@/hooks/useProfile";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { useSession } from "@/hooks/useSession";
