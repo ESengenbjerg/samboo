@@ -31,7 +31,7 @@ Expo app built with:
 - `shared/`: constants, generated database types and union types, used by both the app and the scripts
 - Resend: SMTP for Supabase Auth mails, and API for notification mails
 - Domain and DNS at Loopia
-- Supabase CLI + OrbStack/Docker (schema dumps and `gen:types`)
+- Supabase CLI (schema dumps and `gen:types`) + OrbStack/Docker (needed for the dumps)
 
 ### Infrastructure and CI/CD
 
