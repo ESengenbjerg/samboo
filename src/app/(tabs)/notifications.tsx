@@ -44,22 +44,25 @@ export default function NotificationsScreen() {
     newMatchesCount,
     error: newMatchesCountError,
     isLoading: newMatchesCountIsLoading,
+    isReady: newMatchesCountIsReady,
   } = useNewMatchesCount(userId);
   const {
     newListingIds,
     error: newListingIdsError,
     isLoading: newListingIdsIsLoading,
+    isReady: newListingIdsIsReady,
   } = useNewListingIds(session?.user.id);
   const {
     updatesByDay,
     error: updatesByDayError,
     isLoading: updatesByDayIsLoading,
+    isReady: updatesByDayIsReady,
   } = useGroupUpdates(userId, newListingIds);
   const {
     eventsByDay,
-    isReady,
     error: eventsByDayError,
     isLoading: eventsByDayIsLoading,
+    isReady: eventsByDayIsReady,
   } = useShowingEvents(userId);
   const { answeredByDay } = useAnsweredInvites(accounts);
 
@@ -77,9 +80,19 @@ export default function NotificationsScreen() {
     updatesByDayIsLoading ||
     eventsByDayIsLoading;
 
+  // Every source has loaded this visit and none has failed. Otherwise the user
+  // has not seen all notifications yet, so the dot must stay
+  const allReady =
+    accounts.isReady &&
+    newMatchesCountIsReady &&
+    newListingIdsIsReady &&
+    updatesByDayIsReady &&
+    eventsByDayIsReady;
+
   // Turns off the dot on the bell, that indicate new notifications,
   // when the user leaves the page
-  useMarkNotificationsSeen(isReady);
+  useMarkNotificationsSeen(allReady);
+
 
   // Reload invites every time the page is opened. The notice about lost showings
   // is only shown for the visit right after accepting, so it is cleared on leave

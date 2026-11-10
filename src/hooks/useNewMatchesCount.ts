@@ -13,6 +13,9 @@ type CountResult = {
 // Pass undefined until the session is loaded. Refetches every time the page is opened
 export function useNewMatchesCount(userId: string | undefined) {
   const [result, setResult] = useState<CountResult | null>(null);
+  // true while the fetch of this visit is running. result still holds the previous visit's
+  // data meanwhile, so isLoading alone can not tell if the data is up to date
+  const [isFetching, setIsFetching] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -21,6 +24,7 @@ export function useNewMatchesCount(userId: string | undefined) {
       // Ignore the response if the user changed or the screen lost focus
       let cancelled = false;
 
+      setIsFetching(true);
       getNewMatchesCount(userId).then(({ count, error }) => {
         if (cancelled) return;
         if (error) {
@@ -43,6 +47,8 @@ export function useNewMatchesCount(userId: string | undefined) {
   return {
     newMatchesCount: current?.count ?? 0,
     isLoading: !!userId && !current,
+    // true when this visit's fetch has finished successfully
+    isReady: !!current && !current.failed && !isFetching,
     error: current?.failed ? "Kunde inte hämta nya bostäder." : null,
   };
 }

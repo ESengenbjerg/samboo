@@ -17,6 +17,9 @@ const EMPTY = new Set<number>();
 // Refetches on every focus, so a listing opened on another screen is no longer new
 export function useNewListingIds(userId: string | undefined) {
   const [result, setResult] = useState<NewListingIdsResult | null>(null);
+  // true while the fetch of this visit is running. result still holds the previous visit's
+  // data meanwhile, so isLoading alone can not tell if the data is up to date
+  const [isFetching, setIsFetching] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -27,6 +30,7 @@ export function useNewListingIds(userId: string | undefined) {
 
       // The database knows who I am from the session. userId is only used to refetch
       // and to never show a previous user's result
+      setIsFetching(true);
       getNewListingIds().then(({ data, error }) => {
         if (cancelled) return;
         if (error) {
@@ -49,6 +53,8 @@ export function useNewListingIds(userId: string | undefined) {
   return {
     newListingIds: current?.ids ?? EMPTY,
     isLoading: !!userId && !current,
+    // true when this visit's fetch has finished successfully
+    isReady: !!current && !current.failed && !isFetching,
     error: current?.failed ? "Kunde inte hämta nya bostäder." : null,
   };
 }

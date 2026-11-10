@@ -27,6 +27,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 type ConnectedAccountsData = {
   userId: string;
+  // The refreshCount this result was loaded for. If it is lower than the current
+  // refreshCount, a newer load is running and the data is stale
+  loadedFor: number;
   members: GroupMember[];
   receivedInvites: ReceivedInvite[];
   sentInvites: SentInvite[];
@@ -82,6 +85,7 @@ export function useConnectedAccounts(userId: string | undefined) {
         console.log("Connected accounts error:", error);
         setData({
           userId,
+          loadedFor: refreshCount,
           members: [],
           receivedInvites: [],
           sentInvites: [],
@@ -119,6 +123,7 @@ export function useConnectedAccounts(userId: string | undefined) {
 
       setData({
         userId,
+        loadedFor: refreshCount,
         members: newMembers,
         receivedInvites: received.data ?? [],
         sentInvites: sent.data ?? [],
@@ -304,6 +309,8 @@ export function useConnectedAccounts(userId: string | undefined) {
     pendingSentInvites: sentInvites.filter((i) => i.status === "pending"),
     // Loading until we have a result for the current user
     isLoading: !!userId && !current,
+    // true when the latest load has finished successfully
+    isReady: !!current && !current.failed && current.loadedFor === refreshCount,
     error: current?.failed ? "Kunde inte hämta dina kopplade konton." : null,
     refresh,
     isSubmitting,
