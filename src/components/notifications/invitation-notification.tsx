@@ -10,14 +10,17 @@ import { Text } from "../ui/text";
 
 type InvitationUpdateProps = {
   accounts: ConnectedAccounts;
+  // Owned by the notifications page: this component unmounts when the last invite
+  // is answered, which would lose the confirmation
+  answer: ReturnType<typeof useAnswerInvite>;
 };
 
 export default function InvitationNotification({
   accounts,
+  answer,
 }: InvitationUpdateProps) {
   const { receivedInvites, isSubmitting, actionError } = accounts;
-  const { answeredInvite, answeredFromName, onAnswer } =
-    useAnswerInvite(accounts);
+  const { answeredInvite, answeredFromName, onAnswer } = answer;
 
   if (receivedInvites.length === 0 && answeredInvite == null) return null;
 

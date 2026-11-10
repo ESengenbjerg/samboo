@@ -7,6 +7,7 @@ import ShowingUpdateNotification from "@/components/notifications/showing-update
 import SkippedShowingNotification from "@/components/notifications/skipped-showings-notification";
 import { Text } from "@/components/ui/text";
 import { useAnsweredInvites } from "@/hooks/useAnsweredInvites";
+import { useAnswerInvite } from "@/hooks/useAnswerInvite";
 import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
 import { useGroupUpdates } from "@/hooks/useGroupUpdates";
 import { useMarkNotificationsSeen } from "@/hooks/useMarkNotificationsSeen";
@@ -65,6 +66,9 @@ export default function NotificationsScreen() {
     isReady: eventsByDayIsReady,
   } = useShowingEvents(userId);
   const { answeredByDay } = useAnsweredInvites(accounts);
+  // Lives here, not in InvitationNotification: that component unmounts when the last
+  // invite is answered and the confirmation would be lost
+  const answer = useAnswerInvite(accounts);
 
   const displayError =
     accounts.error ||
@@ -93,20 +97,25 @@ export default function NotificationsScreen() {
   // when the user leaves the page
   useMarkNotificationsSeen(allReady);
 
-
-  // Reload invites every time the page is opened. The notice about lost showings
-  // is only shown for the visit right after accepting, so it is cleared on leave
+  // Reload invites every time the page is opened. The confirmation of an answered invite
+  // and the notice about lost showings are only shown for the visit right after
+  // answering, so they are cleared on leave
   const { refresh, clearSkippedShowings } = accounts;
+  const { clearAnswer } = answer;
   useFocusEffect(
     useCallback(() => {
       refresh();
-      return () => clearSkippedShowings();
-    }, [refresh, clearSkippedShowings]),
+      return () => {
+        clearSkippedShowings();
+        clearAnswer();
+      };
+    }, [refresh, clearSkippedShowings, clearAnswer]),
   );
 
   const hasToday =
     accounts.receivedInvites.length > 0 ||
     accounts.skippedShowings.length > 0 ||
+    answer.answeredInvite != null ||
     newMatchesCount > 0 ||
     updatesByDay.today.length > 0 ||
     answeredByDay.today.length > 0 ||
@@ -163,7 +172,7 @@ export default function NotificationsScreen() {
           inviteTimes.length > 0
             ? Math.max(...inviteTimes)
             : Number.MAX_SAFE_INTEGER,
-        node: <InvitationNotification accounts={accounts} />,
+        node: <InvitationNotification accounts={accounts} answer={answer} />,
       });
       // "Now": shown right after accepting an invite
       items.push({
