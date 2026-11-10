@@ -57,7 +57,7 @@ export function SendInviteDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="w-[80vw] flex-col">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Skicka inbjudan</DialogTitle>
         </DialogHeader>

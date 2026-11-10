@@ -86,7 +86,7 @@ function DialogContent({
     <DialogPortal hostName={portalHost}>
       <DialogOverlay>
         <View
-          className="w-full items-center"
+          className="w-full"
           style={{ paddingBottom: Math.max(0, keyboardHeight - 40) }}
         >
           <DialogPrimitive.Content
