@@ -201,9 +201,13 @@ export default function ObjectPageScreen({
           {/* --- ADDRESS AND AREA --- */}
           <View className="gap-4">
             <View>
-              <View className="flex-row justify-between items-center">
-                <Text variant="h1">{listing.address ?? "Adress saknas"}</Text>
-                <LikeButton listingId={listing.id} size={24} />
+              <View className="flex-row justify-between gap-2">
+                <Text variant="h1" className="flex-1 shrink min-w-0">
+                  {listing.address ?? "Adress saknas"}
+                </Text>
+                <View className="shrink-0">
+                  <LikeButton listingId={listing.id} size={24} />
+                </View>
               </View>
               <Text>
                 {[listing.area, listing.municipality]
@@ -216,7 +220,7 @@ export default function ObjectPageScreen({
             {listing.price != null ? (
               <Text variant="bold">{formatPrice(listing.price)}</Text>
             ) : (
-              <Text>(Pris saknas)</Text>
+              <Text variant="bold">Pris saknas</Text>
             )}
           </View>
           <Separator />
