@@ -52,7 +52,7 @@ export function SaveShowingDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-80">
+      <DialogContent>
         
           <DialogHeader>
             <DialogTitle className="pb-6">Spara visning</DialogTitle>
