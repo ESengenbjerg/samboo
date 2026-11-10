@@ -1,3 +1,5 @@
+import { THEME } from "@/lib/theme";
+import { useColorScheme } from "nativewind";
 import Svg, { Rect } from "react-native-svg";
 
 type IconProps = {
@@ -6,79 +8,49 @@ type IconProps = {
   filled?: boolean;
 };
 
-export function ViewColumnIcon({
+type RectDef = { x: number; y: number; width: number; height: number };
+
+const COLUMN_RECTS: RectDef[] = [
+  { x: 1, y: 1, width: 18, height: 7 },
+  { x: 1, y: 12, width: 18, height: 7 },
+];
+
+const GRID_RECTS: RectDef[] = [
+  { x: 1, y: 1, width: 7, height: 7 },
+  { x: 12, y: 1, width: 7, height: 7 },
+  { x: 1, y: 12, width: 7, height: 7 },
+  { x: 12, y: 12, width: 7, height: 7 },
+];
+
+function ViewIcon({
+  rects,
   size = 20,
-  color = "#293907",
+  color,
   filled = false,
-}: IconProps) {
-  const fill = filled ? color : "none";
+}: IconProps & { rects: RectDef[] }) {
+  const { colorScheme } = useColorScheme();
+  const iconColor = color ?? THEME[colorScheme ?? "light"].foreground;
+
   return (
-    <Svg width={size} height={size} viewBox="0 0 20 20" fill={fill}>
-      <Rect
-        x={1}
-        y={1}
-        width={18}
-        height={7}
-        rx={1}
-        stroke={color}
-        strokeWidth={2}
-      />
-      <Rect
-        x={1}
-        y={12}
-        width={18}
-        height={7}
-        rx={1}
-        stroke={color}
-        strokeWidth={2}
-      />
+    <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+      {rects.map((rect) => (
+        <Rect
+          key={`${rect.x}-${rect.y}`}
+          {...rect}
+          rx={1}
+          stroke={iconColor}
+          strokeWidth={2}
+          fill={filled ? iconColor : "none"}
+        />
+      ))}
     </Svg>
   );
 }
-export function ViewGridIcon({
-  size = 20,
-  color = "#293907",
-  filled = false,
-}: IconProps) {
-  const fill = filled ? color : "none";
-  return (
-    <Svg width={size} height={size} viewBox="0 0 20 20" fill={fill}>
-      <Rect
-        x={1}
-        y={1}
-        width={7}
-        height={7}
-        rx={1}
-        stroke={color}
-        strokeWidth={2}
-      />
-      <Rect
-        x={12}
-        y={1}
-        width={7}
-        height={7}
-        rx={1}
-        stroke={color}
-        strokeWidth={2}
-      />
-      <Rect
-        x={1}
-        y={12}
-        width={7}
-        height={7}
-        rx={1}
-        stroke={color}
-        strokeWidth={2}
-      />
-      <Rect
-        x={12}
-        y={12}
-        width={7}
-        height={7}
-        rx={1}
-        stroke={color}
-        strokeWidth={2}
-      />
-    </Svg>
-  );
+
+export function ViewColumnIcon(props: IconProps) {
+  return <ViewIcon rects={COLUMN_RECTS} {...props} />;
+}
+
+export function ViewGridIcon(props: IconProps) {
+  return <ViewIcon rects={GRID_RECTS} {...props} />;
 }

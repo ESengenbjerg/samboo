@@ -48,10 +48,22 @@ export default function ListingsFeed({
 
           {/* Feed view toggle */}
           <View className="flex-row gap-1.5">
-            <Pressable onPress={() => setView("column")}>
+            <Pressable
+              onPress={() => setView("column")}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Kolumnvy"
+              accessibilityState={{ selected: view === "column" }}
+            >
               <ViewColumnIcon filled={view === "column"} />
             </Pressable>
-            <Pressable onPress={() => setView("grid")}>
+            <Pressable
+              onPress={() => setView("grid")}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Rutnätsvy"
+              accessibilityState={{ selected: view === "grid" }}
+            >
               <ViewGridIcon filled={view === "grid"} />
             </Pressable>
           </View>
