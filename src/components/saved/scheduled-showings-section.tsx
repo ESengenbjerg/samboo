@@ -10,6 +10,7 @@ import { View } from "react-native";
 import FormError from "../form-error";
 import FormMessage from "../form-message";
 import { Button } from "../ui/button";
+import { Spinner } from "../ui/spinner";
 
 type Feedback = { type: "success" | "error"; text: string };
 
@@ -126,7 +127,7 @@ export default function ScheduledShowingsSection({
         </View>
       )}
 
-      {isLoading && <Text>Laddar visningar...</Text>}
+      {isLoading && <Spinner size="large" />}
       {listError && <FormError>{listError}</FormError>}
       {!isLoading && !listError && displayedShowings.length === 0 && (
         <Text>Inga bokade visningar</Text>

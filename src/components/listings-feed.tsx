@@ -1,5 +1,6 @@
 import { ObjectCard } from "@/components/object-card";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { FeedListing, useFilteredListings } from "@/hooks/useFilteredListings";
 import { useSession } from "@/hooks/useSession";
@@ -66,7 +67,7 @@ export default function ListingsFeed({
 
       <ListingsFilterBar filters={filters} />
 
-      {isLoading && <Text>Laddar...</Text>}
+      {isLoading && <Spinner size="large" />}
       {error && <FormError>{error}</FormError>}
       {filterError && <FormError>{filterError}</FormError>}
 

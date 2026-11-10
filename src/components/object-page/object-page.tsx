@@ -24,6 +24,7 @@ import { LikeButton } from "../like-button";
 import { CategoriesDialog } from "../modals/categories-dialog";
 import CategoryTag from "../tags/category-tag";
 import { Icon } from "../ui/icon";
+import { Spinner } from "../ui/spinner";
 import ObjectDescription from "./object-description";
 
 type ObjectPageProps = {
@@ -168,7 +169,7 @@ export default function ObjectPageScreen({
   if (isLoading)
     return (
       <View className="flex-1 px-8 py-6 gap-6 bg-background">
-        <Text>Laddar...</Text>
+        <Spinner size="large" />
       </View>
     );
 
