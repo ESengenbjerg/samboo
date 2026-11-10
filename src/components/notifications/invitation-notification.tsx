@@ -19,7 +19,7 @@ export default function InvitationNotification({
   accounts,
   answer,
 }: InvitationUpdateProps) {
-  const { receivedInvites, isSubmitting, actionError } = accounts;
+  const { receivedInvites, isSubmitting } = accounts;
   const { answeredInvite, answeredFromName, onAnswer } = answer;
 
   if (receivedInvites.length === 0 && answeredInvite == null) return null;
@@ -101,7 +101,6 @@ export default function InvitationNotification({
           </View>
         </View>
       ))}
-      {actionError != null && <Text>{actionError}</Text>}
     </>
   );
 }

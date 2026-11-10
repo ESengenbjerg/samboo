@@ -72,6 +72,7 @@ export default function NotificationsScreen() {
 
   const displayError =
     accounts.error ||
+    accounts.actionError ||
     newMatchesCountError ||
     newListingIdsError ||
     updatesByDayError ||
