@@ -753,6 +753,19 @@ export type Database = {
     }
     Functions: {
       accept_invite: { Args: { invite_id: number }; Returns: Json }
+      admin_find_user: {
+        Args: { p_email: string }
+        Returns: {
+          created_at: string
+          email: string
+          email_confirmed: boolean
+          id: string
+          is_active: boolean
+          is_admin: boolean
+          last_sign_in_at: string
+          name: string
+        }[]
+      }
       admin_list_users: {
         Args: never
         Returns: {

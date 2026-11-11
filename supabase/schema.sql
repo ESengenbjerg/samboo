@@ -232,6 +232,42 @@ $$;
 ALTER FUNCTION "public"."accept_invite"("invite_id" bigint) OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."admin_find_user"("p_email" "text") RETURNS TABLE("id" "uuid", "name" "text", "email" "text", "created_at" timestamp with time zone, "last_sign_in_at" timestamp with time zone, "email_confirmed" boolean, "is_active" boolean, "is_admin" boolean)
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+#variable_conflict use_column
+begin
+  -- Admin only: the app hides the view, the database enforces it
+  if not public.is_admin() then
+    raise exception 'Endast för administratörer' using errcode = '42501';
+  end if;
+
+  -- Exact match only, ignoring case and surrounding spaces, so the admin cannot browse addresses
+  return query
+  select p.id,
+         p.name,
+         u.email::text,
+         p.created_at,
+         u.last_sign_in_at,
+         u.email_confirmed_at is not null,
+         p.is_active,
+         exists (select 1 from public.admins a where a.user_id = p.id)
+  from public.profiles p
+  join auth.users u on u.id = p.id
+  where lower(u.email) = lower(trim(p_email))
+  limit 1;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."admin_find_user"("p_email" "text") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."admin_find_user"("p_email" "text") IS 'Admin only. The user with exactly this e-mail (case-insensitive), or no row. Same columns as admin_list_users().';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."admin_list_users"() RETURNS TABLE("id" "uuid", "name" "text", "email" "text", "created_at" timestamp with time zone, "last_sign_in_at" timestamp with time zone, "email_confirmed" boolean, "is_active" boolean, "is_admin" boolean)
     LANGUAGE "plpgsql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
@@ -3043,6 +3079,12 @@ GRANT ALL ON TYPE "public"."showing_event_action" TO "service_role";
 REVOKE ALL ON FUNCTION "public"."accept_invite"("invite_id" bigint) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."accept_invite"("invite_id" bigint) TO "service_role";
 GRANT ALL ON FUNCTION "public"."accept_invite"("invite_id" bigint) TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."admin_find_user"("p_email" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."admin_find_user"("p_email" "text") TO "service_role";
+GRANT ALL ON FUNCTION "public"."admin_find_user"("p_email" "text") TO "authenticated";
 
 
 
