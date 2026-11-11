@@ -1,17 +1,17 @@
 // This file aims to test the limit of 50 showings (limit_showings_per_group(), see supabase/schema.sql)
+// USAGE: node scripts/test/testShowingsLimit.ts
 
-// Signs in as the two seed users with the PUBLISHABLE key, like the app does, and checks:
+// Signs in as the two test users with the PUBLISHABLE key, like the app does, and checks:
 //   1. Each user can add 50 personal showings, and the 51st is rejected ("Du har redan max antal visningar (50)").
 //   2. The users join one group (invite + accept_invite()). Their showings move into it: 100 in the group,
 //      because the limit is only checked on insert.
 //   3. Adding one more showing to the group is rejected ("Gruppen har redan max antal visningar (50)").
-//
-// It RESETS the seed users first: both leave their group and ALL their showings are deleted.
+
+// It RESETS the test users first: both leave their group and ALL their showings are deleted.
 // It adds user_listings rows for the listings it uses (so the users may see them) and removes only those afterwards.
 // Dev database only. Needs 102 listings that are not removed.
-//
+
 // Each user sends about 55 writes. The limit is 100 per 5 minutes (check_request()), so wait that long before running it again.
-// Usage: node scripts/test/testShowingsLimit.ts
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../../shared/database.types.ts";
@@ -24,14 +24,14 @@ const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const key =
   process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
   process.env.EXPO_PUBLIC_SUPABASE_KEY;
-const email1 = process.env.SEED_USER_EMAIL;
-const password1 = process.env.SEED_USER_PASSWORD;
-const email2 = process.env.SEED_USER2_EMAIL;
-const password2 = process.env.SEED_USER2_PASSWORD;
+const email1 = process.env.TEST_USER_EMAIL;
+const password1 = process.env.TEST_USER_PASSWORD;
+const email2 = process.env.TEST_USER2_EMAIL;
+const password2 = process.env.TEST_USER2_PASSWORD;
 
 if (!url || !key || !email1 || !password1 || !email2 || !password2) {
   throw new Error(
-    "Missing EXPO_PUBLIC_SUPABASE_URL, a publishable key or the SEED_USER / SEED_USER2 credentials in dotenv",
+    "Missing EXPO_PUBLIC_SUPABASE_URL, a publishable key or the TEST_USER / TEST_USER2 credentials in dotenv",
   );
 }
 
@@ -103,7 +103,9 @@ const { data: already } = await supabaseAdmin
 const alreadyKeys = new Set(
   (already ?? []).map((r) => `${r.user_id}:${r.listing_id}`),
 );
-const added = wanted.filter((r) => !alreadyKeys.has(`${r.user_id}:${r.listing_id}`));
+const added = wanted.filter(
+  (r) => !alreadyKeys.has(`${r.user_id}:${r.listing_id}`),
+);
 
 let inviteId: number | null = null;
 
@@ -214,7 +216,8 @@ try {
     "accept_invite",
     { invite_id: inviteId },
   );
-  if (acceptError) throw new Error(`accept_invite failed: ${acceptError.message}`);
+  if (acceptError)
+    throw new Error(`accept_invite failed: ${acceptError.message}`);
   check(
     "no showings dropped when joining",
     Array.isArray(dropped) && dropped.length === 0,
@@ -226,7 +229,8 @@ try {
     .select("group_id")
     .eq("id", user1.id)
     .single();
-  if (!member?.group_id) throw new Error("user1 has no group after accept_invite");
+  if (!member?.group_id)
+    throw new Error("user1 has no group after accept_invite");
   const { count } = await supabaseAdmin
     .from("showings")
     .select("*", { count: "exact", head: true })
@@ -249,12 +253,11 @@ try {
   process.exitCode = 1;
 } finally {
   await cleanup();
-  console.log("\nCleaned up (groups, showings, invite and added user_listings)");
+  console.log(
+    "\nCleaned up (groups, showings, invite and added user_listings)",
+  );
 }
 
 const pass = results.length > 0 && results.every((r) => r.pass);
 console.log(pass ? "\nRESULT: as expected" : "\nRESULT: NOT as expected");
 process.exitCode = pass && !process.exitCode ? 0 : 1;
-
-// Ran in Terminal:
-// node scripts/test/testShowingsLimit.ts

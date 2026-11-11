@@ -1,6 +1,5 @@
 // Find the existing users and check that it is safe to run.
-// Stops the script if a demo e-mail belongs to a real user, or if the database has real users
-// (unless --allow-existing-users). Returns the demo users from the previous run.
+// Stops the script if a demo e-mail belongs to a real user, or if the database has real users (unless --allow-existing-users). Returns the demo users from the previous run.
 import { supabaseAdmin } from "../../../lib/supabaseAdmin.ts";
 import type { SeedConfig } from "./config.ts";
 import { fail } from "./helpers.ts";
