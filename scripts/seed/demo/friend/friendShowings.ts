@@ -1,33 +1,39 @@
-// Two personal showings for user 2 on liked listings.
+// Three personal showings for user 2 on liked listings.
 // User 2 has no group yet, so they move into the group when user 1 accepts the invite.
 import { supabaseAdmin } from "../../../lib/supabaseAdmin.ts";
-import { DAY, ok, type IdOf } from "../setup/helpers.ts";
+import { ok, type IdOf } from "../setup/helpers.ts";
 
 export async function createFriendShowings(
   user2: string,
   liked: number[],
   idOf: IdOf,
-  now: number,
+  _now: number,
 ): Promise<void> {
-  // In the future, so purge_old_showings() (30 days after the date) leaves them alone
-  const dateIn = (days: number) =>
-    new Date(now + days * DAY).toISOString().slice(0, 10);
+  // purge_old_showings() removes showings 30 days after their date, so the first goes on 16 Dec 2026.
   ok(
     await supabaseAdmin.from("showings").insert([
       {
         user_id: user2,
         group_id: null,
         listing_id: idOf(liked[0]),
-        showing_date: dateIn(5),
+        showing_date: "2026-11-16",
         start_time: "17:30",
-        note: "Ta med frågor om avgiften",
+        note: "Fin lägenhet med bra ljus. Avgiften var rimlig och föreningen verkade ha god ekonomi. Köket är något slitet, annars i bra skick.",
       },
       {
         user_id: user2,
         group_id: null,
         listing_id: idOf(liked[1]),
-        showing_date: dateIn(9),
+        showing_date: "2026-11-25",
         start_time: "12:00",
+        note: "Ta med frågor om avgiften",
+      },
+      {
+        user_id: user2,
+        group_id: null,
+        listing_id: idOf(liked[2]),
+        showing_date: "2026-12-07",
+        start_time: "16:00",
         note: null,
       },
     ]),
