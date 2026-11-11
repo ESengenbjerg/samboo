@@ -46,8 +46,8 @@ export default function ListingsFilterBar({
       )}
       {showCategoryFilter && (
         <FilterSelect
-          placeholder="Kategorier"
-          label="Dina kategorier"
+          placeholder="Taggar"
+          label="Dina taggar"
           value={category}
           onValueChange={setCategory}
           options={[ALL_OPTION, ...tagOptions]}

@@ -230,7 +230,7 @@ export default function ObjectPageScreen({
                 onPress={openCategoriesDialog}
                 className="flex-row justify-start items-center gap-1 w-[50%]"
               >
-                <Text variant="bold">Kategorisera</Text>
+                <Text variant="bold">Lägg till taggar</Text>
                 <Icon as={PlusSquare} size={18} />
               </Pressable>
             )}

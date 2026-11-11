@@ -36,9 +36,9 @@ export function useSaveTag() {
         // 23505 = user_tags_unique. P0001 = limit_tags_per_user(), its message is already in Swedish
         if (error.code === "rate_limited") setError(RATE_LIMITED_MESSAGE);
         else if (error.code === "23505")
-          setError("Du har redan en kategori med det namnet.");
+          setError("Du har redan en tagg med det namnet.");
         else if (error.code === "P0001") setError(error.message);
-        else setError("Kunde inte skapa kategorin. Försök igen.");
+        else setError("Kunde inte skapa tagg. Försök igen.");
         return null;
       }
       return data;
@@ -51,7 +51,7 @@ export function useSaveTag() {
     const { error } = await deleteUserTag(tagId);
     if (error) {
       console.error("Failed to delete tag: ", error);
-      setError("Kunde inte radera kategorin. Försök igen.");
+      setError("Kunde inte radera taggen. Försök igen.");
       return false;
     }
     return true;
@@ -66,7 +66,7 @@ export function useSaveTag() {
         setError(
           error.code === "rate_limited"
             ? RATE_LIMITED_MESSAGE
-            : "Kunde inte kategorisera annonsen. Försök igen.",
+            : "Kunde inte tagga annonsen. Försök igen.",
         );
         return false;
       }
@@ -84,7 +84,7 @@ export function useSaveTag() {
         setError(
           error.code === "rate_limited"
             ? RATE_LIMITED_MESSAGE
-            : "Kunde inte ta bort kategorin från annonsen. Försök igen.",
+            : "Kunde inte ta bort taggen från annonsen. Försök igen.",
         );
         return false;
       }
