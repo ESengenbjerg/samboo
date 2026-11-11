@@ -31,7 +31,7 @@ export default function FilterSelect({
   return (
     <View className="gap-1.5">
       <Select value={value} onValueChange={onValueChange}>
-        <SelectTrigger className={`${fieldColor} w-full justify-between`}>
+        <SelectTrigger className={`${fieldColor} justify-between`}>
           <SelectValue placeholder={placeholder ? placeholder : "Välj"} />
         </SelectTrigger>
         <SelectContent className="min-w-44">
