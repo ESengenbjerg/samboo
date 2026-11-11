@@ -131,6 +131,18 @@ COMMENT ON TYPE "public"."scrape_issue_status" IS 'Status of a scrape issue. At 
 
 
 
+CREATE TYPE "public"."scrape_run_outcome" AS ENUM (
+    'ok',
+    'failed',
+    'suspicious',
+    'skipped',
+    'error'
+);
+
+
+ALTER TYPE "public"."scrape_run_outcome" OWNER TO "postgres";
+
+
 CREATE TYPE "public"."showing_event_action" AS ENUM (
     'created',
     'updated',
@@ -1300,6 +1312,22 @@ $$;
 ALTER FUNCTION "public"."purge_old_invites"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."purge_old_scrape_runs"() RETURNS integer
+    LANGUAGE "sql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+  with deleted as (
+    delete from public.scrape_runs
+    where started_at < now() - interval '90 days'
+    returning 1
+  )
+  select count(*)::int from deleted;
+$$;
+
+
+ALTER FUNCTION "public"."purge_old_scrape_runs"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."purge_old_showing_events"() RETURNS integer
     LANGUAGE "sql" SECURITY DEFINER
     SET "search_path" TO ''
@@ -1882,6 +1910,43 @@ ALTER TABLE "public"."scrape_issues" ALTER COLUMN "id" ADD GENERATED ALWAYS AS I
 
 
 
+CREATE TABLE IF NOT EXISTS "public"."scrape_runs" (
+    "id" bigint NOT NULL,
+    "run_started_at" timestamp with time zone NOT NULL,
+    "github_run_id" bigint,
+    "agency" "text" NOT NULL,
+    "started_at" timestamp with time zone NOT NULL,
+    "finished_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "outcome" "public"."scrape_run_outcome" NOT NULL,
+    "reason" "text",
+    "saved" integer DEFAULT 0 NOT NULL,
+    "failed_pages" integer DEFAULT 0 NOT NULL,
+    "removed" integer DEFAULT 0 NOT NULL,
+    "message" "text",
+    CONSTRAINT "scrape_runs_counts_check" CHECK ((("saved" >= 0) AND ("failed_pages" >= 0) AND ("removed" >= 0))),
+    CONSTRAINT "scrape_runs_message_length" CHECK ((("message" IS NULL) OR ("char_length"("message") <= 2000))),
+    CONSTRAINT "scrape_runs_reason_length" CHECK ((("reason" IS NULL) OR ("char_length"("reason") <= 50)))
+);
+
+
+ALTER TABLE "public"."scrape_runs" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."scrape_runs" IS 'One row per scrape run and agency, written by the scraper (service_role). Problems and their details live in scrape_issues. Rows older than 90 days are deleted by purge_old_scrape_runs().';
+
+
+
+ALTER TABLE "public"."scrape_runs" ALTER COLUMN "id" ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME "public"."scrape_runs_id_seq"
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+
 CREATE TABLE IF NOT EXISTS "public"."search_params_log" (
     "id" bigint NOT NULL,
     "user_id" "uuid" NOT NULL,
@@ -2121,6 +2186,11 @@ ALTER TABLE ONLY "public"."scrape_issues"
 
 
 
+ALTER TABLE ONLY "public"."scrape_runs"
+    ADD CONSTRAINT "scrape_runs_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."search_params_log"
     ADD CONSTRAINT "search_params_log_pkey" PRIMARY KEY ("id");
 
@@ -2198,6 +2268,10 @@ CREATE INDEX "listings_agency_active_idx" ON "public"."listings" USING "btree" (
 
 
 CREATE UNIQUE INDEX "scrape_issues_one_open" ON "public"."scrape_issues" USING "btree" ("agency", "kind") WHERE ("status" = 'open'::"public"."scrape_issue_status");
+
+
+
+CREATE INDEX "scrape_runs_agency_started" ON "public"."scrape_runs" USING "btree" ("agency", "started_at" DESC);
 
 
 
@@ -2478,6 +2552,9 @@ CREATE POLICY "profiles_update_own" ON "public"."profiles" FOR UPDATE TO "authen
 ALTER TABLE "public"."scrape_issues" ENABLE ROW LEVEL SECURITY;
 
 
+ALTER TABLE "public"."scrape_runs" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "public"."search_params" ENABLE ROW LEVEL SECURITY;
 
 
@@ -2615,6 +2692,12 @@ GRANT ALL ON TYPE "public"."scrape_issue_kind" TO "service_role";
 REVOKE ALL ON TYPE "public"."scrape_issue_status" FROM PUBLIC;
 GRANT ALL ON TYPE "public"."scrape_issue_status" TO "authenticated";
 GRANT ALL ON TYPE "public"."scrape_issue_status" TO "service_role";
+
+
+
+REVOKE ALL ON TYPE "public"."scrape_run_outcome" FROM PUBLIC;
+GRANT ALL ON TYPE "public"."scrape_run_outcome" TO "authenticated";
+GRANT ALL ON TYPE "public"."scrape_run_outcome" TO "service_role";
 
 
 
@@ -2992,6 +3075,11 @@ GRANT ALL ON FUNCTION "public"."purge_old_invites"() TO "service_role";
 
 
 
+REVOKE ALL ON FUNCTION "public"."purge_old_scrape_runs"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."purge_old_scrape_runs"() TO "service_role";
+
+
+
 REVOKE ALL ON FUNCTION "public"."purge_old_showing_events"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."purge_old_showing_events"() TO "service_role";
 
@@ -3199,6 +3287,15 @@ GRANT ALL ON TABLE "public"."scrape_issues" TO "service_role";
 
 GRANT ALL ON SEQUENCE "public"."scrape_issues_id_seq" TO "authenticated";
 GRANT ALL ON SEQUENCE "public"."scrape_issues_id_seq" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."scrape_runs" TO "service_role";
+
+
+
+GRANT ALL ON SEQUENCE "public"."scrape_runs_id_seq" TO "authenticated";
+GRANT ALL ON SEQUENCE "public"."scrape_runs_id_seq" TO "service_role";
 
 
 

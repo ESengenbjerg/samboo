@@ -391,6 +391,51 @@ export type Database = {
         }
         Relationships: []
       }
+      scrape_runs: {
+        Row: {
+          agency: string
+          failed_pages: number
+          finished_at: string
+          github_run_id: number | null
+          id: number
+          message: string | null
+          outcome: Database["public"]["Enums"]["scrape_run_outcome"]
+          reason: string | null
+          removed: number
+          run_started_at: string
+          saved: number
+          started_at: string
+        }
+        Insert: {
+          agency: string
+          failed_pages?: number
+          finished_at?: string
+          github_run_id?: number | null
+          id?: never
+          message?: string | null
+          outcome: Database["public"]["Enums"]["scrape_run_outcome"]
+          reason?: string | null
+          removed?: number
+          run_started_at: string
+          saved?: number
+          started_at: string
+        }
+        Update: {
+          agency?: string
+          failed_pages?: number
+          finished_at?: string
+          github_run_id?: number | null
+          id?: never
+          message?: string | null
+          outcome?: Database["public"]["Enums"]["scrape_run_outcome"]
+          reason?: string | null
+          removed?: number
+          run_started_at?: string
+          saved?: number
+          started_at?: string
+        }
+        Relationships: []
+      }
       search_params: {
         Row: {
           areas: string[]
@@ -791,6 +836,7 @@ export type Database = {
         }[]
       }
       purge_old_invites: { Args: never; Returns: number }
+      purge_old_scrape_runs: { Args: never; Returns: number }
       purge_old_showing_events: { Args: never; Returns: number }
       purge_old_showings: { Args: never; Returns: number }
       purge_rate_limit_counters: { Args: never; Returns: number }
@@ -846,6 +892,7 @@ export type Database = {
         | "other"
       scrape_issue_kind: "failed" | "suspicious"
       scrape_issue_status: "open" | "resolved"
+      scrape_run_outcome: "ok" | "failed" | "suspicious" | "skipped" | "error"
       showing_event_action: "created" | "updated" | "deleted"
     }
     CompositeTypes: {
@@ -986,6 +1033,7 @@ export const Constants = {
       ],
       scrape_issue_kind: ["failed", "suspicious"],
       scrape_issue_status: ["open", "resolved"],
+      scrape_run_outcome: ["ok", "failed", "suspicious", "skipped", "error"],
       showing_event_action: ["created", "updated", "deleted"],
     },
   },
