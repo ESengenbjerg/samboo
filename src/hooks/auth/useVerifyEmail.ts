@@ -1,7 +1,10 @@
 import { RESEND_CODE_INTERVAL_SECONDS } from "@/constants/limits";
 import { useCountdown } from "@/hooks/useCountdown";
 import { resendSignUpCode, verifyEmailOtp } from "@/services/auth";
-import { authErrorMessage } from "@/utils/error-message/auth-error-message";
+import {
+  authErrorMessage,
+  isRateLimitError,
+} from "@/utils/error-message/auth-error-message";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 // email and source are sent as params from /register or /login
@@ -21,6 +24,13 @@ export function useVerifyEmail(email: string, source?: "login" | "register") {
   const sendCode = useCallback(async () => {
     try {
       const { error } = await resendSignUpCode(email);
+
+      if (isRateLimitError(error)) {
+        console.log("Resend sign up code error:", error);
+        setError(authErrorMessage(error));
+        restartCountdown();
+        return false;
+      }
 
       if (error) {
         console.log("Resend sign up code error:", error);

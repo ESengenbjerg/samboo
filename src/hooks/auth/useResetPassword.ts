@@ -8,7 +8,10 @@ import {
   verifyRecoveryOtp,
 } from "@/services/auth";
 import { usePasswordRecoveryStore } from "@/stores/password-recovery";
-import { authErrorMessage } from "@/utils/error-message/auth-error-message";
+import {
+  authErrorMessage,
+  isRateLimitError,
+} from "@/utils/error-message/auth-error-message";
 import { useCallback, useEffect, useState } from "react";
 
 // email is sent as a param from the forgot password screen
@@ -40,6 +43,13 @@ export function useResetPassword(email: string) {
 
     try {
       const { error } = await requestPasswordReset(email);
+
+      if (isRateLimitError(error)) {
+        console.log("Resend reset code error:", error);
+        setError(authErrorMessage(error));
+        restartCountdown();
+        return;
+      }
 
       if (error) {
         console.log("Resend reset code error:", error);

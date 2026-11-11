@@ -25,3 +25,11 @@ export function authErrorMessage(error: AuthError) {
       return "Något gick fel, försök igen.";
   }
 }
+
+// Supabase's cooldown between sends (60 s) or its hourly email limit
+export function isRateLimitError(error: AuthError | null): error is AuthError {
+  return (
+    error?.code === "over_email_send_rate_limit" ||
+    error?.code === "over_request_rate_limit"
+  );
+}
