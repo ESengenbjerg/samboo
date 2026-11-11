@@ -91,7 +91,7 @@ function DialogContent({
         >
           <DialogPrimitive.Content
             className={cn(
-              "bg-card border-border z-50 mx-auto flex w-full max-w-[calc(100%-2rem)] flex-col gap-4 rounded-lg border p-8 shadow-lg shadow-black/5 sm:max-w-lg",
+              "bg-card border-border z-50 mx-auto flex w-[80vw] max-w-lg flex-col gap-4 rounded-lg border p-8 shadow-lg shadow-black/5",
               Platform.select({
                 web: "animate-in fade-in-0 zoom-in-95 duration-200",
               }),

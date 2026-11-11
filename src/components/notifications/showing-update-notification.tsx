@@ -55,7 +55,6 @@ export default function ShowingUpdateNotification({
           <Button
             size="sm"
             onPress={() => router.push("/(tabs)/saved")}
-            className="max-h-7"
           >
             <Text>Till visningar</Text>
           </Button>

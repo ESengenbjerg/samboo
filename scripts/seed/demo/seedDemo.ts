@@ -3,7 +3,7 @@
 // What it creates (all dates are relative to when the script runs):
 //   * User 1 (SEED_USER): the forker. New account, not onboarded, no search, no group.
 //   * User 2 (SEED_FRIEND): onboarded, has a search (Mölndal + Partille), has liked some listings
-//     (two of them "Hittas inte"), has two tags, two planned showings, and a pending group invite to user 1.
+//     (two of them "Hittas inte"), has two tags, three showings (one already held, with a note), and a pending group invite to user 1.
 //   * 50 listings with agency = 'seed' in Mölndal, Partille and Göteborg. No images (the app shows its fallback).
 //   Both users are created with a confirmed e-mail and email_frequency 'none', so no mail is ever needed or sent.
 
@@ -68,6 +68,6 @@ await createFriendInvite(user2, config.user1.email);
 
 console.log(
   `User 2: ${matchedCount} matches, ${liked.length + REMOVED.size} liked (${REMOVED.size} "Hittas inte"), ` +
-    `${tagCount} tags, 2 showings, invite sent to user 1`,
+    `${tagCount} tags, 3 showings, invite sent to user 1`,
 );
 console.log(`Done. Sign in with user 1 (${config.user1.email}) in the app.`);

@@ -43,7 +43,7 @@ export default function GroupUpdateNotification({
               : "Se om de faller dig i smaken."}
           </Text>
         </View>
-        <Button size="sm" onPress={onPress} className="max-h-7">
+        <Button size="sm" onPress={onPress}>
           <Text>Visa lista</Text>
         </Button>
       </View>

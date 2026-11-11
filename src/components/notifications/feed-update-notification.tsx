@@ -29,7 +29,6 @@ export default function FeedUpdateNotification({
         <Button
           size="sm"
           onPress={() => router.push(`/search`)}
-          className="max-h-7"
         >
           <Text>Visa bostäder</Text>
         </Button>

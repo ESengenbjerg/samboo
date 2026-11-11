@@ -606,6 +606,7 @@ export type Database = {
         Row: {
           created_at: string
           id: number
+          in_search: boolean
           is_new: boolean
           liked: boolean
           liked_at: string | null
@@ -615,6 +616,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: number
+          in_search?: boolean
           is_new?: boolean
           liked?: boolean
           liked_at?: string | null
@@ -624,6 +626,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: number
+          in_search?: boolean
           is_new?: boolean
           liked?: boolean
           liked_at?: string | null
