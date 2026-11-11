@@ -15,5 +15,8 @@ export type AgencyStatus = RpcRow<
   | "last_seen_at"
 >;
 
+// A user from admin_find_user(). last_sign_in_at is null if the user has never signed in
+export type AdminUser = RpcRow<"admin_find_user", "last_sign_in_at">;
+
 // One open scrape issue from admin_open_issues(). Show description, not reason. notified_at is null until the GitHub alert is raised
 export type OpenIssue = RpcRow<"admin_open_issues", "notified_at">;

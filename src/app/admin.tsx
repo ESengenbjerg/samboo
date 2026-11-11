@@ -1,3 +1,4 @@
+import BlockUserSection from "@/components/admin/block-user-section";
 import OpenIssuesSection from "@/components/admin/open-issues-section";
 import ScrapeStatusSection from "@/components/admin/scrape-status-section";
 import { Separator } from "@/components/ui/separator";
@@ -15,6 +16,9 @@ export default function AdminScreen() {
 
         <Separator />
         <OpenIssuesSection />
+
+        <Separator />
+        <BlockUserSection />
       </View>
     </ScrollView>
   );

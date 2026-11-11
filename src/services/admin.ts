@@ -21,9 +21,13 @@ export function getOpenIssues() {
   return supabase.rpc("admin_open_issues", undefined, { get: true });
 }
 
-// Every user: name, e-mail, created, last sign-in, e-mail confirmed, is_active and is_admin. STABLE function: must be called with GET
-export function getUsers() {
-  return supabase.rpc("admin_list_users", undefined, { get: true });
+// The user with exactly this e-mail (case-insensitive), as a list with 0 or 1 rows: name, e-mail, created, last sign-in, e-mail confirmed, is_active and is_admin. STABLE function: must be called with GET
+export function findUser(email: string) {
+  return supabase.rpc(
+    "admin_find_user",
+    { p_email: email },
+    { get: true },
+  );
 }
 
 // Blocks (active = false) or unblocks (active = true) a user. The error message ("Du kan inte spärra dig själv", "Användaren finns inte") is meant to be shown as is

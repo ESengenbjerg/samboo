@@ -1,3 +1,4 @@
+import StatusRow from "@/components/admin/status-row";
 import FormError from "@/components/form-error";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,16 +34,6 @@ function OutcomeBadge({ outcome }: { outcome: ScrapeRunOutcome | null }) {
     <Badge variant={variant}>
       <Text>{label}</Text>
     </Badge>
-  );
-}
-
-// One label and value on a line in an agency card
-function StatusRow({ label, value }: { label: string; value: string }) {
-  return (
-    <View className="flex-row justify-between gap-4">
-      <Text variant="muted">{label}</Text>
-      <Text variant="small">{value}</Text>
-    </View>
   );
 }
 
