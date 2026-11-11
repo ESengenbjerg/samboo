@@ -13,6 +13,9 @@ export function getActiveListings(userId: string) {
       // app will crash on listing.address
       .select(`id, is_new, liked, listings!inner(${LISTING_COLUMNS})`)
       .eq("user_id", userId)
+      // Only what matches my current search. Kept rows (liked or tagged under an earlier search)
+      // have in_search = false and belong in the liked lists, not in the search feed
+      .eq("in_search", true)
       .is("listings.removed_at", null)
       // TODO: Update order to last_seen_at by editing in hook
       .order("created_at", { ascending: false })
@@ -80,6 +83,7 @@ export function getNewMatchesCount(userId: string) {
     .select("id, listings!inner(id)", { count: "exact", head: true })
     .eq("user_id", userId)
     .eq("is_new", true)
+    .eq("in_search", true)
     .is("listings.removed_at", null);
 }
 
