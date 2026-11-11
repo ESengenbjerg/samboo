@@ -11,7 +11,7 @@ export function VerifyEmailForm() {
     source?: "login" | "register";
   }>();
 
-  const { verifyCode, resendCode, countdown, isLoading, error } =
+  const { verifyCode, resendCode, countdown, isLoading, error, message } =
     useVerifyEmail(email, source);
 
   return (
@@ -33,6 +33,7 @@ export function VerifyEmailForm() {
         countdown={countdown}
         isLoading={isLoading}
         error={error}
+        message={message}
       />
 
       {/* Supabase sends no code to an email that already has an account, so this gives a way on */}

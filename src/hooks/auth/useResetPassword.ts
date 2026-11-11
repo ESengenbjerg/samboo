@@ -13,6 +13,7 @@ import { useCallback, useEffect, useState } from "react";
 
 // email is sent as a param from the forgot password screen
 export function useResetPassword(email: string) {
+  const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,6 +35,7 @@ export function useResetPassword(email: string) {
   const resendCode = useCallback(async () => {
     if (isLoading) return;
     setError(null);
+    setMessage(null);
     setIsLoading(true);
 
     try {
@@ -46,6 +48,7 @@ export function useResetPassword(email: string) {
       }
 
       restartCountdown();
+      setMessage("Ny kod skickad.");
     } catch (e) {
       console.log("Resend reset code error:", e);
       setError("Kunde inte skicka koden, försök igen.");
@@ -59,6 +62,7 @@ export function useResetPassword(email: string) {
     async (code: string) => {
       if (isLoading) return false;
       setError(null);
+      setMessage(null);
 
       // Pasted codes may include a space
       const trimmedCode = code.trim();
@@ -136,5 +140,13 @@ export function useResetPassword(email: string) {
     [isLoading],
   );
 
-  return { verifyCode, resendCode, savePassword, countdown, isLoading, error };
+  return {
+    verifyCode,
+    resendCode,
+    savePassword,
+    countdown,
+    isLoading,
+    error,
+    message,
+  };
 }

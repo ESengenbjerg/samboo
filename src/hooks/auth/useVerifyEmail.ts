@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 // email and source are sent as params from /register or /login
 export function useVerifyEmail(email: string, source?: "login" | "register") {
+  const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,10 +49,12 @@ export function useVerifyEmail(email: string, source?: "login" | "register") {
   const resendCode = useCallback(async () => {
     if (isLoading) return;
     setError(null);
+    setMessage(null);
     setIsLoading(true);
 
     try {
-      await sendCode();
+      // sendCode sets the error itself if it fails
+      if (await sendCode()) setMessage("Ny kod skickad.");
     } finally {
       setIsLoading(false);
     }
@@ -62,6 +65,7 @@ export function useVerifyEmail(email: string, source?: "login" | "register") {
     async (code: string) => {
       if (isLoading) return;
       setError(null);
+      setMessage(null);
 
       // Pasted codes may include a space
       const trimmedCode = code.trim();
@@ -92,5 +96,5 @@ export function useVerifyEmail(email: string, source?: "login" | "register") {
     [email, isLoading],
   );
 
-  return { verifyCode, resendCode, countdown, isLoading, error };
+  return { verifyCode, resendCode, countdown, isLoading, error, message };
 }

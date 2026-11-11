@@ -20,8 +20,15 @@ export function ResetPasswordForm() {
   // Sent as a param from the forgot password screen. Needed to verify the code
   const { email } = useLocalSearchParams<{ email: string }>();
 
-  const { verifyCode, resendCode, savePassword, countdown, isLoading, error } =
-    useResetPassword(email);
+  const {
+    verifyCode,
+    resendCode,
+    savePassword,
+    countdown,
+    isLoading,
+    error,
+    message,
+  } = useResetPassword(email);
 
   async function onVerifyCode(code: string) {
     // Show the password fields only when the code was correct
@@ -50,6 +57,7 @@ export function ResetPasswordForm() {
             countdown={countdown}
             isLoading={isLoading}
             error={error}
+            message={message}
           />
         </>
       )}

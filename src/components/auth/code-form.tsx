@@ -1,4 +1,5 @@
 import FormError from "@/components/form-error";
+import FormMessage from "@/components/form-message";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +15,7 @@ type CodeFormProps = {
   onResend: () => void;
   countdown: number;
   isLoading: boolean;
+  message: string | null;
   error: string | null;
 };
 
@@ -25,6 +27,7 @@ export function CodeForm({
   countdown,
   isLoading,
   error,
+  message,
 }: CodeFormProps) {
   const [code, setCode] = useState("");
 
@@ -71,6 +74,7 @@ export function CodeForm({
       </View>
 
       {error && <FormError>{error}</FormError>}
+      {message && <FormMessage>{message}</FormMessage>}
 
       <View className="items-center mt-6">
         <Button
