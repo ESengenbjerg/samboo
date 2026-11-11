@@ -14,6 +14,7 @@ export default function SearchScreen() {
       isLoading={isLoading}
       error={error}
       showUpdateFilter
+      emptyMessage="Vi letar efter bostäder som matchar din bevakning. Nya objekt dyker upp här."
     />
   );
 }
