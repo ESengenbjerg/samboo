@@ -6,7 +6,9 @@ import {
   NativeSelectScrollView,
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
@@ -36,7 +38,6 @@ export default function FilterSelect({
 
   return (
     <View className="gap-1.5">
-      {label && <Label>{label}</Label>}
       <Select value={value} onValueChange={onValueChange}>
         <SelectTrigger
           className={`${fieldColor} w-full justify-start`}
@@ -45,11 +46,14 @@ export default function FilterSelect({
           <SelectValue placeholder={placeholder ? placeholder : "Välj"} />
         </SelectTrigger>
         <SelectContent style={contentStyle}>
-          <NativeSelectScrollView>
-            {options.map((o) => (
-              <SelectItem key={o.value} value={o.value} label={o.label} />
-            ))}
-          </NativeSelectScrollView>
+          <SelectGroup>
+            {label && <SelectLabel>{label}</SelectLabel>}
+            <NativeSelectScrollView>
+              {options.map((o) => (
+                <SelectItem key={o.value} value={o.value} label={o.label} />
+              ))}
+            </NativeSelectScrollView>
+          </SelectGroup>
         </SelectContent>
       </Select>
     </View>
