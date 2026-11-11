@@ -62,7 +62,7 @@ export default function ListingsFeed({
 
   return (
     <>
-      <View className="flex-1 px-6 bg-background gap-2">
+      <View className="flex-1 px-6">
         <ScrollView
           ref={scrollRef}
           onScroll={handleScroll}
@@ -122,7 +122,6 @@ export default function ListingsFeed({
           )}
 
           {/* Present properties based in column or grid based on user choice */}
-
           <View
             className={`${view === "grid" ? "flex-row gap-2 mb-4 flex-wrap" : "gap-4 mb-4"}`}
           >
