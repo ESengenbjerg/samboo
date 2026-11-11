@@ -75,7 +75,6 @@ export function SignInForm() {
         <View className="flex-row gap-1 items-center justify-center">
           <Button
             variant="link"
-            size="sm"
             onPress={() => {
               router.push({
                 pathname: "/forgotten-password",
@@ -88,7 +87,6 @@ export function SignInForm() {
           <Text className="text-background">|</Text>
           <Button
             variant="link"
-            size="sm"
             onPress={() => {
               router.push("/register");
             }}

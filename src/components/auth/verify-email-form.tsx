@@ -45,7 +45,6 @@ export function VerifyEmailForm() {
           <View className="flex-row gap-1 items-center justify-center">
             <Button
               variant="link"
-              size="sm"
               onPress={() => router.dismissTo("/login")}
               disabled={isLoading}
             >
@@ -54,7 +53,6 @@ export function VerifyEmailForm() {
             <Text className="text-background">|</Text>
             <Button
               variant="link"
-              size="sm"
               onPress={() =>
                 router.push({
                   pathname: "/forgotten-password",

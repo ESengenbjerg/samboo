@@ -55,7 +55,6 @@ export function CodeForm({
         />
         <Button
           variant="link"
-          size="sm"
           disabled={countdown > 0 || isLoading}
           onPress={onResend}
         >

@@ -117,7 +117,6 @@ export function SignUpForm() {
 
           <Button
             variant="link"
-            size="sm"
             onPress={() => {
               router.dismissTo("/login");
             }}
