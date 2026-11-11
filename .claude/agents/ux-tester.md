@@ -31,7 +31,7 @@ If the task specifies a different persona, use that instead.
 If the flow requires an existing account, get the test account from `.env`:
 
 ```bash
-grep -E '^SEED_USER2_(EMAIL|PASSWORD)=' .env
+grep -E '^TEST_USER2_(EMAIL|PASSWORD)=' .env
 ```
 
 **Never** include passwords in the report. For registration flows, use a new email in the form `ux-test+<timestamp>@example.com`.
@@ -41,11 +41,11 @@ grep -E '^SEED_USER2_(EMAIL|PASSWORD)=' .env
 The connect-account flow needs both test users. Get both:
 
 ```bash
-grep -E '^SEED_USER2?_(EMAIL|PASSWORD)=' .env
+grep -E '^TEST_USER2?_(EMAIL|PASSWORD)=' .env
 ```
 
-- `SEED_USER_*` plays **Sara** (sends the invite).
-- `SEED_USER2_*` plays **her partner** (receives and accepts the invite).
+- `TEST_USER_*` plays **Sara** (sends the invite).
+- `TEST_USER2_*` plays **her partner** (receives and accepts the invite).
 
 Run the two users in separate tabs on different origins so their sessions don't overwrite each other:
 
