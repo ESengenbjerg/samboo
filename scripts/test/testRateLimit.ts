@@ -1,4 +1,5 @@
 // Test the per-user write limit (check_request(), see supabase/schema.sql)
+// USAGE: node scripts/test/testRateLimit.ts
 
 // Signs in as the test user and sends write requests in a loop.
 
@@ -21,7 +22,7 @@ const password = process.env.TEST_USER_PASSWORD;
 
 if (!url || !key || !email || !password) {
   throw new Error(
-    "Missing EXPO_PUBLIC_SUPABASE_URL, a publishable key, SEED_USER_EMAIL or SEED_USER_PASSWORD in dotenv",
+    "Missing EXPO_PUBLIC_SUPABASE_URL, a publishable key, TEST_USER_EMAIL or TEST_USER_PASSWORD in dotenv",
   );
 }
 
