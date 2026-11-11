@@ -48,7 +48,8 @@ export function ResetPasswordForm() {
       {!isVerified && (
         <>
           <Text className="text-center text-background">
-            Fyll i koden du fått i mailet och välj sedan ett nytt lösenord.
+            Fyll i koden vi skickade till din e-post och välj sedan ett nytt
+            lösenord.
           </Text>
 
           <CodeForm
