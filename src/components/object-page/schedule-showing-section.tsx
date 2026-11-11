@@ -28,7 +28,8 @@ export default function ScheduleShowingSection({
   const { saveShowing, isSaving, error, isConflict, clearError } =
     useSaveShowing();
 
-  // Tells the user if the showing disappears because someone else deleted it.
+  // Tells the user if the showing disappears without them deleting it on this page
+  // (a group member, or the user themselves from the Sparat tab).
   // deletedByMe stops it from firing after my own delete, which has its own message
   const showingId = showing?.id ?? null;
   const previousShowingId = useRef<number | null>(null);
@@ -41,7 +42,7 @@ export default function ScheduleShowingSection({
       !deletedByMe.current
     ) {
       setDialogOpen(false);
-      setMessage("Visningen har tagits bort av någon i din grupp.");
+      setMessage("Visningen har tagits bort.");
     }
     deletedByMe.current = false;
     previousShowingId.current = showingId;

@@ -51,11 +51,17 @@ export default function ScheduledShowingInfo({
     clearError: clearUpdateError,
   } = useUpdateShowing();
 
-  const { saveShowing, isSaving, error: saveError } = useSaveShowing();
+  const {
+    saveShowing,
+    isSaving,
+    error: saveError,
+    clearError: clearSaveError,
+  } = useSaveShowing();
   const { deleteShowing, isDeleting } = useDeleteShowing();
 
   function openEditDialog() {
     clearUpdateError(); // Clears error from last time
+    clearSaveError();
     onStartAction(); // Tells the parent to hide message from last action
     setEditDialogOpen(true);
   }
@@ -200,7 +206,7 @@ export default function ScheduledShowingInfo({
             isGone ? onSaveAsNew : (values) => onUpdate(showing.id, values)
           }
           isSaving={isUpdating || isSaving}
-          error={updateError ?? saveError}
+          error={isGone ? (saveError ?? updateError) : updateError}
           title="Redigera visning"
           saveLabel={isGone ? "Spara som ny visning" : "Spara ändringar"}
           initialDate={showing.startsAt}
