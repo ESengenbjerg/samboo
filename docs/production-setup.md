@@ -40,7 +40,7 @@ GitHub's own schedule does not always fire, so pg_cron starts the workflows as a
 
    The branch must be the default branch, the one GitHub's own schedule runs on, so both start the same code.
 
-4. Check that it is there (shows names, not values): Integrations → Vault → Secrets, or
+4. Check that they are there (shows names, not values): Integrations → Vault → Secrets, or
 
    ```sql
    select name, created_at, updated_at from vault.secrets;
