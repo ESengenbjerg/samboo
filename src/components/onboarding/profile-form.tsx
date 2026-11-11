@@ -5,7 +5,9 @@ import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
 import { NAME_MAX_LENGTH } from "@/constants/limits";
 import { useSession } from "@/hooks/auth/useSession";
+import { useOnboardingHydrated } from "@/hooks/useOnboardingHydrated";
 import { useUpdateProfileAvatar } from "@/hooks/useUpdateProfileAvatar";
+import { signOut } from "@/services/auth";
 import { getAvatarUrl } from "@/services/profiles";
 import { useOnboardingStore } from "@/stores/onboarding";
 import { pickImage } from "@/utils/pick-image";
@@ -18,13 +20,26 @@ import ProfileImage from "../profile-image";
 import { Icon } from "../ui/icon";
 
 export default function ProfileForm() {
+  // Wait until the store is hydrated, otherwise the saved name is still empty
+  // and the field would start blank after a reload
+  const hasHydrated = useOnboardingHydrated();
+  if (!hasHydrated) return null;
+
+  return <ProfileFields />;
+}
+
+function ProfileFields() {
   const { session } = useSession();
   const userId = session?.user.id;
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [profileName, setProfileName] = useState("");
+  // Starts with the name saved on an earlier visit (user went back or reloaded)
+  const [profileName, setProfileName] = useState(
+    () => useOnboardingStore.getState().profileName,
+  );
+  const [isSigningOut, setIsSigningOut] = useState(false);
   // Resized JPEG picked on this visit. Uploaded when the user presses Spara
   const [profileImage, setProfileImage] = useState<string | null>(null);
   // True when the user removed the image that was uploaded on an earlier visit
@@ -110,7 +125,13 @@ export default function ProfileForm() {
 
   return (
     <View className="flex-1 justify-center w-full px-8 gap-6">
-      <Text variant="h1">Din profil</Text>
+      <View className="gap-2">
+        <Text variant="h1">Din profil</Text>
+        <Text>
+          Välkommen till Samboo! Tre korta steg, sedan börjar vi leta bostäder
+          åt dig.
+        </Text>
+      </View>
       <View className="gap-1.5">
         <Label htmlFor="profile-name">Visningsnamn</Label>
         <Input
@@ -160,6 +181,25 @@ export default function ProfileForm() {
 
       <Button variant="secondary" onPress={onSubmit} disabled={isBusy}>
         <Text>{!isBusy ? "Spara" : "Sparar..."}</Text>
+      </Button>
+
+      {/* Way out for someone who signed in to the wrong account.
+          useSession() resets the onboarding store on sign out */}
+      <Button
+        variant="link"
+        className="p-0 self-center"
+        disabled={isBusy || isSigningOut}
+        onPress={async () => {
+          setIsSigningOut(true);
+          const { error } = await signOut();
+          if (error) {
+            console.log("Sign out error:", error);
+            setIsSigningOut(false);
+            setError("Kunde inte logga ut, försök igen.");
+          }
+        }}
+      >
+        <Text>{isSigningOut ? "Loggar ut..." : "Logga ut"}</Text>
       </Button>
     </View>
   );
