@@ -8,34 +8,37 @@ No secret values live in the repo. Each one is set in the dashboard of the servi
 
 ## Services
 
-| Service                   | Used for                                                     |
-| ------------------------- | ------------------------------------------------------------ |
-| Supabase                  | Database, Auth, storage, scheduled database jobs (pg_cron)   |
-| Domain registrar (Loopia) | The domain, and DNS for e-mail and the web build             |
-| Resend                    | E-mail: sign-up and password reset codes, notification mails |
-| GitHub Actions            | Scraping, e-mails and avatar cleanup on a schedule           |
-| Google Cloud (Maps)       | The map on the listing page                                  |
-| Vercel                    | Builds and hosts the web app                                 |
+| Service                   | Used for                                                                                                            |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Supabase                  | Database, Auth, storage, scheduled database jobs (pg_cron)                                                          |
+| Domain registrar (Loopia) | The domain, and DNS records for the web app (Vercel) and e-mail (Resend). Loopia needs the DNS package to edit them |
+| Resend                    | E-mail: sign-up and password reset codes, notification mails                                                        |
+| GitHub Actions            | Scraping, e-mails and avatar cleanup on a schedule                                                                  |
+| Google Cloud (Maps)       | The map on the listing page                                                                                         |
+| Vercel                    | Builds and hosts the web app                                                                                        |
 
 ## 1. Supabase
 
 1. Follow demo steps 1-3 in the README, in a project that will only hold real users.
-2. `dispatch_github_workflow()` in [supabase/schema.sql](../supabase/schema.sql) has the original repository and the `develop` branch written into it. Change both to your own before running the file, or replace the function afterwards. Otherwise the backup jobs start workflows in the wrong repository (see Open points in [database-design.md](database-design.md#open-points)).
-3. Create the GitHub token for Vault (step 2 below) before running [supabase/setup-extras.sql](../supabase/setup-extras.sql), then run the whole file, including the three `dispatch-*` jobs at the end.
-4. Run `node scripts/seed/places/seedPlaces.ts` (Node 24) for counties, municipalities and areas.
-5. Under Authentication → Rate Limits, check the limits for sign-up, sign-in and e-mails per hour. See [security.md](security.md) for why they matter.
+2. Add the three Vault secrets (step 2 below) before running [supabase/setup-extras.sql](../supabase/setup-extras.sql), then run the whole file, including the three `dispatch-*` jobs at the end.
+3. Run `node scripts/seed/places/seedPlaces.ts` (Node 24) for counties, municipalities and areas.
+4. Under Authentication → Rate Limits, check the limits for sign-up, sign-in and e-mails per hour. See [security.md](security.md) for why they matter.
 
-## 2. GitHub token in Supabase Vault
+## 2. GitHub token and repository in Supabase Vault
 
-GitHub's own schedule does not always fire, so pg_cron starts the workflows as a backup. It needs a GitHub token:
+GitHub's own schedule does not always fire, so pg_cron starts the workflows as a backup. It needs a GitHub token, and the repository and branch to start them in:
 
 1. GitHub → Settings → Developer settings → Fine-grained tokens → Generate new token.
 2. Repository access: **only your Samboo repository**. Permissions: **Actions: read and write**. Nothing else.
-3. Store it in the SQL Editor, never in a file:
+3. Store it, your repository and its default branch in the SQL Editor, never in a file:
 
    ```sql
    select vault.create_secret('<token>', 'github_dispatch_token');
+   select vault.create_secret('<owner>/<repo>', 'github_repo');
+   select vault.create_secret('<default branch>', 'github_branch');
    ```
+
+   The branch must be the default branch, the one GitHub's own schedule runs on, so both start the same code.
 
 4. Check that it is there (shows names, not values): Integrations → Vault → Secrets, or
 
@@ -97,7 +100,7 @@ The listing page shows a map if both map variables are set. Without them the map
 
    Set them for every environment you deploy (Production, Preview). They are read at build time, so redeploy after changing them.
 
-4. Add your domain under Settings → Domains and the DNS records Vercel shows at your registrar.
+4. Vercel gives the app a `vercel.app` address. To use your own domain (the original project runs on its own domain), add it under Settings → Domains and the DNS records Vercel shows at your registrar.
 
 Everything starting with `EXPO_PUBLIC_` ends up in the JavaScript sent to the browser, so it is public on purpose: the Supabase key is guarded by RLS and the Maps key by its restrictions. **`SUPABASE_SERVICE_ROLE_KEY` must never be set in Vercel or have an `EXPO_PUBLIC_` name.**
 
