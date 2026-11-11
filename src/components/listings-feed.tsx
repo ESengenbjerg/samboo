@@ -42,63 +42,64 @@ export default function ListingsFeed({
   } = useFilteredListings(listings, userId);
 
   return (
-    <View className="flex-1 px-6 bg-background gap-2">
-      <View>
-        <View className="flex-row items-center justify-between">
-          <Text variant="h1">{title}</Text>
+    <ScrollView
+      className="bg-background"
+      contentContainerClassName="pb-8"
+      showsVerticalScrollIndicator={false}
+    >
+      <View className="flex-1 px-6 bg-background gap-2">
+        <View>
+          <View className="flex-row items-center justify-between">
+            <Text variant="h1">{title}</Text>
 
-          {/* Feed view toggle */}
-          <View className="flex-row gap-1.5">
-            <Pressable
-              onPress={() => setView("column")}
-              hitSlop={10}
-              accessibilityRole="button"
-              accessibilityLabel="Kolumnvy"
-              accessibilityState={{ selected: view === "column" }}
-            >
-              <ViewColumnIcon filled={view === "column"} />
-            </Pressable>
-            <Pressable
-              onPress={() => setView("grid")}
-              hitSlop={10}
-              accessibilityRole="button"
-              accessibilityLabel="Rutnätsvy"
-              accessibilityState={{ selected: view === "grid" }}
-            >
-              <ViewGridIcon filled={view === "grid"} />
-            </Pressable>
+            {/* Feed view toggle */}
+            <View className="flex-row gap-1.5">
+              <Pressable
+                onPress={() => setView("column")}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel="Kolumnvy"
+                accessibilityState={{ selected: view === "column" }}
+              >
+                <ViewColumnIcon filled={view === "column"} />
+              </Pressable>
+              <Pressable
+                onPress={() => setView("grid")}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel="Rutnätsvy"
+                accessibilityState={{ selected: view === "grid" }}
+              >
+                <ViewGridIcon filled={view === "grid"} />
+              </Pressable>
+            </View>
           </View>
+
+          {showUpdateFilter && (
+            <Button variant="link" className="px-0 pt-0 self-start">
+              <Link href="/(tabs)/update-filter">
+                <Text>Uppdatera bevakning</Text>
+              </Link>
+            </Button>
+          )}
         </View>
 
-        {showUpdateFilter && (
-          <Button variant="link" className="px-0 pt-0 self-start">
-            <Link href="/(tabs)/update-filter">
-              <Text>Uppdatera bevakning</Text>
-            </Link>
-          </Button>
+        <ListingsFilterBar filters={filters} />
+
+        {isLoading && <Spinner size="large" />}
+        {error && <FormError>{error}</FormError>}
+        {filterError && <FormError>{filterError}</FormError>}
+
+        {!isLoading && !error && visibleListings.length === 0 && (
+          <Text>
+            {listings.length > 0
+              ? "Inga bostäder inom valda filter"
+              : "Inga objekt hittades."}
+          </Text>
         )}
-      </View>
 
-      <ListingsFilterBar filters={filters} />
+        {/* Present properties based in column or grid based on user choice */}
 
-      {isLoading && <Spinner size="large" />}
-      {error && <FormError>{error}</FormError>}
-      {filterError && <FormError>{filterError}</FormError>}
-
-      {!isLoading && !error && visibleListings.length === 0 && (
-        <Text>
-          {listings.length > 0
-            ? "Inga bostäder inom valda filter"
-            : "Inga objekt hittades."}
-        </Text>
-      )}
-
-      {/* Present properties based in column or grid based on user choice */}
-      <ScrollView
-        className="bg-background"
-        contentContainerClassName="pb-8"
-        showsVerticalScrollIndicator={false}
-      >
         <View
           className={`${view === "grid" ? "flex-row gap-2 mb-4 flex-wrap" : "gap-4 mb-4"}`}
         >
@@ -121,7 +122,7 @@ export default function ListingsFeed({
             />
           ))}
         </View>
-      </ScrollView>
-    </View>
+      </View>
+    </ScrollView>
   );
 }
