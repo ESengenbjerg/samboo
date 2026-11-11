@@ -597,6 +597,7 @@ paths:
       description: |
         Use `select=*,listings(*)` to get the listing in the same request. Filter on `user_id` for only mine.
         A match is kept when the user has liked or tagged the listing, even if the search no longer fits.
+        Add `in_search=eq.true` for the search feed: only listings that match my current search.
       operationId: user_listings_select
       responses:
         '200':
@@ -1049,6 +1050,7 @@ components:
         is_new: { type: boolean, description: 'true until the user has opened the listing page or liked it. A new match for a listing the user has already opened starts as false. Only says something about my own rows: use my_new_listing_ids for the "NEW" flag in every list' }
         liked: { type: boolean }
         liked_at: { type: string, format: date-time, nullable: true, description: When liked last became true. Set by the database, read-only }
+        in_search: { type: boolean, description: 'true when the listing matches my current search. false for rows kept because they are liked, tagged or removed, and for rows created by liking a group member''s listing. Set by match_user_listings(), read-only. The search feed shows only true' }
 
     Listing:
       type: object
