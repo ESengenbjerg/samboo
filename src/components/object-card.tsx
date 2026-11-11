@@ -125,7 +125,9 @@ export function ObjectCard({
           <>
             <CardHeader className="flex-1 px-3">
               <View>
-                <CardTitle numberOfLines={1}>{address}</CardTitle>
+                <CardTitle numberOfLines={1} className="leading-tight">
+                  {address}
+                </CardTitle>
                 <CardDescription numberOfLines={1}>
                   {[area, municipality].filter(Boolean).join(", ")}
                 </CardDescription>
