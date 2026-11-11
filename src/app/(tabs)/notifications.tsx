@@ -6,6 +6,7 @@ import InvitationNotification from "@/components/notifications/invitation-notifi
 import ShowingUpdateNotification from "@/components/notifications/showing-update-notification";
 import SkippedShowingNotification from "@/components/notifications/skipped-showings-notification";
 import { Text } from "@/components/ui/text";
+import { useSession } from "@/hooks/auth/useSession";
 import { useAnsweredInvites } from "@/hooks/useAnsweredInvites";
 import { useAnswerInvite } from "@/hooks/useAnswerInvite";
 import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
@@ -13,7 +14,6 @@ import { useGroupUpdates } from "@/hooks/useGroupUpdates";
 import { useMarkNotificationsSeen } from "@/hooks/useMarkNotificationsSeen";
 import { useNewListingIds } from "@/hooks/useNewListingIds";
 import { useNewMatchesCount } from "@/hooks/useNewMatchesCount";
-import { useSession } from "@/hooks/useSession";
 import { useShowingEvents } from "@/hooks/useShowingEvents";
 import { NotificationDay } from "@/types/notifications";
 import { useFocusEffect } from "expo-router";

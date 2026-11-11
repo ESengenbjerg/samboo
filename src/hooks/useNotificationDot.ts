@@ -1,4 +1,4 @@
-import { useSession } from "@/hooks/useSession";
+import { useSession } from "@/hooks/auth/useSession";
 import { useNotificationsStore } from "@/stores/notifications";
 import { usePathname } from "expo-router";
 import { useEffect } from "react";

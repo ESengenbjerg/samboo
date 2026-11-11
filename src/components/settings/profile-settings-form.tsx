@@ -1,6 +1,6 @@
 import { NAME_MAX_LENGTH } from "@/constants/limits";
+import { useSession } from "@/hooks/auth/useSession";
 import { useProfile } from "@/hooks/useProfile";
-import { useSession } from "@/hooks/useSession";
 import { useUpdateProfileAvatar } from "@/hooks/useUpdateProfileAvatar";
 import { getAvatarUrl, updateProfileName } from "@/services/profiles";
 import { pickImage } from "@/utils/pick-image";

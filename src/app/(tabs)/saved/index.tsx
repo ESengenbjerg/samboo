@@ -1,6 +1,6 @@
 import SavedListSection from "@/components/saved/list-section";
 import ScheduledShowingsSection from "@/components/saved/scheduled-showings-section";
-import { useSession } from "@/hooks/useSession";
+import { useSession } from "@/hooks/auth/useSession";
 import { useRef } from "react";
 import { ScrollView, type ScrollViewInstance, View } from "react-native";
 
