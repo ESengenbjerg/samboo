@@ -1019,7 +1019,7 @@ begin
       and l.removed_at is null
   ),
   stale as (
-    -- Rows that no longer match. Liked and tagged listings are kept, and so are removed listings ("Hittas inte" until purged).
+    -- Rows that no longer match and the user has not acted on. Liked and tagged listings are kept, and so are removed listings ("Hittas inte" until purged).
     -- What the user has seen is kept in seen_listings, so it is not lost here
     delete from public.user_listings ul
     where (p_user_id is null or ul.user_id = p_user_id)
@@ -1035,16 +1035,35 @@ begin
         where m.user_id = ul.user_id and m.listing_id = ul.listing_id
       )
     returning ul.id
+  ),
+  out_of_search as (
+    -- The kept rows (liked, tagged or removed) that no longer match: still readable, but not on Sök bostad
+    update public.user_listings ul
+    set in_search = false
+    where (p_user_id is null or ul.user_id = p_user_id)
+      and ul.in_search
+      and not exists (
+        select 1 from matches m
+        where m.user_id = ul.user_id and m.listing_id = ul.listing_id
+      )
+    returning ul.id
+  ),
+  upserted as (
+    -- A listing the user has already opened (seen_listings) does not become "new" again when it matches again.
+    -- An existing row (e.g. liked from a group member, or from an earlier search) is moved into the search
+    insert into public.user_listings (user_id, listing_id, is_new, liked, in_search)
+    select m.user_id, m.listing_id,
+           not exists (select 1 from public.seen_listings s where s.user_id = m.user_id and s.listing_id = m.listing_id),
+           false,
+           true
+    from matches m
+    on conflict (user_id, listing_id) do update set in_search = true
+      where not public.user_listings.in_search
+    -- xmax = 0 only for a newly inserted row, so the return value still counts new matches only
+    returning (xmax = 0) as is_insert
   )
-  -- A listing the user has already opened (seen_listings) does not become "new" again when it matches again
-  insert into public.user_listings (user_id, listing_id, is_new, liked)
-  select m.user_id, m.listing_id,
-         not exists (select 1 from public.seen_listings s where s.user_id = m.user_id and s.listing_id = m.listing_id),
-         false
-  from matches m
-  on conflict (user_id, listing_id) do nothing;
+  select count(*) filter (where is_insert) into inserted from upserted;
 
-  get diagnostics inserted = row_count;
   return inserted;
 end;
 $$;
@@ -1936,7 +1955,8 @@ CREATE TABLE IF NOT EXISTS "public"."user_listings" (
     "listing_id" bigint NOT NULL,
     "is_new" boolean DEFAULT true NOT NULL,
     "liked" boolean DEFAULT false NOT NULL,
-    "liked_at" timestamp with time zone
+    "liked_at" timestamp with time zone,
+    "in_search" boolean DEFAULT false NOT NULL
 );
 
 
@@ -1944,6 +1964,10 @@ ALTER TABLE "public"."user_listings" OWNER TO "postgres";
 
 
 COMMENT ON TABLE "public"."user_listings" IS 'Matches between users and listings, with the user''s liked and is_new flags.';
+
+
+
+COMMENT ON COLUMN "public"."user_listings"."in_search" IS 'True when the listing matches the user''s current search params. Written only by match_user_listings(). Rows kept because they are liked, tagged or removed get false, and so do rows created by like_listing() for a group member''s listing. The search feed shows only in_search = true; the liked lists ignore it.';
 
 
 
