@@ -19,6 +19,7 @@ export default function ConnectAccountForm() {
   // TODO: setError will be used once Supabase implementation is complete
   const [isLoading, setIsLoading] = useState(false);
   const inFlight = useRef(false);
+  const saved = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [invitationDialogOpen, setInvitationDialogOpen] = useState(false);
   const [inviteSent, setInviteSent] = useState(false);
@@ -26,6 +27,9 @@ export default function ConnectAccountForm() {
 
   async function finish() {
     setError(null);
+    if (saved.current === true) {
+      return true;
+    }
     setIsLoading(true);
 
     try {
@@ -53,6 +57,8 @@ export default function ConnectAccountForm() {
         clientFilter,
         informationInterval,
       );
+      // A retry after a failed invite must not save everything again
+      saved.current = true;
 
       // Everything is sabed. Tge caller decides when the user is moved to /search
       return true;
@@ -127,7 +133,8 @@ export default function ConnectAccountForm() {
     }
 
     if (lastError) {
-      setError(lastError);
+      // Only reached after finish() succeeded, so the profile is saved
+      setError(`${lastError} Din profil och bevakning är sparade.`);
       return failed;
     }
 
