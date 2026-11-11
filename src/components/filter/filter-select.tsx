@@ -1,7 +1,5 @@
 import { SelectOption } from "@/types/select-option";
-import { useState } from "react";
-import { LayoutChangeEvent, View } from "react-native";
-import { Label } from "../ui/label";
+import { View } from "react-native";
 import {
   NativeSelectScrollView,
   Select,
@@ -30,22 +28,13 @@ export default function FilterSelect({
   fieldColor = "bg-input",
   placeholder,
 }: FilterSelectProps) {
-  // Dropdowns should be as wide as their trigger
-  const [triggerWidth, setTriggerWidth] = useState<number>();
-  const onTriggerLayout = (e: LayoutChangeEvent) =>
-    setTriggerWidth(e.nativeEvent.layout.width);
-  const contentStyle = triggerWidth ? { width: triggerWidth } : undefined;
-
   return (
     <View className="gap-1.5">
       <Select value={value} onValueChange={onValueChange}>
-        <SelectTrigger
-          className={`${fieldColor} w-full justify-start`}
-          onLayout={onTriggerLayout}
-        >
+        <SelectTrigger className={`${fieldColor} w-full justify-between`}>
           <SelectValue placeholder={placeholder ? placeholder : "Välj"} />
         </SelectTrigger>
-        <SelectContent style={contentStyle}>
+        <SelectContent className="min-w-44">
           <SelectGroup>
             {label && <SelectLabel>{label}</SelectLabel>}
             <NativeSelectScrollView>
