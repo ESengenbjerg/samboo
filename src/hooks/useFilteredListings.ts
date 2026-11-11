@@ -1,6 +1,6 @@
 import { ALL_VALUE, PROPERTY_TYPES_OPTIONS } from "@/constants/filter-options";
+import { useUserTags } from "@/hooks/tags/useUserTags";
 import { useListingTags } from "@/hooks/useListingTags";
-import { useUserTags } from "@/hooks/useUserTags";
 import { Listing } from "@/types/listing";
 import { SelectOption } from "@/types/select-option";
 import { useMemo, useState } from "react";
@@ -24,7 +24,9 @@ export function useFilteredListings(
 
   // Only the property types that exist among the listings
   // string: compared with the options' values, which are plain strings
-  const listingTypes = new Set<string | null>(listings.map((l) => l.property_type));
+  const listingTypes = new Set<string | null>(
+    listings.map((l) => l.property_type),
+  );
   const propertyTypeOptions = PROPERTY_TYPES_OPTIONS.filter((o) =>
     listingTypes.has(o.value),
   );

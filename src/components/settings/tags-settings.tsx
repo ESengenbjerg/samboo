@@ -1,7 +1,7 @@
 import { Text } from "@/components/ui/text";
 import { useSession } from "@/hooks/auth/useSession";
-import { useSaveTag } from "@/hooks/useSaveTag";
-import { useUserTags } from "@/hooks/useUserTags";
+import { useSaveTag } from "@/hooks/tags/useSaveTag";
+import { useUserTags } from "@/hooks/tags/useUserTags";
 import { showToast } from "@/stores/toast";
 import { UserTag } from "@/types/tags";
 import { useState } from "react";
