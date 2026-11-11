@@ -149,6 +149,14 @@ function ProfileFields() {
       <View className="gap-1.5">
         <Label htmlFor="profile-image">Profilbild (valfritt)</Label>
 
+        {/* Preview first, so it is seen next to the buttons and not below the privacy text */}
+        {previewUri ? (
+          <View className="items-center gap-2 self-center py-2">
+            <ProfileImage uri={previewUri}></ProfileImage>
+            {profileName ? <Text variant="bold">{profileName}</Text> : null}
+          </View>
+        ) : null}
+
         <Button
           id="profile-image"
           variant="outline"
@@ -159,23 +167,20 @@ function ProfileFields() {
         </Button>
 
         {previewUri && (
-          <Button variant="destructive" onPress={onRemove} disabled={isBusy}>
-            <Text>{"Ta bort bild"}</Text>
+          // Secondary action: a text button, so "Spara" stays the main control
+          <Button
+            variant="link"
+            onPress={onRemove}
+            disabled={isBusy}
+            className="self-center"
+          >
             <Icon as={Trash} />
+            <Text>Ta bort bild</Text>
           </Button>
         )}
       </View>
 
       <AvatarPublicInfo location="Inställningar" />
-
-      <View className="self-center">
-        {previewUri ? (
-          <View className="items-center gap-2">
-            <ProfileImage uri={previewUri}></ProfileImage>
-            {profileName ? <Text variant="bold">{profileName}</Text> : null}
-          </View>
-        ) : null}
-      </View>
 
       {displayError && <FormError>{displayError}</FormError>}
 
