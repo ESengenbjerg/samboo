@@ -3,9 +3,11 @@
 -- Why things are built this way: docs/database-design.md.
 --
 -- Not in this file, done by hand:
---   * Vault secret github_dispatch_token (GitHub fine-grained PAT, only this repo, Actions: read and write), used by
---     public.dispatch_github_workflow(). Without it the dispatch-* jobs below fail every run, and only GitHub's own schedule is left.
---     Create it in the SQL Editor, never in a file: select vault.create_secret('<token>', 'github_dispatch_token');
+--   * Vault secrets used by public.dispatch_github_workflow(). Without them the dispatch-* jobs below fail every run,
+--     and only GitHub's own schedule is left. Create them in the SQL Editor, never in a file:
+--       select vault.create_secret('<token>', 'github_dispatch_token');  -- GitHub fine-grained PAT, only this repo, Actions: read and write
+--       select vault.create_secret('<owner>/<repo>', 'github_repo');
+--       select vault.create_secret('<default branch>', 'github_branch');
 --   * Auth settings (SMTP, e-mail templates, redirect URLs): docs/email-setup.md
 --   * Reference data: node scripts/seed/places/seedPlaces.ts
 

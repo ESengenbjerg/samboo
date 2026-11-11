@@ -46,7 +46,7 @@ Expo app built with:
 - **Explicit grants only.** Supabase's default privileges are revoked. Direct writes are limited to a few columns; everything else changes through database functions.
 - **Rate limits and abuse guards in the database**: write requests per user (HTTP 429), search changes, invites, group size, uploads, and statement timeouts per role. Limits lock before counting, so simultaneous requests cannot slip past them.
 
-See [docs/database-design.md](docs/database-design.md) for the reasoning behind each decision.
+See [docs/database-design.md](docs/database-design.md) for the reasoning behind some decision, and [docs/security.md](docs/security.md) for security outside the database (sign-up and sign-in).
 
 ## Getting started
 
@@ -86,7 +86,7 @@ The `EMAILS` and `GOOGLE MAPS` sections in `.env` can be left empty for the demo
 1. Create a new, empty project on [supabase.com](https://supabase.com). Enable RLS-policies! Use a separate project for demo data, never one with real users.
 2. Enable the `pg_cron` and `pg_net` extensions (Database → Extensions).
 3. Run all of [supabase/schema.sql](supabase/schema.sql) in the SQL Editor.
-4. Run [supabase/setup-extras.sql](supabase/setup-extras.sql) in the SQL Editor, **except the last three lines** (the `dispatch-scrape`, `dispatch-purge-avatars` and `dispatch-email` jobs). This file is required: it creates the trigger that gives every new account a profile, the rate limit, the `avatars` bucket for profile pictures and the daily cleanup jobs. The three `dispatch-*` jobs start GitHub Actions workflows in the original repository and need a GitHub token in Vault, so they are not part of the demo. If the SQL Editor refuses the storage policies, create them under Storage → Policies instead.
+4. Run [supabase/setup-extras.sql](supabase/setup-extras.sql) in the SQL Editor, **except the last three lines** (the `dispatch-scrape`, `dispatch-purge-avatars` and `dispatch-email` jobs). This file is required: it creates the trigger that gives every new account a profile, the rate limit, the `avatars` bucket for profile pictures and the daily cleanup jobs. The three `dispatch-*` jobs start GitHub Actions workflows and need a GitHub token, repository and branch in Vault, so they are not part of the demo (see [docs/production-setup.md](docs/production-setup.md#2-github-token-and-repository-in-supabase-vault)). If the SQL Editor refuses the storage policies, create them under Storage → Policies instead.
 5. Check (not mandatory): Run these SQL commands, one by one, in the SQL Editor
    - select table_name from information_schema.tables where table_schema = 'public' order by 1;
      You'll find 17 tables
@@ -129,7 +129,7 @@ The following requires that you have set up SMTP (for example Resend) and config
 
 The e-mails about new listings (`scripts/email`) are sent with the Resend API and need `RESEND_API_KEY`, `NOTIFY_FROM` and `APP_URL`.
 
-Scraping of real agency sites (`scripts/scraper`) and the scheduled GitHub Actions jobs are not part of the demo data either.
+Scraping of real agency sites (`scripts/scraper`) and the scheduled GitHub Actions jobs are not part of the demo data either. To set up all of it, see [docs/production-setup.md](docs/production-setup.md).
 
 ## Project structure
 
@@ -174,6 +174,8 @@ npm run gen:types     # regenerate shared/database.types.ts after a database cha
 ## Documentation
 
 - [docs/database-design.md](docs/database-design.md): why the database is built the way it is (security model, rate limits, scheduled jobs, design decisions)
+- [docs/production-setup.md](docs/production-setup.md): running your own Samboo beyond the demo (Supabase, GitHub token in Vault, e-mail, GitHub Actions, Google Maps, Vercel, all keys at a glance)
+- [docs/security.md](docs/security.md): security outside the database (what protects sign-up and sign-in, possible improvements)
 - [docs/openapi.yml](docs/openapi.yml): the API the app uses (tables, RPC functions and who may call them)
 - [docs/email-setup.md](docs/email-setup.md): how sign-up and notification e-mails are set up (Resend, Supabase Auth, DNS at Loopia)
 - [docs/removed_listings.md](docs/removed_listings.md): how the scraper detects and marks listings that have been removed by the agency

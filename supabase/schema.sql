@@ -449,18 +449,26 @@ CREATE OR REPLACE FUNCTION "public"."dispatch_github_workflow"("workflow" "text"
     AS $$
 declare
   token text;
+  repo text;
+  branch text;
 begin
-  select decrypted_secret into token
-  from vault.decrypted_secrets
-  where name = 'github_dispatch_token';
+  select decrypted_secret into token from vault.decrypted_secrets where name = 'github_dispatch_token';
+  select decrypted_secret into repo from vault.decrypted_secrets where name = 'github_repo';
+  select decrypted_secret into branch from vault.decrypted_secrets where name = 'github_branch';
 
   if token is null then
     raise exception 'Vault secret github_dispatch_token is missing';
   end if;
+  if repo is null then
+    raise exception 'Vault secret github_repo is missing (owner/repo, e.g. octocat/samboo)';
+  end if;
+  if branch is null then
+    raise exception 'Vault secret github_branch is missing (the branch the workflows run on)';
+  end if;
 
   return net.http_post(
-    url := 'https://api.github.com/repos/ESengenbjerg/samboo/actions/workflows/' || workflow || '/dispatches',
-    body := jsonb_build_object('ref', 'develop', 'inputs', jsonb_build_object('skip_if_recent', 'true')),
+    url := 'https://api.github.com/repos/' || repo || '/actions/workflows/' || workflow || '/dispatches',
+    body := jsonb_build_object('ref', branch, 'inputs', jsonb_build_object('skip_if_recent', 'true')),
     headers := jsonb_build_object(
       'Authorization', 'Bearer ' || token,
       'Accept', 'application/vnd.github+json',
@@ -2520,6 +2528,10 @@ ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."invites";
 
 
 ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."profiles";
+
+
+
+ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."showings";
 
 
 
