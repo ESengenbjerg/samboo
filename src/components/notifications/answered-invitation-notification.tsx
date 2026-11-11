@@ -38,7 +38,6 @@ export default function AnsweredInviteNotification({
           <Button
             size="sm"
             onPress={() => router.push("/saved")}
-            className="max-h-7"
           >
             <Text>Se listor</Text>
           </Button>

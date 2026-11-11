@@ -47,7 +47,6 @@ export default function InvitationNotification({
               <Button
                 size="sm"
                 onPress={() => router.push("/saved")}
-                className="max-h-7"
               >
                 <Text>Visa</Text>
               </Button>
@@ -56,7 +55,7 @@ export default function InvitationNotification({
                 size="sm"
                 variant="destructive"
                 disabled
-                className="max-h-7 justify-between"
+                className="justify-between"
               >
                 <Text>Avböjt</Text>
                 <Icon as={X} />
@@ -82,7 +81,6 @@ export default function InvitationNotification({
                 variant="secondary"
                 onPress={() => onAnswer(i.id, "accepted")}
                 disabled={isSubmitting}
-                className="max-h-7 justify-between"
               >
                 <Text>Acceptera</Text>
                 <Icon as={Check} />
@@ -92,7 +90,6 @@ export default function InvitationNotification({
                 variant="destructive"
                 onPress={() => onAnswer(i.id, "declined")}
                 disabled={isSubmitting}
-                className="max-h-7 justify-between"
               >
                 <Text>Avböj</Text>
                 <Icon as={X} />
