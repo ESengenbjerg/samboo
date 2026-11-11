@@ -3,17 +3,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
-import { EMAIL_MAX_LENGTH } from "@/constants/limits";
-import { signUp } from "@/services/auth";
+import { EMAIL_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@/constants/limits";
+import { useSignUp } from "@/hooks/auth/useSignUp";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
 import { type TextInputInstance, View } from "react-native";
 import { PrivacyDialog } from "../modals/privacy-dialog";
 
 export function SignUpForm() {
-  const [isLoading, setIsLoading] = useState(false);
+  const { createAccount, isLoading, error } = useSignUp();
   const [privacyOpen, setPrivacyOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const passwordInputRef = useRef<TextInputInstance>(null);
   const repeatPasswordInputRef = useRef<TextInputInstance>(null);
@@ -26,36 +25,8 @@ export function SignUpForm() {
     passwordInputRef.current?.focus();
   }
 
-  async function onSubmit() {
-    if (isLoading) return;
-    setError(null);
-    setIsLoading(true);
-
-    try {
-      if (password !== repeatPassword) {
-        setError("Lösenorden matchar inte.");
-        return;
-      }
-
-      // Send params to Supabase to create account
-      const { data, error } = await signUp(email.trim(), password);
-
-      if (error) {
-        setError("Något gick fel, försök igen.");
-        return;
-      }
-
-      if (data.session === null) {
-        router.push({
-          pathname: "/verify-email",
-          params: { email: email.trim(), source: "register" },
-        });
-      }
-    } catch {
-      setError("Något gick fel, försök igen.");
-    } finally {
-      setIsLoading(false);
-    }
+  function onSubmit() {
+    createAccount(email, password, repeatPassword);
   }
 
   return (
@@ -101,6 +72,9 @@ export function SignUpForm() {
             textContentType="newPassword"
             editable={!isLoading}
           />
+          <Text variant="small" className="text-background">
+            Minst {PASSWORD_MIN_LENGTH} tecken
+          </Text>
         </View>
         <View className="gap-1.5">
           <Label htmlFor="signup-repeat-password" className="text-background">
