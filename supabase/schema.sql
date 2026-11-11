@@ -232,6 +232,36 @@ $$;
 ALTER FUNCTION "public"."accept_invite"("invite_id" bigint) OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."admin_list_users"() RETURNS TABLE("id" "uuid", "name" "text", "email" "text", "created_at" timestamp with time zone, "last_sign_in_at" timestamp with time zone, "email_confirmed" boolean, "is_active" boolean, "is_admin" boolean)
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+#variable_conflict use_column
+begin
+  -- Admin only: the app hides the view, the database enforces it
+  if not public.is_admin() then
+    raise exception 'Endast för administratörer' using errcode = '42501';
+  end if;
+
+  return query
+  select p.id,
+         p.name,
+         u.email::text,
+         p.created_at,
+         u.last_sign_in_at,
+         u.email_confirmed_at is not null,
+         p.is_active,
+         exists (select 1 from public.admins a where a.user_id = p.id)
+  from public.profiles p
+  join auth.users u on u.id = p.id
+  order by p.created_at desc;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."admin_list_users"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."admin_open_issues"() RETURNS TABLE("id" bigint, "agency" "text", "kind" "public"."scrape_issue_kind", "reason" "text", "description" "text", "details" "jsonb", "occurrences" integer, "first_seen_at" timestamp with time zone, "last_seen_at" timestamp with time zone, "notified_at" timestamp with time zone)
     LANGUAGE "plpgsql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
@@ -243,7 +273,7 @@ begin
     raise exception 'Endast för administratörer' using errcode = '42501';
   end if;
 
-  -- description: plain Swedish for the product owner. The reasons are defined by the scraper (docs/removed_listings.md)
+  -- description: plain Swedish for the product owner, who contacts the developer. The reasons are defined by the scraper (docs/removed_listings.md)
   return query
   select i.id,
          i.agency,
@@ -254,7 +284,7 @@ begin
            when 'F2' then 'Mäklarens sida ser inte ut som väntat, troligen ändrad layout. Kräver en kodändring.'
            when 'F3' then 'Många annonssidor hos mäklaren gick inte att läsa.'
            when 'F4' then 'Annonserna kunde inte sparas i databasen.'
-           when 'mass_removal' then 'Ovanligt många annonser saknades, så inget togs bort. Kvittera om mäklaren verkligen har tagit bort dem.'
+           when 'mass_removal' then 'Ovanligt många annonser saknades hos mäklaren, så inget togs bort. Förvaltaren behöver kontrollera om de verkligen är borttagna.'
            else i.reason
          end,
          i.details,
@@ -335,6 +365,36 @@ $$;
 
 
 ALTER FUNCTION "public"."admin_scrape_status"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."admin_set_user_active"("p_user_id" "uuid", "p_active" boolean) RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+begin
+  -- Admin only: the app hides the view, the database enforces it
+  if not public.is_admin() then
+    raise exception 'Endast för administratörer' using errcode = '42501';
+  end if;
+
+  -- An admin who blocks themselves loses admin rights at once and cannot undo it
+  if p_user_id = (select auth.uid()) then
+    raise exception 'Du kan inte spärra dig själv';
+  end if;
+
+  -- is_active is the manual kill switch, checked live by is_active_user() on every request (docs/database-design.md)
+  update public.profiles
+  set is_active = p_active
+  where id = p_user_id;
+
+  if not found then
+    raise exception 'Användaren finns inte';
+  end if;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."admin_set_user_active"("p_user_id" "uuid", "p_active" boolean) OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."can_see_listing"("p_listing_id" bigint) RETURNS boolean
@@ -2986,6 +3046,12 @@ GRANT ALL ON FUNCTION "public"."accept_invite"("invite_id" bigint) TO "authentic
 
 
 
+REVOKE ALL ON FUNCTION "public"."admin_list_users"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."admin_list_users"() TO "service_role";
+GRANT ALL ON FUNCTION "public"."admin_list_users"() TO "authenticated";
+
+
+
 REVOKE ALL ON FUNCTION "public"."admin_open_issues"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."admin_open_issues"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."admin_open_issues"() TO "authenticated";
@@ -2995,6 +3061,12 @@ GRANT ALL ON FUNCTION "public"."admin_open_issues"() TO "authenticated";
 REVOKE ALL ON FUNCTION "public"."admin_scrape_status"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."admin_scrape_status"() TO "service_role";
 GRANT ALL ON FUNCTION "public"."admin_scrape_status"() TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."admin_set_user_active"("p_user_id" "uuid", "p_active" boolean) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."admin_set_user_active"("p_user_id" "uuid", "p_active" boolean) TO "service_role";
+GRANT ALL ON FUNCTION "public"."admin_set_user_active"("p_user_id" "uuid", "p_active" boolean) TO "authenticated";
 
 
 

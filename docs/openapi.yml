@@ -477,6 +477,54 @@ paths:
                 items: { $ref: '#/components/schemas/ScrapeIssue' }
         '403': { $ref: '#/components/responses/NotAdmin' }
 
+  /rpc/admin_list_users:
+    get:
+      tags: [Admin]
+      summary: All users
+      description: |
+        Every user, newest first, with e-mail and status. No search parameter: the view filters the list itself.
+        Admin only. Must be called with GET (STABLE), see the common rules.
+      operationId: admin_list_users
+      responses:
+        '200':
+          description: The users.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AdminUser' }
+        '403': { $ref: '#/components/responses/NotAdmin' }
+
+  /rpc/admin_set_user_active:
+    post:
+      tags: [Admin]
+      summary: Block or unblock a user
+      description: |
+        Sets `profiles.is_active`. Takes effect on the user's next request: `is_active_user()` is false, so RLS blocks
+        everything, no e-mails are sent, and an admin loses admin rights. An already issued JWT stays valid until it expires,
+        but it reaches nothing. The e-mail address stays taken, so the person cannot sign up again with it.
+        Admin only.
+      operationId: admin_set_user_active
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [p_user_id, p_active]
+              properties:
+                p_user_id: { type: string, format: uuid }
+                p_active: { type: boolean, description: '`false` blocks, `true` unblocks' }
+      responses:
+        '200': { $ref: '#/components/responses/VoidOk' }
+        '400':
+          description: '`Du kan inte spärra dig själv` or `Användaren finns inte`.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403': { $ref: '#/components/responses/NotAdmin' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
   # ---------------------------------------------------------------------
   # Tables
   # ---------------------------------------------------------------------
@@ -1037,6 +1085,18 @@ components:
         active_listings: { type: integer, description: Listings without removed_at }
         last_seen_at: { type: string, format: date-time, nullable: true, description: When the scraper last saw any of the agency's listings }
         open_issues: { type: integer, description: 'Open rows in scrape_issues (0–2)' }
+
+    AdminUser:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        email: { type: string }
+        created_at: { type: string, format: date-time }
+        last_sign_in_at: { type: string, format: date-time, nullable: true }
+        email_confirmed: { type: boolean }
+        is_active: { type: boolean, description: '`false` = blocked' }
+        is_admin: { type: boolean }
 
     ScrapeIssue:
       type: object

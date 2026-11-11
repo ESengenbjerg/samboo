@@ -753,6 +753,19 @@ export type Database = {
     }
     Functions: {
       accept_invite: { Args: { invite_id: number }; Returns: Json }
+      admin_list_users: {
+        Args: never
+        Returns: {
+          created_at: string
+          email: string
+          email_confirmed: boolean
+          id: string
+          is_active: boolean
+          is_admin: boolean
+          last_sign_in_at: string
+          name: string
+        }[]
+      }
       admin_open_issues: {
         Args: never
         Returns: {
@@ -781,6 +794,10 @@ export type Database = {
           last_seen_at: string
           open_issues: number
         }[]
+      }
+      admin_set_user_active: {
+        Args: { p_active: boolean; p_user_id: string }
+        Returns: undefined
       }
       can_see_listing: { Args: { p_listing_id: number }; Returns: boolean }
       cancel_invite: { Args: { invite_id: number }; Returns: undefined }
