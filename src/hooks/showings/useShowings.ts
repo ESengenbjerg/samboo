@@ -11,7 +11,7 @@ type ShowingsResult = {
 
 // showing_date ("2026-10-29") and start_time ("11:00:00" or null) are local time.
 // The Date is built from numbers, since parsing a string without time zone differs between engines
-function toScheduledShowing(row: ShowingRow): ScheduledShowing {
+export function toScheduledShowing(row: ShowingRow): ScheduledShowing {
   const [year, month, day] = row.showing_date.split("-").map(Number);
   const [hour, minute] = (row.start_time ?? "00:00").split(":").map(Number);
 

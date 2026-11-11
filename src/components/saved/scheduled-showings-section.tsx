@@ -1,7 +1,7 @@
 import ScheduledShowingInfo from "@/components/saved/scheduled-showing-info";
 import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
-import { useShowings } from "@/hooks/useShowings";
+import { useShowings } from "@/hooks/showings/useShowings";
 import { ScheduledShowing } from "@/types/showings";
 import { formatDateLabel, toIsoDate } from "@/utils/date-format";
 import { useFocusEffect } from "expo-router";

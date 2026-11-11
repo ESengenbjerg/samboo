@@ -1,5 +1,5 @@
-import { useDeleteShowing } from "@/hooks/useDeleteShowing";
-import { useUpdateShowing } from "@/hooks/useUpdateShowing";
+import { useDeleteShowing } from "@/hooks/showings/useDeleteShowing";
+import { useUpdateShowing } from "@/hooks/showings/useUpdateShowing";
 import { ScheduledShowing } from "@/types/showings";
 import { toIsoDate } from "@/utils/date-format";
 import { goToObject } from "@/utils/go-to-object";
@@ -188,6 +188,8 @@ export default function ScheduledShowingInfo({
           onSave={(values) => onUpdate(showing.id, values)}
           isSaving={isUpdating}
           error={updateError}
+          title="Redigera visning"
+          saveLabel="Spara ändringar"
           initialDate={showing.startsAt}
           initialTime={showing.startsAt}
           initialNote={showing.note ?? ""}

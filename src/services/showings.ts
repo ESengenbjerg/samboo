@@ -38,6 +38,17 @@ export function getPastShowings() {
     .order("start_time", { ascending: false, nullsFirst: false });
 }
 
+// The showing for one listing, or null if there is none. RLS returns my group's
+// showing, or my own if I am not in a group. There is at most one per listing
+export function getShowingForListing(listingId: number) {
+  return supabase
+    .from("showings")
+    .select(SHOWING_COLUMNS)
+    .eq("listing_id", listingId)
+    .limit(1)
+    .maybeSingle();
+}
+
 // The owner is not sent: the database sets group_id to my group, or user_id to me if
 // I am not in a group (column defaults). At most 50 showings per owner
 export function createShowing(showing: NewShowing) {
