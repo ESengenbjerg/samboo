@@ -1,5 +1,5 @@
 import { toScheduledShowing } from "@/hooks/showings/useShowings";
-import { getShowingForListing } from "@/services/showings";
+import { getShowingForListing, subscribeToShowings } from "@/services/showings";
 import { ScheduledShowing } from "@/types/showings";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
@@ -22,10 +22,12 @@ export function useShowingForListing(listingId: number) {
     return showing;
   }, [listingId]);
 
-  // Reloads when the screen comes into focus, so a change made on another screen shows up
+  // Loads when the screen comes into focus, and again whenever a showing changes
+  // (e.g. a group member deletes it), as long as the screen stays focused
   useFocusEffect(
     useCallback(() => {
       refetch();
+      return subscribeToShowings(refetch);
     }, [refetch]),
   );
 

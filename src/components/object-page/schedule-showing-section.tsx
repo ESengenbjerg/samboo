@@ -7,7 +7,7 @@ import { useShowingForListing } from "@/hooks/showings/useShowingForListing";
 import { showToast } from "@/stores/toast";
 import { ShowingValues } from "@/types/showings";
 import { Plus } from "lucide-react-native";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 import FormMessage from "../form-message";
 import ScheduledShowingInfo from "../saved/scheduled-showing-info";
@@ -27,6 +27,25 @@ export default function ScheduleShowingSection({
   const [message, setMessage] = useState<string | null>(null);
   const { saveShowing, isSaving, error, isConflict, clearError } =
     useSaveShowing();
+
+  // Tells the user if the showing disappears because someone else deleted it.
+  // deletedByMe stops it from firing after my own delete, which has its own message
+  const showingId = showing?.id ?? null;
+  const previousShowingId = useRef<number | null>(null);
+  const deletedByMe = useRef(false);
+
+  useEffect(() => {
+    if (
+      previousShowingId.current !== null &&
+      showingId === null &&
+      !deletedByMe.current
+    ) {
+      setDialogOpen(false);
+      setMessage("Visningen har tagits bort av någon i din grupp.");
+    }
+    deletedByMe.current = false;
+    previousShowingId.current = showingId;
+  }, [showingId]);
 
   function openDialog() {
     clearError(); // Clears error from last time
@@ -78,6 +97,7 @@ export default function ScheduleShowingSection({
               refetch();
             }}
             onDeleted={() => {
+              deletedByMe.current = true;
               setMessage("Visningen är raderad.");
               refetch();
             }}

@@ -2523,6 +2523,10 @@ ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."profiles";
 
 
 
+ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."showings";
+
+
+
 
 
 
