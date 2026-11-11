@@ -799,7 +799,7 @@ paths:
     post:
       tags: [Tags]
       summary: Create a tag
-      description: '`user_id` must be my id. `tag_name` is 1-100 characters, not only whitespace, and unique per user (otherwise 409). At most 30 tags per user.'
+      description: '`user_id` must be my id. `tag_name` is 1-20 characters, not only whitespace, and unique per user (otherwise 409). At most 30 tags per user.'
       operationId: user_tags_insert
       requestBody:
         required: true
@@ -810,7 +810,7 @@ paths:
               required: [user_id, tag_name]
               properties:
                 user_id: { type: string, format: uuid }
-                tag_name: { type: string, minLength: 1, maxLength: 100, pattern: '\S' }
+                tag_name: { type: string, minLength: 1, maxLength: 20, pattern: '\S' }
       responses:
         '201': { description: Created. }
         '400':
@@ -831,7 +831,7 @@ paths:
             schema:
               type: object
               properties:
-                tag_name: { type: string, minLength: 1, maxLength: 100, pattern: '\S' }
+                tag_name: { type: string, minLength: 1, maxLength: 20, pattern: '\S' }
       responses:
         '204': { description: Updated. }
         '400':
