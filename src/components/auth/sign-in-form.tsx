@@ -77,7 +77,10 @@ export function SignInForm() {
             variant="link"
             size="sm"
             onPress={() => {
-              router.push("/forgotten-password");
+              router.push({
+                pathname: "/forgotten-password",
+                params: { email },
+              });
             }}
           >
             <Text className="leading-4 text-background">Glömt lösenord?</Text>

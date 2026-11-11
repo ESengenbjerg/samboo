@@ -5,14 +5,16 @@ import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
 import { EMAIL_MAX_LENGTH } from "@/constants/limits";
 import { useForgotPassword } from "@/hooks/auth/useForgotPassword";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 
 export function ForgotPasswordForm() {
   const { sendResetCode, isSending: isLoading, error } = useForgotPassword();
 
-  const [email, setEmail] = useState("");
+  const { email: initialEmail } = useLocalSearchParams<{ email?: string }>();
+
+  const [email, setEmail] = useState(initialEmail ?? "");
 
   async function onSubmit() {
     // Remove spaces, e.g. from autofill
