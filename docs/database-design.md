@@ -153,6 +153,7 @@ The product owner manages the product from an admin view in the app. Who is admi
 - **Only the Dashboard or `service_role` adds an admin.** The table has RLS on, no policies, and no grants for `authenticated`, so nobody can make themselves admin. A column in `profiles` would not be safe, since users may update their own profile row.
 - **`is_admin()` is the gate,** checked live on every call like `is_active_user()`, so removing a row takes effect at once. It also requires `is_active_user()`, so the `is_active` kill switch applies to admins too. `authenticated` may call it, so the app can decide whether to show the admin view; it only reveals the caller's own status.
 - **Security lives in the database.** Every admin function starts with an `is_admin()` check. Hiding the view in the app is only for the user's sake.
+- **Admin functions:** `admin_scrape_status()` (one row per agency: latest run, latest ok run, active listings, open issues) and `admin_open_issues()` (open rows in `scrape_issues` with a plain Swedish `description`). A non-admin gets `Endast för administratörer` with code `42501`. The Swedish texts for the scraper's reasons live in `admin_open_issues()`, so a new reason in `scripts/lib/types.ts` needs a text there too (until then the raw reason is shown).
 
 ## Account deletion
 

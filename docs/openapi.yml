@@ -440,6 +440,43 @@ paths:
             application/json:
               schema: { type: boolean }
 
+  /rpc/admin_scrape_status:
+    get:
+      tags: [Admin]
+      summary: Scraper status per agency
+      description: |
+        One row per agency (from run history, listings and open issues), sorted by agency.
+        Admin only. Must be called with GET (STABLE), see the common rules.
+      operationId: admin_scrape_status
+      responses:
+        '200':
+          description: The agencies.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AgencyStatus' }
+        '403': { $ref: '#/components/responses/NotAdmin' }
+
+  /rpc/admin_open_issues:
+    get:
+      tags: [Admin]
+      summary: Open scrape issues
+      description: |
+        Every open row in `scrape_issues`, oldest first. An agency can have one open `failed` and one open `suspicious`
+        issue at the same time. Show `description` to the product owner, not `reason`.
+        Admin only. Must be called with GET (STABLE), see the common rules.
+      operationId: admin_open_issues
+      responses:
+        '200':
+          description: The open issues, an empty list if there are none.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ScrapeIssue' }
+        '403': { $ref: '#/components/responses/NotAdmin' }
+
   # ---------------------------------------------------------------------
   # Tables
   # ---------------------------------------------------------------------
@@ -936,6 +973,12 @@ components:
               code: { type: string, example: rate_limited }
               message: { type: string, example: 'Too many requests, try again in a moment' }
 
+    NotAdmin:
+      description: '`Endast för administratörer` (code `42501`). The caller is not an active admin.'
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
   schemas:
     Error:
       type: object
@@ -981,6 +1024,35 @@ components:
         showing_date: { type: string, format: date, description: 'The date after the change (before it for deleted)' }
         start_time: { type: string, format: time, nullable: true, example: '17:30:00' }
         is_unseen: { type: boolean, description: Newer than my notifications_seen_at }
+
+    AgencyStatus:
+      type: object
+      properties:
+        agency: { type: string }
+        last_run_at: { type: string, format: date-time, nullable: true, description: 'Start of the latest run for the agency. `null` if no run is in the history (kept 90 days)' }
+        last_outcome: { type: string, enum: [ok, failed, suspicious, skipped, error], nullable: true, description: Postgres enum `public.scrape_run_outcome` }
+        last_reason: { type: string, nullable: true, description: 'F1–F4 or mass_removal, `null` for ok, skipped and error' }
+        last_message: { type: string, nullable: true, description: Technical message from the scraper (English) }
+        last_ok_at: { type: string, format: date-time, nullable: true, description: End of the latest run with outcome ok }
+        active_listings: { type: integer, description: Listings without removed_at }
+        last_seen_at: { type: string, format: date-time, nullable: true, description: When the scraper last saw any of the agency's listings }
+        open_issues: { type: integer, description: 'Open rows in scrape_issues (0–2)' }
+
+    ScrapeIssue:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        agency: { type: string }
+        kind: { type: string, enum: [failed, suspicious], description: Postgres enum `public.scrape_issue_kind` }
+        reason: { type: string, description: 'F1–F4 or mass_removal' }
+        description: { type: string, description: Plain Swedish explanation for the product owner }
+        details:
+          type: object
+          description: 'From the scraper: `message`, and depending on the reason `failedUrls`, `missingUrls` (max 20 each), `active`, `missing`'
+        occurrences: { type: integer, description: Runs in a row with this problem }
+        first_seen_at: { type: string, format: date-time }
+        last_seen_at: { type: string, format: date-time }
+        notified_at: { type: string, format: date-time, nullable: true, description: 'When the GitHub alert was raised, `null` if not yet' }
 
     ProfileUpdate:
       type: object

@@ -232,6 +232,111 @@ $$;
 ALTER FUNCTION "public"."accept_invite"("invite_id" bigint) OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."admin_open_issues"() RETURNS TABLE("id" bigint, "agency" "text", "kind" "public"."scrape_issue_kind", "reason" "text", "description" "text", "details" "jsonb", "occurrences" integer, "first_seen_at" timestamp with time zone, "last_seen_at" timestamp with time zone, "notified_at" timestamp with time zone)
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+#variable_conflict use_column
+begin
+  -- Admin only: the app hides the view, the database enforces it
+  if not public.is_admin() then
+    raise exception 'Endast för administratörer' using errcode = '42501';
+  end if;
+
+  -- description: plain Swedish for the product owner. The reasons are defined by the scraper (docs/removed_listings.md)
+  return query
+  select i.id,
+         i.agency,
+         i.kind,
+         i.reason,
+         case i.reason
+           when 'F1' then 'Mäklarens sida gick inte att nå (fel, timeout eller blockering).'
+           when 'F2' then 'Mäklarens sida ser inte ut som väntat, troligen ändrad layout. Kräver en kodändring.'
+           when 'F3' then 'Många annonssidor hos mäklaren gick inte att läsa.'
+           when 'F4' then 'Annonserna kunde inte sparas i databasen.'
+           when 'mass_removal' then 'Ovanligt många annonser saknades, så inget togs bort. Kvittera om mäklaren verkligen har tagit bort dem.'
+           else i.reason
+         end,
+         i.details,
+         i.occurrences,
+         i.first_seen_at,
+         i.last_seen_at,
+         i.notified_at
+  from public.scrape_issues i
+  where i.status = 'open'
+  order by i.first_seen_at;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."admin_open_issues"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."admin_scrape_status"() RETURNS TABLE("agency" "text", "last_run_at" timestamp with time zone, "last_outcome" "public"."scrape_run_outcome", "last_reason" "text", "last_message" "text", "last_ok_at" timestamp with time zone, "active_listings" integer, "last_seen_at" timestamp with time zone, "open_issues" integer)
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+#variable_conflict use_column
+begin
+  -- Admin only: the app hides the view, the database enforces it
+  if not public.is_admin() then
+    raise exception 'Endast för administratörer' using errcode = '42501';
+  end if;
+
+  return query
+  with agencies as (
+    select r.agency from public.scrape_runs r
+    union
+    select l.agency from public.listings l
+    union
+    select i.agency from public.scrape_issues i where i.status = 'open'
+  ),
+  last_run as (
+    select distinct on (r.agency) r.agency, r.started_at, r.outcome, r.reason, r.message
+    from public.scrape_runs r
+    order by r.agency, r.started_at desc
+  ),
+  last_ok as (
+    select r.agency, max(r.finished_at) as at
+    from public.scrape_runs r
+    where r.outcome = 'ok'
+    group by r.agency
+  ),
+  listing_stats as (
+    select l.agency,
+           (count(*) filter (where l.removed_at is null))::int as active,
+           max(l.last_seen_at) as last_seen
+    from public.listings l
+    group by l.agency
+  ),
+  issue_counts as (
+    select i.agency, count(*)::int as n
+    from public.scrape_issues i
+    where i.status = 'open'
+    group by i.agency
+  )
+  select a.agency,
+         lr.started_at,
+         lr.outcome,
+         lr.reason,
+         lr.message,
+         lo.at,
+         coalesce(ls.active, 0),
+         ls.last_seen,
+         coalesce(ic.n, 0)
+  from agencies a
+  left join last_run lr on lr.agency = a.agency
+  left join last_ok lo on lo.agency = a.agency
+  left join listing_stats ls on ls.agency = a.agency
+  left join issue_counts ic on ic.agency = a.agency
+  order by a.agency;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."admin_scrape_status"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."can_see_listing"("p_listing_id" bigint) RETURNS boolean
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO ''
@@ -2878,6 +2983,18 @@ GRANT ALL ON TYPE "public"."showing_event_action" TO "service_role";
 REVOKE ALL ON FUNCTION "public"."accept_invite"("invite_id" bigint) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."accept_invite"("invite_id" bigint) TO "service_role";
 GRANT ALL ON FUNCTION "public"."accept_invite"("invite_id" bigint) TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."admin_open_issues"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."admin_open_issues"() TO "service_role";
+GRANT ALL ON FUNCTION "public"."admin_open_issues"() TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."admin_scrape_status"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."admin_scrape_status"() TO "service_role";
+GRANT ALL ON FUNCTION "public"."admin_scrape_status"() TO "authenticated";
 
 
 

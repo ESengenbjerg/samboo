@@ -753,6 +753,35 @@ export type Database = {
     }
     Functions: {
       accept_invite: { Args: { invite_id: number }; Returns: Json }
+      admin_open_issues: {
+        Args: never
+        Returns: {
+          agency: string
+          description: string
+          details: Json
+          first_seen_at: string
+          id: number
+          kind: Database["public"]["Enums"]["scrape_issue_kind"]
+          last_seen_at: string
+          notified_at: string
+          occurrences: number
+          reason: string
+        }[]
+      }
+      admin_scrape_status: {
+        Args: never
+        Returns: {
+          active_listings: number
+          agency: string
+          last_message: string
+          last_ok_at: string
+          last_outcome: Database["public"]["Enums"]["scrape_run_outcome"]
+          last_reason: string
+          last_run_at: string
+          last_seen_at: string
+          open_issues: number
+        }[]
+      }
       can_see_listing: { Args: { p_listing_id: number }; Returns: boolean }
       cancel_invite: { Args: { invite_id: number }; Returns: undefined }
       check_request: { Args: never; Returns: undefined }
