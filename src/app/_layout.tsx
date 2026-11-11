@@ -6,6 +6,7 @@ import { Stack } from "expo-router";
 import { useEffect } from "react";
 
 import Header from "@/components/header";
+import { Toast } from "@/components/toast";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { useSession } from "@/hooks/auth/useSession";
@@ -111,6 +112,7 @@ export default function RootLayout() {
         </Stack.Protected>
       </Stack>
       <PortalHost />
+      <Toast />
       {/* </ThemeProvider> */}
     </GestureHandlerRootView>
   );
