@@ -13,12 +13,19 @@ import { router } from "expo-router";
 import { useRef, useState } from "react";
 import { View } from "react-native";
 import FormError from "../form-error";
-import FormMessage from "../form-message";
 import { SendInviteDialog } from "../modals/send-invite-dialog";
 import { Button } from "../ui/button";
 import { Text } from "../ui/text";
 
-export default function ConnectAccountForm() {
+type ConnectAccountFormProps = {
+  // Called when the "Inbjudan skickad" screen is shown. Everything is saved then,
+  // so the screen hides "Tillbaka"
+  onInviteSent?: () => void;
+};
+
+export default function ConnectAccountForm({
+  onInviteSent,
+}: ConnectAccountFormProps) {
   // TODO: setError will be used once Supabase implementation is complete
   const [isLoading, setIsLoading] = useState(false);
   const inFlight = useRef(false);
@@ -152,6 +159,7 @@ export default function ConnectAccountForm() {
     // All invites sent: close dialog and show success view
     setInvitationDialogOpen(false);
     setInviteSent(true);
+    onInviteSent?.();
     return [];
   }
 
@@ -195,11 +203,9 @@ export default function ConnectAccountForm() {
           <Text variant="h1">Inbjudan skickad</Text>
           <Text>
             När personen du bjudit in accepterar kopplas era konton ihop. Du
-            hittar dina inbjudningar under kontoinställningar.
+            hittar dina inbjudningar under Inställningar.
           </Text>
         </View>
-
-        <FormMessage>Inbjudan är skickad!</FormMessage>
 
         <Button
           variant="secondary"
@@ -218,7 +224,7 @@ export default function ConnectAccountForm() {
         <Text variant="h1">Koppla konto</Text>
         <Text>
           Koppla ihop ditt konto med ett eller flera andra för att kunna se
-          varandras sparade objekt och gemensamma visningstider
+          varandras sparade objekt och gemensamma visningstider.
         </Text>
       </View>
 
@@ -276,7 +282,7 @@ export default function ConnectAccountForm() {
         >
           <Text>Bjud in konto</Text>
         </Button>
-        <Text>Detta kan göras senare via dina kontoinställningar</Text>
+        <Text>Det här kan du också göra senare under Inställningar.</Text>
         <Button
           variant="link"
           className="p-0"
