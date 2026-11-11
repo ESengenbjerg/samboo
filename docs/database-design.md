@@ -190,5 +190,7 @@ DELETE events are not checked against RLS, because the row no longer exists. The
 
 ## Open points
 
+### Known issues
+
 - `dispatch_github_workflow()` hardcodes the repository, so a fork's backup jobs dispatch to the wrong repo. Plan: read repo and branch from Vault.
 - `listings.rooms` and `search_params.min_rooms`/`max_rooms` are `numeric(3,1)` (max 99.9), while the check constraints allow up to 100. A value of 100 fails with a numeric overflow instead of the check.
