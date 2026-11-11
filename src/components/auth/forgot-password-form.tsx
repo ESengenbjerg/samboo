@@ -60,7 +60,7 @@ export function ForgotPasswordForm() {
         />
       </View>
 
-      {error && <FormError>{error}</FormError>}
+      {error && <FormError className="sm:self-stretch">{error}</FormError>}
 
       <View className="gap-6 items-center justify-center mt-6">
         <Button className="px-10" onPress={onSubmit} disabled={isLoading}>

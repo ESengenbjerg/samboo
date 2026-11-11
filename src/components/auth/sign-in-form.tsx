@@ -65,7 +65,7 @@ export function SignInForm() {
         />
       </View>
 
-      {error && <FormError>{error}</FormError>}
+      {error && <FormError className="sm:self-stretch">{error}</FormError>}
 
       <View className="gap-6 mt-6 items-center">
         <Button className="px-10" onPress={onSubmit} disabled={isLoading}>

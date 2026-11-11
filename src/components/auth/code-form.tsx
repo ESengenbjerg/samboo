@@ -73,7 +73,7 @@ export function CodeForm({
         </Button>
       </View>
 
-      {error && <FormError>{error}</FormError>}
+      {error && <FormError className="sm:self-stretch">{error}</FormError>}
       {message && <FormMessage>{message}</FormMessage>}
 
       <View className="items-center mt-6">

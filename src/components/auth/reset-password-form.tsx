@@ -104,7 +104,9 @@ export function ResetPasswordForm() {
         </>
       )}
 
-      {isVerified && error && <FormError>{error}</FormError>}
+      {isVerified && error && (
+        <FormError className="sm:self-stretch">{error}</FormError>
+      )}
 
       <View
         className={
