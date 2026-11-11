@@ -119,23 +119,25 @@ export default function ObjectPageScreen({
   ) {
     if (!userId || !userListing) return;
     setIsSaving(true);
+    try {
+      const ok = await saveCategorization({
+        userId,
+        userListingId: userListing.id,
+        existingTags: tags,
+        selectedIds,
+        initialIds,
+        newNames,
+      });
 
-    const ok = await saveCategorization({
-      userId,
-      userListingId: userListing.id,
-      existingTags: tags,
-      selectedIds,
-      initialIds,
-      newNames,
-    });
+      // Always fetch again, also on failure: some tags might have been created before it failed
+      reloadTags();
+      reloadListingTags();
 
-    // Always fetch again, also on failure: some tags might have been created before it failed
-    reloadTags();
-    reloadListingTags();
-
-    // Keep the dialog open if something failed, so error is visible
-    if (ok) setCategoriesDialogOpen(false);
-    setIsSaving(false);
+      // Keep the dialog open if something failed, so error is visible
+      if (ok) setCategoriesDialogOpen(false);
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   // Removes one category from this listing directly, without opening the dialog

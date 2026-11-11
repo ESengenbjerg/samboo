@@ -5,7 +5,6 @@ import {
   removeListingTag,
   updateUserTag,
 } from "@/services/tags";
-
 import { SaveCategorizationInput, UserTag } from "@/types/tags";
 import { capitalize } from "@/utils/capitalize-string";
 import { useCallback, useState } from "react";
@@ -13,6 +12,18 @@ import { useCallback, useState } from "react";
 // check_request() rate limit on write requests
 const RATE_LIMITED_MESSAGE =
   "Du har gjort för många ändringar. Vänta en stund och försök igen.";
+
+// The message for a failed create or rename. 23505 = user_tags_unique.
+// P0001 = limit_tags_per_user(), its message is already in Swedish
+function saveTagErrorMessage(
+  error: { code?: string; message: string },
+  fallback: string,
+) {
+  if (error.code === "rate_limited") return RATE_LIMITED_MESSAGE;
+  if (error.code === "23505") return "Du har redan en tagg med det namnet.";
+  if (error.code === "P0001") return error.message;
+  return fallback;
+}
 
 // Create/delete tags and apply/remove them on a listing.
 // Every function returns true (or the new tag) on success, false/null on failure.
@@ -35,12 +46,9 @@ export function useSaveTag() {
 
       if (error) {
         console.error("Failed to create tag: ", error);
-        // 23505 = user_tags_unique. P0001 = limit_tags_per_user(), its message is already in Swedish
-        if (error.code === "rate_limited") setError(RATE_LIMITED_MESSAGE);
-        else if (error.code === "23505")
-          setError("Du har redan en tagg med det namnet.");
-        else if (error.code === "P0001") setError(error.message);
-        else setError("Kunde inte skapa tagg. Försök igen.");
+        setError(
+          saveTagErrorMessage(error, "Kunde inte skapa tagg. Försök igen."),
+        );
         return null;
       }
       return data;
@@ -61,11 +69,12 @@ export function useSaveTag() {
 
       if (error) {
         console.error("Failed to rename tag: ", error);
-        // 23505 = user_tags_unique
-        if (error.code === "rate_limited") setError(RATE_LIMITED_MESSAGE);
-        else if (error.code === "23505")
-          setError("Du har redan en tagg med det namnet.");
-        else setError("Kunde inte byta namn på taggen. Försök igen.");
+        setError(
+          saveTagErrorMessage(
+            error,
+            "Kunde inte byta namn på taggen. Försök igen.",
+          ),
+        );
         return null;
       }
       return data;
@@ -78,7 +87,11 @@ export function useSaveTag() {
     const { error } = await deleteUserTag(tagId);
     if (error) {
       console.error("Failed to delete tag: ", error);
-      setError("Kunde inte radera taggen. Försök igen.");
+      setError(
+        error.code === "rate_limited"
+          ? RATE_LIMITED_MESSAGE
+          : "Kunde inte radera taggen. Försök igen.",
+      );
       return false;
     }
     return true;

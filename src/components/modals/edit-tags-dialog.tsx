@@ -57,7 +57,7 @@ export function EditTagsDialog({
               value={name}
               onChangeText={(text) => {
                 setName(text);
-                // The old error were about the previous text
+                // The old error was about the previous text
                 onClearError();
               }}
               maxLength={TAG_NAME_MAX_LENGTH}

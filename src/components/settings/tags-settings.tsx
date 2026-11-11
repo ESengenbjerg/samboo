@@ -2,6 +2,7 @@ import { Text } from "@/components/ui/text";
 import { useSession } from "@/hooks/auth/useSession";
 import { useSaveTag } from "@/hooks/useSaveTag";
 import { useUserTags } from "@/hooks/useUserTags";
+import { showToast } from "@/stores/toast";
 import { UserTag } from "@/types/tags";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
@@ -36,15 +37,16 @@ export default function TagSettings() {
   async function handleSave(newName: string) {
     if (!editingTag) return;
 
-    // Oförändrat namn: stäng bara, ingen request behövs
+    // Unchanged name: just close, no request needed
     if (newName.trim().toLowerCase() === editingTag.tag_name.toLowerCase()) {
       closeEdit();
       return;
     }
 
     const updated = await renameTag(editingTag.id, newName);
-    if (!updated) return; // Felet visas i dialogen, som står kvar öppen
+    if (!updated) return; // Error is shown in dialog
     setEditingTag(null);
+    showToast("Taggen är uppdaterad!", "success");
     reload();
   }
 
@@ -61,7 +63,10 @@ export default function TagSettings() {
     const ok = await deleteTag(deletingTag.id);
     setIsDeleting(false);
     setDeletingTag(null);
-    if (ok) reload();
+    if (ok) {
+      reload();
+      showToast("Taggen har raderats!", "success");
+    }
   }
 
   return (
@@ -122,8 +127,6 @@ export default function TagSettings() {
           isLoading={isDeleting}
         />
       )}
-
-      {error && <Text className="text-destructive">{error}</Text>}
     </View>
   );
 }
