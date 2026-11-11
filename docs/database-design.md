@@ -184,7 +184,9 @@ The scraper, the avatar purge and the emails run as GitHub Actions. GitHub's sch
 
 ## Realtime
 
-`invites` and `profiles` are in the `supabase_realtime` publication, so the other account updates immediately (for example, the inviter sees an accept or decline at once). Realtime only delivers rows the user can read under RLS.
+`invites`, `profiles` and `showings` are in the `supabase_realtime` publication, so other accounts update immediately (for example, the inviter sees an accept or decline at once, and group members see each other's showings). Realtime only delivers INSERT and UPDATE events for rows the user can read under RLS.
+
+DELETE events are not checked against RLS, because the row no longer exists. They go to every subscriber of the table and contain only the primary key (`old = { id }`). This leaks nothing beyond the id, but clients must ignore ids they do not know, or simply refetch on every event. `REPLICA IDENTITY FULL` would not help: with RLS on, `old` still contains only the primary key.
 
 ## Open points
 
