@@ -31,7 +31,7 @@ export function SignUpForm() {
 
   return (
     <>
-      <View className="gap-6 w-full max-w-sm px-14">
+      <View className="gap-4 w-full max-w-sm px-14">
         <Text variant="bold" className="text-center text-xl text-background">
           Skapa konto
         </Text>
@@ -97,7 +97,7 @@ export function SignUpForm() {
 
         {error && <FormError className="sm:self-stretch">{error}</FormError>}
 
-        <View className="gap-6 mt-6 items-center">
+        <View className="gap-4 mt-2 items-center">
           <Button className="px-10" onPress={onSubmit} disabled={isLoading}>
             <Text>{!isLoading ? "Skapa konto" : "Skapar konto..."}</Text>
           </Button>
