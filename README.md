@@ -129,7 +129,7 @@ The following requires that you have set up SMTP (for example Resend) and config
 
 The e-mails about new listings (`scripts/email`) are sent with the Resend API and need `RESEND_API_KEY`, `NOTIFY_FROM` and `APP_URL`.
 
-Scraping of real agency sites (`scripts/scraper`) and the scheduled GitHub Actions jobs are not part of the demo data either.
+Scraping of real agency sites (`scripts/scraper`) and the scheduled GitHub Actions jobs are not part of the demo data either. To set up all of it, see [docs/production-setup.md](docs/production-setup.md).
 
 ## Project structure
 
@@ -174,6 +174,7 @@ npm run gen:types     # regenerate shared/database.types.ts after a database cha
 ## Documentation
 
 - [docs/database-design.md](docs/database-design.md): why the database is built the way it is (security model, rate limits, scheduled jobs, design decisions)
+- [docs/production-setup.md](docs/production-setup.md): running your own Samboo beyond the demo (Supabase, GitHub token in Vault, e-mail, GitHub Actions, Google Maps, Vercel, all keys at a glance)
 - [docs/security.md](docs/security.md): security outside the database (what protects sign-up and sign-in, possible improvements)
 - [docs/openapi.yml](docs/openapi.yml): the API the app uses (tables, RPC functions and who may call them)
 - [docs/email-setup.md](docs/email-setup.md): how sign-up and notification e-mails are set up (Resend, Supabase Auth, DNS at Loopia)
