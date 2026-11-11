@@ -1,3 +1,4 @@
+import { CodeForm } from "@/components/auth/code-form";
 import FormError from "@/components/form-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,17 +7,13 @@ import { Text } from "@/components/ui/text";
 import { useResetPassword } from "@/hooks/auth/useResetPassword";
 import { router, useLocalSearchParams } from "expo-router";
 import { useRef, useState } from "react";
-import { type TextInputInstance, TextStyle, View } from "react-native";
-
-// Digits of equal width, so the text doesn't jump while counting down
-const TABULAR_NUMBERS_STYLE: TextStyle = { fontVariant: ["tabular-nums"] };
+import { type TextInputInstance, View } from "react-native";
 
 export function ResetPasswordForm() {
   const passwordInputRef = useRef<TextInputInstance>(null);
   const repeatPasswordInputRef = useRef<TextInputInstance>(null);
 
   const [isVerified, setIsVerified] = useState(false);
-  const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [repeatPassword, setRepeatPassword] = useState("");
 
@@ -26,7 +23,7 @@ export function ResetPasswordForm() {
   const { verifyCode, resendCode, savePassword, countdown, isLoading, error } =
     useResetPassword(email);
 
-  async function onVerifyCode() {
+  async function onVerifyCode(code: string) {
     // Show the password fields only when the code was correct
     if (await verifyCode(code)) setIsVerified(true);
   }
@@ -46,46 +43,14 @@ export function ResetPasswordForm() {
           <Text className="text-center text-background">
             Fyll i koden du fått i mailet och välj sedan ett nytt lösenord.
           </Text>
-          <View className="gap-1.5">
-            <Label htmlFor="reset-code" className="text-background">
-              Verifieringskod
-            </Label>
-            <Input
-              id="reset-code"
-              placeholder="*****"
-              autoCapitalize="none"
-              returnKeyType="send"
-              keyboardType="numeric"
-              autoComplete="sms-otp"
-              textContentType="oneTimeCode"
-              onSubmitEditing={onVerifyCode}
-              value={code}
-              onChangeText={setCode}
-              editable={!isLoading}
-            />
-            <Button
-              variant="link"
-              size="sm"
-              disabled={countdown > 0 || isLoading}
-              onPress={resendCode}
-            >
-              <Text className="text-center text-sm text-background">
-                Skicka igen{" "}
-                {countdown > 0 ? (
-                  <Text
-                    className="text-sm text-background"
-                    style={TABULAR_NUMBERS_STYLE}
-                  >
-                    ({countdown})
-                  </Text>
-                ) : null}
-              </Text>
-            </Button>
-          </View>
 
-          <Button onPress={onVerifyCode} className="px-10" disabled={isLoading}>
-            <Text>{!isLoading ? "Verifiera" : "Verifierar..."}</Text>
-          </Button>
+          <CodeForm
+            onVerify={onVerifyCode}
+            onResend={resendCode}
+            countdown={countdown}
+            isLoading={isLoading}
+            error={error}
+          />
         </>
       )}
 
@@ -131,9 +96,15 @@ export function ResetPasswordForm() {
         </>
       )}
 
-      {error && <FormError>{error}</FormError>}
+      {isVerified && error && <FormError>{error}</FormError>}
 
-      <View className="gap-6 items-center justify-center mt-6">
+      <View
+        className={
+          isVerified
+            ? "gap-6 items-center justify-center mt-6"
+            : "gap-6 items-center"
+        }
+      >
         {isVerified && (
           <Button className="px-10" onPress={onSubmit} disabled={isLoading}>
             <Text>
