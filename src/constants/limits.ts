@@ -31,3 +31,6 @@ export const MAX_AREAS = 200;
 
 // Supabase Auth's cooldown between e-mails to the same address (an Auth setting, not in schema.sql)
 export const RESEND_CODE_INTERVAL_SECONDS = 60;
+
+// Supabase Auth's minimum password length (an Auth setting, not in schema.sql). No character rules
+export const PASSWORD_MIN_LENGTH = 6;
