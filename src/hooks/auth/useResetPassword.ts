@@ -1,7 +1,6 @@
 import { RESEND_CODE_INTERVAL_SECONDS } from "@/constants/limits";
 import { useCountdown } from "@/hooks/useCountdown";
 import {
-  passwordErrorMessage,
   requestPasswordReset,
   signOutLocal,
   signOutOtherClients,
@@ -9,6 +8,7 @@ import {
   verifyRecoveryOtp,
 } from "@/services/auth";
 import { usePasswordRecoveryStore } from "@/stores/password-recovery";
+import { authErrorMessage } from "@/utils/error-message/auth-error-message";
 import { useCallback, useEffect, useState } from "react";
 
 // email is sent as a param from the forgot password screen
@@ -118,7 +118,7 @@ export function useResetPassword(email: string) {
 
         if (error) {
           console.log("Update password error:", error);
-          setError(passwordErrorMessage(error));
+          setError(authErrorMessage(error));
           return;
         }
 

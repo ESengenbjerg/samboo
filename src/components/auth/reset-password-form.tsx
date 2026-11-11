@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
-import { useResetPassword } from "@/hooks/useResetPassword";
+import { useResetPassword } from "@/hooks/auth/useResetPassword";
 import { router, useLocalSearchParams } from "expo-router";
 import { useRef, useState } from "react";
 import { type TextInputInstance, TextStyle, View } from "react-native";
