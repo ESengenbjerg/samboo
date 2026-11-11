@@ -14,8 +14,13 @@ export const ROOM_OPTIONS: SelectOption[] = range(1, 10).map((r) => ({
   label: r === 10 ? "10 eller fler" : `${r} rum`,
 }));
 
+// 1 000 kr steps up to 8 000. Keeps the earlier values (3 000, 6 000, 9 000, 12 000, 15 000),
+// so a saved max_monthly_fee still matches an option and is not cleared on the next save
 export const MONTHLY_FEE_OPTIONS: SelectOption[] = [
-  3000, 6000, 9000, 12000, 15000,
+  ...range(1000, 8000, 1000),
+  9000,
+  12000,
+  15000,
 ].map((m, i, arr) => ({
   value: String(m),
   label:
@@ -45,6 +50,14 @@ export const PROPERTY_TYPES_OPTIONS: SelectOption[] = PROPERTY_TYPES.map(
     label: PROPERTY_TYPE_LABELS[type],
   }),
 );
+
+// "Ingen gräns" clears a min/max choice in the search form (saved as null)
+export const NO_LIMIT_VALUE = "no-limit";
+export const NO_LIMIT_LABEL = "Ingen gräns";
+export const NO_LIMIT_OPTION: SelectOption = {
+  value: NO_LIMIT_VALUE,
+  label: NO_LIMIT_LABEL,
+};
 
 // "Alla" resets a feed filter. FilterSelect has no way to clear a chosen value
 export const ALL_VALUE = "all";

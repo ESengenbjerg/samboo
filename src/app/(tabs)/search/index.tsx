@@ -8,12 +8,13 @@ export default function SearchScreen() {
 
   return (
     <ListingsFeed
-      title={"Filtrerad sökning"}
+      title={"Din bevakning"}
       listings={listings}
       path={"/search/object/[id]"}
       isLoading={isLoading}
       error={error}
       showUpdateFilter
+      emptyMessage="Vi letar efter bostäder som matchar din bevakning. Nya objekt dyker upp här."
     />
   );
 }

@@ -3,7 +3,7 @@ import { OnboardingScreen } from "@/components/onboarding/onboarding-screen";
 
 export default function OnboardingFilterScreen() {
   return (
-      <OnboardingScreen backButton>
+      <OnboardingScreen backButton step={2}>
         <CreateFilterForm />
       </OnboardingScreen>
   );

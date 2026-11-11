@@ -39,7 +39,7 @@ function CreateFilterFields() {
   return (
     <FilterForm
       title="Skapa bevakning"
-      description="Du kan uppdatera dina val via inställningar senare."
+      description="Du kan ändra din bevakning senare via Uppdatera bevakning på sök-sidan."
       submitLabel="Skapa bevakning"
       savedScraperFilter={savedScraperFilter}
       savedClientFilter={savedClientFilter}

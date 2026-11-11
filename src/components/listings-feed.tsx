@@ -28,6 +28,7 @@ type ListingsProps = {
   isLoading: boolean;
   error: string | null;
   showUpdateFilter?: boolean;
+  emptyMessage?: string;
 };
 
 export default function ListingsFeed({
@@ -37,6 +38,7 @@ export default function ListingsFeed({
   isLoading,
   error,
   showUpdateFilter = false,
+  emptyMessage = "Inga objekt hittades.",
 }: ListingsProps) {
   const { session } = useSession();
   const userId = session?.user.id;
@@ -117,7 +119,7 @@ export default function ListingsFeed({
             <Text>
               {listings.length > 0
                 ? "Inga bostäder inom valda filter"
-                : "Inga objekt hittades."}
+                : emptyMessage}
             </Text>
           )}
 

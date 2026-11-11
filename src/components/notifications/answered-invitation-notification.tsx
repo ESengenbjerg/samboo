@@ -30,7 +30,7 @@ export default function AnsweredInviteNotification({
           <Text>
             {isAccepted
               ? `Du och ${who} kan nu se varandras listor.`
-              : `Du kan skicka en ny inbjudan till ${who} under inställningar.`}
+              : `Du kan skicka en ny inbjudan till ${who} under Inställningar.`}
           </Text>
         </View>
 
@@ -39,7 +39,7 @@ export default function AnsweredInviteNotification({
             size="sm"
             onPress={() => router.push("/saved")}
           >
-            <Text>Se listor</Text>
+            <Text>Visa</Text>
           </Button>
         )}
       </View>
