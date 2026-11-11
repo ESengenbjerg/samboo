@@ -32,7 +32,7 @@ The dump keeps function bodies (including comments inside them) and `COMMENT ON`
 
 ## Security model
 
-- **RLS on every table, policies only for `authenticated`.** `anon` has no grants at all in `public`: no tables, sequences or functions, and no default privileges for objects that `postgres` creates later. The only thing left is `USAGE` on the schema, inherited from `PUBLIC` (a Postgres default). It allows looking up names but not reading or calling anything, and it is kept because Supabase's own roles (Auth, Storage, Realtime) may depend on it. Supabase's default privileges for objects created by `supabase_admin` still mention `anon`; they cannot be changed from `postgres` and do not apply to our objects. Tables that only scripts and functions use (`scrape_issues`, `search_params_log`, `api_rate_limit`, `seen_listings`, `showing_events`) have RLS on and no policies, so only `service_role` and security definer functions reach them.
+- **RLS on every table, policies only for `authenticated`.** `anon` has no grants at all in `public`: no tables, sequences or functions, and no default privileges for objects that `postgres` creates later. The only thing left is `USAGE` on the schema, inherited from `PUBLIC` (a Postgres default). It allows looking up names but not reading or calling anything, and it is kept because Supabase's own roles (Auth, Storage, Realtime) may depend on it. Supabase's default privileges for objects created by `supabase_admin` still mention `anon`; they cannot be changed from `postgres` and do not apply to our objects. Tables that only scripts and functions use (`admins`, `scrape_issues`, `search_params_log`, `api_rate_limit`, `seen_listings`, `showing_events`) have RLS on and no policies, so only `service_role` and security definer functions reach them.
 - **`is_active_user()` is the gate.** Nearly every policy and RPC calls it: the profile must exist, be active and have a confirmed e-mail. An already issued JWT stays valid until it expires, but once the profile is deleted or deactivated the function returns `false` and RLS blocks everything. `profiles.is_active` is never set by the app: it is a manual kill switch that is checked live on every request. It exists for copyright reasons, so the listing data can be kept from someone who should not have it. Deleting that person's account is not enough, because the e-mail address becomes free and they can sign up again. With `is_active = false` the row in `auth.users` stays, so the address remains taken and blocked. It blocks that address, not the person: a different address can still sign up.
 - **Narrow grants, then RLS.** Supabase's default privileges give new tables and sequences `ALL` for `authenticated` (no longer for `anon`, see above), and new functions `EXECUTE` for `authenticated` and, through Postgres itself, for `PUBLIC`. This database revokes that and grants only what the app needs. Direct writes are limited to a few columns (for example `profiles.name`, `user_listings.liked`, `showings.note`). Everything else, such as `profiles.group_id` and `user_listings.is_new`, changes only through functions. **Every new table or function must get its grants revoked and granted explicitly**, otherwise it is open to `authenticated` by default.
 - **Security definer functions to avoid recursion.** A policy that reads another table with its own policy can loop (error 42P17). `can_see_listing()` (used by the `showings` insert policy) and `my_avatar_count()` (used by the storage policy) exist only to break such loops.
@@ -145,11 +145,19 @@ The notifications page and the dot on its icon. Most notifications are not store
 - **New members** see up to 30 days of the group's earlier showing events, since the time a user joined is not stored.
 - **Not built:** notifications when a member leaves or is removed, showing reminders, and a stored history of every notification.
 
+## Admins
+
+The product owner manages the product from an admin view in the app. Who is admin lives in `admins(user_id)`, not in the JWT and not in `profiles`.
+
+- **Only the Dashboard or `service_role` adds an admin.** The table has RLS on, no policies, and no grants for `authenticated`, so nobody can make themselves admin. A column in `profiles` would not be safe, since users may update their own profile row.
+- **`is_admin()` is the gate,** checked live on every call like `is_active_user()`, so removing a row takes effect at once. It also requires `is_active_user()`, so the `is_active` kill switch applies to admins too. `authenticated` may call it, so the app can decide whether to show the admin view; it only reveals the caller's own status.
+- **Security lives in the database.** Every admin function starts with an `is_admin()` check. Hiding the view in the app is only for the user's sake.
+
 ## Account deletion
 
 `delete_my_account()` deletes the row in `auth.users`. It is permanent, with no grace period.
 
-- **Cascade:** the profile, search, matches, tags, seen listings, showing events the user caused, invites the user sent, and personal showings. Invites sent _to_ the user's e-mail are deleted by the function itself, since they have no foreign key.
+- **Cascade:** the profile, admin row, search, matches, tags, seen listings, showing events the user caused, invites the user sent, and personal showings. Invites sent _to_ the user's e-mail are deleted by the function itself, since they have no foreign key.
 - **Groups:** the trigger `on_profile_deleted` applies the group rule above.
 - **Profile image:** a trigger cannot delete files, so the file becomes an orphan and is removed by the next avatar purge run.
 - `listings` is unaffected (shared data).

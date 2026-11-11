@@ -16,6 +16,29 @@ export type Database = {
   }
   public: {
     Tables: {
+      admins: {
+        Row: {
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admins_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       api_rate_limit: {
         Row: {
           minute: string
@@ -709,6 +732,7 @@ export type Database = {
       has_new_notifications: { Args: never; Returns: boolean }
       in_my_group: { Args: { target: string }; Returns: boolean }
       is_active_user: { Args: never; Returns: boolean }
+      is_admin: { Args: never; Returns: boolean }
       leave_group: { Args: never; Returns: undefined }
       like_listing: { Args: { p_listing_id: number }; Returns: undefined }
       mark_listing_seen: { Args: { p_listing_id: number }; Returns: undefined }

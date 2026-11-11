@@ -51,6 +51,7 @@ tags:
   - name: Showings
   - name: Tags
   - name: Notifications
+  - name: Admin
 
 paths:
   # ---------------------------------------------------------------------
@@ -422,6 +423,22 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
         '429': { $ref: '#/components/responses/RateLimited' }
+
+  /rpc/is_admin:
+    get:
+      tags: [Admin]
+      summary: Am I an admin?
+      description: |
+        `true` if I am an active user with a row in `admins`. Use it to decide whether to show the admin view.
+        Only for showing or hiding the view: every admin function checks it again in the database.
+        Admins are added in the Dashboard, never by the app. Must be called with GET (STABLE), see the common rules.
+      operationId: is_admin
+      responses:
+        '200':
+          description: '`true` or `false`. Also `false` for an inactive or unconfirmed user.'
+          content:
+            application/json:
+              schema: { type: boolean }
 
   # ---------------------------------------------------------------------
   # Tables
