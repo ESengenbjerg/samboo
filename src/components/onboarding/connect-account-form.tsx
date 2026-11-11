@@ -1,3 +1,6 @@
+import { useSession } from "@/hooks/auth/useSession";
+import { useAnswerInvite } from "@/hooks/useAnswerInvite";
+import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
 import { getCurrentUser } from "@/services/auth";
 import {
   createInvite,
@@ -24,6 +27,14 @@ export default function ConnectAccountForm() {
   const [invitationDialogOpen, setInvitationDialogOpen] = useState(false);
   const [inviteSent, setInviteSent] = useState(false);
   const completeOnboarding = useOnboardingStore((s) => s.completeOnboarding);
+
+  // Invites to me, so an invited partner can accept instead of inviting back.
+  // The database allows answering before onboarding is completed
+  const { session } = useSession();
+  const accounts = useConnectedAccounts(session?.user.id);
+  const { receivedInvites, isSubmitting, actionError } = accounts;
+  const { answeredInvite, answeredFromName, onAnswer } =
+    useAnswerInvite(accounts);
 
   async function finish() {
     setError(null);
@@ -151,6 +162,31 @@ export default function ConnectAccountForm() {
     });
   }
 
+  // Shown after accepting an invite. Fortsätt saves onboarding like Hoppa över
+  if (answeredInvite === "accepted") {
+    return (
+      <View className="flex-1 justify-center w-full px-8 gap-6">
+        <View className="gap-2">
+          <Text variant="h1">Konton kopplade</Text>
+          <Text>
+            {`Du och ${answeredFromName ?? "din grupp"} kan nu se varandras sparade objekt och visningstider.`}
+          </Text>
+        </View>
+
+        {error && <FormError>{error}</FormError>}
+
+        <Button
+          variant="secondary"
+          onPress={onSkip}
+          disabled={isLoading}
+          className="px-10 self-start"
+        >
+          <Text>{isLoading ? "Sparar..." : "Fortsätt"}</Text>
+        </Button>
+      </View>
+    );
+  }
+
   // Shown after invites are sent. The user decides when to continue
   if (inviteSent) {
     return (
@@ -199,6 +235,33 @@ export default function ConnectAccountForm() {
         />
       )}
 
+      {receivedInvites.map((i) => (
+        <View key={i.id} className="gap-2">
+          <Text variant="bold">
+            {`${i.from_name} (${i.from_email}) har bjudit in dig till sin grupp.`}
+          </Text>
+          <View className="flex-row gap-2">
+            <Button
+              variant="secondary"
+              onPress={() => onAnswer(i.id, "accepted")}
+              disabled={isSubmitting || isLoading}
+            >
+              <Text>Acceptera</Text>
+            </Button>
+            <Button
+              variant="destructive"
+              onPress={() => onAnswer(i.id, "declined")}
+              disabled={isSubmitting || isLoading}
+            >
+              <Text>Avböj</Text>
+            </Button>
+          </View>
+        </View>
+      ))}
+
+      {answeredInvite === "declined" && <Text>Inbjudan nekad.</Text>}
+      {actionError && <FormError>{actionError}</FormError>}
+
       {error && !invitationDialogOpen && <FormError>{error}</FormError>}
 
       <View className="gap-2 items-start">
@@ -220,7 +283,7 @@ export default function ConnectAccountForm() {
           onPress={onSkip}
           disabled={isLoading}
         >
-          <Text>Hoppa över</Text>
+          <Text>{isLoading ? "Sparar..." : "Hoppa över"}</Text>
         </Button>
       </View>
     </View>

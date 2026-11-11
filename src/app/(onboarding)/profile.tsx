@@ -3,7 +3,7 @@ import ProfileForm from "@/components/onboarding/profile-form";
 
 export default function OnboardingProfileScreen() {
   return (
-    <OnboardingScreen>
+    <OnboardingScreen step={1}>
       <ProfileForm />
     </OnboardingScreen>
   );
