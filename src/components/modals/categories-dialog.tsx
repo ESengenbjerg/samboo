@@ -71,6 +71,26 @@ export function CategoriesDialog({
       !categories.some((c) => c.tag_name.toLowerCase() === n.toLowerCase()),
   );
 
+  // A pending name that now exists in the database (created by a save that failed later)
+  // is moved over to the selected ids, so a retry still applies it to the listing
+  const createdCategories = categories.filter((c) =>
+    pendingNames.some((n) => n.toLowerCase() === c.tag_name.toLowerCase()),
+  );
+  if (createdCategories.length > 0) {
+    setDraftIds((ids) => [
+      ...ids,
+      ...createdCategories.map((c) => c.id).filter((id) => !ids.includes(id)),
+    ]);
+    setPendingNames((names) =>
+      names.filter(
+        (n) =>
+          !createdCategories.some(
+            (c) => c.tag_name.toLowerCase() === n.toLowerCase(),
+          ),
+      ),
+    );
+  }
+
   // The database allows MAX_TAGS_PER_USER categories per user, counting the ones not saved yet
   const totalCount = categories.length + newNames.length;
   const isFull = totalCount >= MAX_TAGS_PER_USER;
@@ -119,6 +139,7 @@ export function CategoriesDialog({
     // Alredady typed in this dialog but not saved yet
     if (newNames.some((n) => n.toLowerCase() === name.toLocaleLowerCase())) {
       setMessage(`Taggen ${name} är redan tillagd.`);
+      return;
     }
 
     setPendingNames((names) => [...names, name]);
