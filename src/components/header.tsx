@@ -69,7 +69,7 @@ export default function Header() {
           </Pressable>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Pressable hitSlop={12} role="button" aria-label="Din profil">
+              <Pressable hitSlop={12} role="button" aria-label="Logga ut">
                 <Icon as={LogOut} size={24} />
               </Pressable>
             </DropdownMenuTrigger>

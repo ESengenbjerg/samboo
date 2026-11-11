@@ -8,7 +8,7 @@ export default function SearchScreen() {
 
   return (
     <ListingsFeed
-      title={"Filtrerad sökning"}
+      title={"Din bevakning"}
       listings={listings}
       path={"/search/object/[id]"}
       isLoading={isLoading}
