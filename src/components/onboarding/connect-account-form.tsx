@@ -7,7 +7,7 @@ import {
 import { saveOnboarding } from "@/services/onboarding";
 import { useOnboardingStore } from "@/stores/onboarding";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { View } from "react-native";
 import FormError from "../form-error";
 import FormMessage from "../form-message";
@@ -18,6 +18,7 @@ import { Text } from "../ui/text";
 export default function ConnectAccountForm() {
   // TODO: setError will be used once Supabase implementation is complete
   const [isLoading, setIsLoading] = useState(false);
+  const inFlight = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [invitationDialogOpen, setInvitationDialogOpen] = useState(false);
   const [inviteSent, setInviteSent] = useState(false);
@@ -64,8 +65,24 @@ export default function ConnectAccountForm() {
     }
   }
 
+  // Blocks double taps: isLoading is set after an await, too late to stop a second tap.
+  // finally releases the lock on every exit, including the early returns
+  async function withLock<T>(blocked: T, action: () => Promise<T>) {
+    if (inFlight.current) return blocked;
+    inFlight.current = true;
+    try {
+      return await action();
+    } finally {
+      inFlight.current = false;
+    }
+  }
+
+  function onInvite(emails: string[]) {
+    return withLock(emails, () => sendInvites(emails));
+  }
+
   // Save onboarding, then send invites to other users
-  async function onInvite(emails: string[]) {
+  async function sendInvites(emails: string[]) {
     // Check all before saving or sending anything
     const validationError = validateInviteEmails(emails);
 
@@ -120,9 +137,11 @@ export default function ConnectAccountForm() {
     return [];
   }
 
-  async function onSkip() {
-    const finished = await finish();
-    if (finished) completeOnboarding();
+  function onSkip() {
+    return withLock(undefined, async () => {
+      const finished = await finish();
+      if (finished) completeOnboarding();
+    });
   }
 
   // Shown after invites are sent. The user decides when to continue
