@@ -63,7 +63,7 @@ export function useResetPassword(email: string) {
       // Pasted codes may include a space
       const trimmedCode = code.trim();
       if (!trimmedCode) {
-        setError("Fyll i koden från mailet.");
+        setError("Fyll i koden från e-postmeddelandet.");
         return false;
       }
 
@@ -76,11 +76,8 @@ export function useResetPassword(email: string) {
 
         if (error) {
           console.log("Verify recovery code error:", error);
-          setError(
-            error.code === "otp_expired"
-              ? "Koden har gått ut. Tryck på Skicka igen för en ny kod."
-              : "Koden stämmer inte. Försök igen.",
-          );
+          // Supabase uses otp_expired for both a wrong and an expired code, so the message covers both
+          setError(authErrorMessage(error));
           return false;
         }
 
