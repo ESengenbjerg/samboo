@@ -597,6 +597,7 @@ paths:
       description: |
         Use `select=*,listings(*)` to get the listing in the same request. Filter on `user_id` for only mine.
         A match is kept when the user has liked or tagged the listing, even if the search no longer fits.
+        Add `in_search=eq.true` for the search feed: only listings that match my current search.
       operationId: user_listings_select
       responses:
         '200':
@@ -798,7 +799,7 @@ paths:
     post:
       tags: [Tags]
       summary: Create a tag
-      description: '`user_id` must be my id. `tag_name` is 1-100 characters, not only whitespace, and unique per user (otherwise 409). At most 30 tags per user.'
+      description: '`user_id` must be my id. `tag_name` is 1-20 characters, not only whitespace, and unique per user (otherwise 409). At most 30 tags per user.'
       operationId: user_tags_insert
       requestBody:
         required: true
@@ -809,7 +810,7 @@ paths:
               required: [user_id, tag_name]
               properties:
                 user_id: { type: string, format: uuid }
-                tag_name: { type: string, minLength: 1, maxLength: 100, pattern: '\S' }
+                tag_name: { type: string, minLength: 1, maxLength: 20, pattern: '\S' }
       responses:
         '201': { description: Created. }
         '400':
@@ -830,7 +831,7 @@ paths:
             schema:
               type: object
               properties:
-                tag_name: { type: string, minLength: 1, maxLength: 100, pattern: '\S' }
+                tag_name: { type: string, minLength: 1, maxLength: 20, pattern: '\S' }
       responses:
         '204': { description: Updated. }
         '400':
@@ -1049,6 +1050,7 @@ components:
         is_new: { type: boolean, description: 'true until the user has opened the listing page or liked it. A new match for a listing the user has already opened starts as false. Only says something about my own rows: use my_new_listing_ids for the "NEW" flag in every list' }
         liked: { type: boolean }
         liked_at: { type: string, format: date-time, nullable: true, description: When liked last became true. Set by the database, read-only }
+        in_search: { type: boolean, description: 'true when the listing matches my current search. false for rows kept because they are liked, tagged or removed, and for rows created by liking a group member''s listing. Set by match_user_listings(), read-only. The search feed shows only true' }
 
     Listing:
       type: object

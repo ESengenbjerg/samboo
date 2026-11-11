@@ -80,6 +80,7 @@ Columns with a fixed list of values are Postgres enums, not text with a check co
 
 - **`listings` is shared data, not tied to a user.** The scraper writes it with `service_role`. A user sees a listing only through a row in `user_listings` (own or a group member's) or a showing.
 - **`user_listings` is the match table.** `match_user_listings()` fills it. It runs when a search changes (trigger) and after every scrape. It also removes rows that no longer match, except rows that are liked, tagged, or for a removed listing. Those are kept so nothing the user has acted on disappears.
+- **`in_search` says what belongs in the search feed.** `match_user_listings()` sets it to true for rows that match the current search and to false for kept rows that no longer match. A row created by `like_listing()` for a group member's listing starts as false. The feed (Sök bostad) shows only `in_search = true`, while the liked lists ignore it. Access is not affected: a kept row still lets the user and the group read the listing.
 - **Matching rules:**
   - A search without a municipality matches nothing.
   - Areas narrow a municipality down. With areas chosen in a municipality, a listing there must have one of them (ignoring upper and lower case), and a listing without an area is hidden.
