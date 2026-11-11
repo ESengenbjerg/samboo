@@ -4,7 +4,7 @@ import {
   deleteUserTag,
   removeListingTag,
 } from "@/services/tags";
-import { UserTag } from "@/types/tags";
+import { SaveCategorizationInput, UserTag } from "@/types/tags";
 import { capitalize } from "@/utils/capitalize-string";
 import { useCallback, useState } from "react";
 
@@ -93,6 +93,42 @@ export function useSaveTag() {
     [],
   );
 
+  // Saves the dialog: creates the new tags first, then applies/removes tags on the listing.
+  // Returns true only if everything succeeded. Stops at the first failed create, so a tag is
+  // never applied without the user seeing the error. The caller should reload both tag lists
+  // afterwards, also on failure, since some tags may have been created before the failure
+  const saveCategorization = useCallback(
+    async ({
+      userId,
+      userListingId,
+      existingTags,
+      selectedIds,
+      initialIds,
+      newNames,
+    }: SaveCategorizationInput) => {
+      setError(null);
+      const toAdd = selectedIds.filter((id) => !initialIds.includes(id));
+      const toRemove = initialIds.filter((id) => !selectedIds.includes(id));
+
+      for (const name of newNames) {
+        // Created by an earlier attempt that failed halfway: reuse it, never create twice
+        const existing = existingTags.find(
+          (t) => t.tag_name.toLowerCase() === name.toLowerCase(),
+        );
+        const id = existing?.id ?? (await createTag(userId, name))?.id;
+        if (id === undefined) return false;
+        if (!initialIds.includes(id) && !toAdd.includes(id)) toAdd.push(id);
+      }
+
+      const results = await Promise.all([
+        ...toAdd.map((id) => applyTag(id, userListingId)),
+        ...toRemove.map((id) => unapplyTag(id, userListingId)),
+      ]);
+      return results.every(Boolean);
+    },
+    [createTag, applyTag, unapplyTag],
+  );
+
   const clearError = useCallback(() => setError(null), []);
 
   return {
@@ -100,6 +136,7 @@ export function useSaveTag() {
     deleteTag,
     applyTag,
     unapplyTag,
+    saveCategorization,
     isSaving,
     error,
     clearError,

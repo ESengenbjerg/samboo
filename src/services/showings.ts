@@ -38,6 +38,17 @@ export function getPastShowings() {
     .order("start_time", { ascending: false, nullsFirst: false });
 }
 
+// The showing for one listing, or null if there is none. RLS returns my group's
+// showing, or my own if I am not in a group. There is at most one per listing
+export function getShowingForListing(listingId: number) {
+  return supabase
+    .from("showings")
+    .select(SHOWING_COLUMNS)
+    .eq("listing_id", listingId)
+    .limit(1)
+    .maybeSingle();
+}
+
 // The owner is not sent: the database sets group_id to my group, or user_id to me if
 // I am not in a group (column defaults). At most 50 showings per owner
 export function createShowing(showing: NewShowing) {
@@ -49,6 +60,8 @@ export function createShowing(showing: NewShowing) {
   });
 }
 
+// .select() returns the rows that were updated. An empty array means no row matched,
+// i.e. the showing is gone (for example deleted by a group member)
 export function updateShowing(id: number, showing: ShowingValues) {
   return supabase
     .from("showings")
@@ -57,11 +70,35 @@ export function updateShowing(id: number, showing: ShowingValues) {
       start_time: showing.time,
       note: showing.note || null,
     })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id");
 }
 
 export function deleteShowing(id: number) {
   return supabase.from("showings").delete().eq("id", id);
+}
+
+// Calls onChange when a showing I can read is created, changed or deleted, e.g. when
+// someone in my group saves, edits or deletes one.
+// INSERT and UPDATE events only reach me if RLS lets me read the row. DELETE events
+// can not be filtered by RLS, so I may be told about deletes in other groups. That
+// is harmless, since onChange just fetches again.
+// Requires showings to be in the supabase_realtime publication.
+// Returns a function that stops listening
+export function subscribeToShowings(onChange: () => void) {
+  const channel = supabase
+    // Unique name: several screens may listen at once, and a reused name returns the already subscribed channel
+    .channel(`showings:${Math.random().toString(36).slice(2)}`)
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "showings" },
+      onChange,
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
 }
 
 // Turns a database error from saving a showing into a message for the user

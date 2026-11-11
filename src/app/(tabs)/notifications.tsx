@@ -14,7 +14,7 @@ import { useGroupUpdates } from "@/hooks/useGroupUpdates";
 import { useMarkNotificationsSeen } from "@/hooks/useMarkNotificationsSeen";
 import { useNewListingIds } from "@/hooks/useNewListingIds";
 import { useNewMatchesCount } from "@/hooks/useNewMatchesCount";
-import { useShowingEvents } from "@/hooks/useShowingEvents";
+import { useShowingEvents } from "@/hooks/showings/useShowingEvents";
 import { NotificationDay } from "@/types/notifications";
 import { useFocusEffect } from "expo-router";
 import { Fragment, ReactNode, useCallback } from "react";

@@ -1,5 +1,9 @@
 import { SHOWING_LAST_DATE, SHOWING_NOTE_MAX_LENGTH } from "@/constants/limits";
-import { createShowing, NOTE_TOO_LONG_MESSAGE, showingErrorMessage } from "@/services/showings";
+import {
+  createShowing,
+  NOTE_TOO_LONG_MESSAGE,
+  showingErrorMessage,
+} from "@/services/showings";
 import { ShowingValues } from "@/types/showings";
 import {
   isShowingDateInPast,
@@ -12,11 +16,14 @@ import { useCallback, useState } from "react";
 export function useSaveShowing() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // True if the save failed because the listing already has a showing
+  const [isConflict, setIsConflict] = useState(false);
 
   // listingId is listings.id. Returns true if the showing was saved
   const saveShowing = useCallback(
     async (listingId: number, values: ShowingValues) => {
       setError(null);
+      setIsConflict(false);
 
       const date = values.date.trim();
       if (!isValidShowingDate(date)) {
@@ -60,6 +67,7 @@ export function useSaveShowing() {
       if (error) {
         console.error("Failed to save showing: ", error);
         setError(showingErrorMessage(error));
+        setIsConflict(error.code === "23505");
         return false;
       }
       return true;
@@ -67,7 +75,10 @@ export function useSaveShowing() {
     [],
   );
 
-  const clearError = useCallback(() => setError(null), []);
+  const clearError = useCallback(() => {
+    setError(null);
+    setIsConflict(false);
+  }, []);
 
-  return { saveShowing, isSaving, error, clearError };
+  return { saveShowing, isSaving, error, isConflict, clearError };
 }

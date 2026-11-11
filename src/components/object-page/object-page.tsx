@@ -82,13 +82,14 @@ export default function ObjectPageScreen({
     error: listingTagsError,
   } = useListingTags(userId);
   const {
-    createTag,
     applyTag,
     unapplyTag,
+    saveCategorization,
     isSaving: isSavingTag,
     error: saveTagError,
     clearError,
   } = useSaveTag();
+
 
   // Load errors (tags or applied tags) and save errors are shown in the same place
   const error =
@@ -111,38 +112,32 @@ export default function ObjectPageScreen({
         .map((lt) => lt.user_tag_id)
     : [];
 
-  // Called by the dialog when the user adds a new category.
-  // Returns the new category (or null on failure) so the dialog can select it
-  async function handleCreateTag(name: string) {
-    if (!userId) return null;
-
-    const tag = await createTag(userId, name);
-    if (tag) reloadTags();
-    return tag;
-  }
-
-  // Called by the dialog with the final list of selected category ids, and the ids the
-  // dialog was opened with. Only the user's own changes are sent to the database.
-  async function handleSave(selectedIds: number[], initialIds: number[]) {
-    if (!userListing) return;
+  // Called by the dialog with the selected category ids, the ids the dialog was opened
+  //with, and the names of new categories. New categories are created here, on save
+  async function handleSave(
+    selectedIds: number[], 
+    initialIds: number[],
+    newNames: string[],
+  ) {
+    if (!userId || !userListing) return;
     setIsSaving(true);
 
-    // Selected in the dialog but not selected when it was opened
-    const toAdd = selectedIds.filter((id) => !initialIds.includes(id));
-    // Selected when the dialog was opened but removed in the dialog
-    const toRemove = initialIds.filter((id) => !selectedIds.includes(id));
+    const ok = await saveCategorization({
+      userId,
+      userListingId: userListing.id,
+      existingTags: tags,
+      selectedIds,
+      initialIds,
+      newNames,
+    })
 
-    // Run all changes in parallel. Each call returns true on success
-    const results = await Promise.all([
-      ...toAdd.map((id) => applyTag(id, userListing.id)),
-      ...toRemove.map((id) => unapplyTag(id, userListing.id)),
-    ]);
-
-    // Fetch again so the tags on the page match the database
+    // Always fetch again, also on failure: some tags might have been created before it failed
+    reloadTags();
     reloadListingTags();
-    // Keep the dialog open if something failed, so the error is visible
-    if (results.every(Boolean)) setCategoriesDialogOpen(false);
-    setIsSaving(false);
+
+    // Keep the dialog open if something failed, so error is visible
+    if (ok) setCategoriesDialogOpen(false);
+    setIsSaving(false)
   }
 
   // Removes one category from this listing directly, without opening the dialog
@@ -255,7 +250,6 @@ export default function ObjectPageScreen({
               onOpenChange={closeCategoriesDialog}
               categories={tags}
               selectedIds={appliedTagIds}
-              onCreateCategory={handleCreateTag}
               onSave={handleSave}
               isSaving={saving}
               error={saveTagError}

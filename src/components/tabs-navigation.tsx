@@ -1,3 +1,4 @@
+import { TAB_BAR_HEIGHT } from "@/constants/layout";
 import { BlurView } from "expo-blur";
 import { BottomTabBarProps } from "expo-router/build/react-navigation/bottom-tabs/index";
 import { Pressable, StyleSheet, View } from "react-native";
@@ -14,7 +15,10 @@ export default function TabsNavigation({
 
   return (
     <BlurView style={{ paddingBottom: insets.bottom }}>
-      <View className="h-20 flex-row items-center">
+      <View
+        style={{ height: TAB_BAR_HEIGHT }}
+        className="flex-row items-center"
+      >
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
           const isFocused = state.index === index;
