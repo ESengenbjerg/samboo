@@ -1,8 +1,8 @@
 import ListingsFeed from "@/components/listings-feed";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { useSession } from "@/hooks/auth/useSession";
 import { useSavedList } from "@/hooks/useSavedList";
-import { useSession } from "@/hooks/useSession";
 import { router, useLocalSearchParams } from "expo-router";
 
 export default function SavedListScreen() {

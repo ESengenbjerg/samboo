@@ -5,11 +5,11 @@ import ScheduleShowingSection from "@/components/object-page/schedule-showing-se
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
+import { useSession } from "@/hooks/auth/useSession";
 import { useListing } from "@/hooks/useListing";
 import { useListingTags } from "@/hooks/useListingTags";
 import { useMarkListingSeen } from "@/hooks/useMarkListingSeen";
 import { useSaveTag } from "@/hooks/useSaveTag";
-import { useSession } from "@/hooks/useSession";
 import { useUserTags } from "@/hooks/useUserTags";
 import { Listing } from "@/types/listing";
 import handleBack from "@/utils/handle-back";

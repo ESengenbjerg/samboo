@@ -4,15 +4,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
 import { EMAIL_MAX_LENGTH } from "@/constants/limits";
-import { useForgotPassword } from "@/hooks/useForgotPassword";
-import { router } from "expo-router";
+import { useForgotPassword } from "@/hooks/auth/useForgotPassword";
+import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 
 export function ForgotPasswordForm() {
   const { sendResetCode, isSending: isLoading, error } = useForgotPassword();
 
-  const [email, setEmail] = useState("");
+  const { email: initialEmail } = useLocalSearchParams<{ email?: string }>();
+
+  const [email, setEmail] = useState(initialEmail ?? "");
 
   async function onSubmit() {
     // Remove spaces, e.g. from autofill
@@ -58,7 +60,7 @@ export function ForgotPasswordForm() {
         />
       </View>
 
-      {error && <FormError>{error}</FormError>}
+      {error && <FormError className="sm:self-stretch">{error}</FormError>}
 
       <View className="gap-6 items-center justify-center mt-6">
         <Button className="px-10" onPress={onSubmit} disabled={isLoading}>

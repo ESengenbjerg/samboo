@@ -1,7 +1,6 @@
 import { RESEND_CODE_INTERVAL_SECONDS } from "@/constants/limits";
 import { useCountdown } from "@/hooks/useCountdown";
 import {
-  passwordErrorMessage,
   requestPasswordReset,
   signOutLocal,
   signOutOtherClients,
@@ -9,10 +8,15 @@ import {
   verifyRecoveryOtp,
 } from "@/services/auth";
 import { usePasswordRecoveryStore } from "@/stores/password-recovery";
+import {
+  authErrorMessage,
+  isRateLimitError,
+} from "@/utils/error-message/auth-error-message";
 import { useCallback, useEffect, useState } from "react";
 
 // email is sent as a param from the forgot password screen
 export function useResetPassword(email: string) {
+  const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,10 +38,18 @@ export function useResetPassword(email: string) {
   const resendCode = useCallback(async () => {
     if (isLoading) return;
     setError(null);
+    setMessage(null);
     setIsLoading(true);
 
     try {
       const { error } = await requestPasswordReset(email);
+
+      if (isRateLimitError(error)) {
+        console.log("Resend reset code error:", error);
+        setError(authErrorMessage(error));
+        restartCountdown();
+        return;
+      }
 
       if (error) {
         console.log("Resend reset code error:", error);
@@ -46,6 +58,7 @@ export function useResetPassword(email: string) {
       }
 
       restartCountdown();
+      setMessage("Ny kod skickad.");
     } catch (e) {
       console.log("Resend reset code error:", e);
       setError("Kunde inte skicka koden, försök igen.");
@@ -59,11 +72,12 @@ export function useResetPassword(email: string) {
     async (code: string) => {
       if (isLoading) return false;
       setError(null);
+      setMessage(null);
 
       // Pasted codes may include a space
       const trimmedCode = code.trim();
       if (!trimmedCode) {
-        setError("Fyll i koden från mailet.");
+        setError("Fyll i koden från e-postmeddelandet.");
         return false;
       }
 
@@ -76,11 +90,8 @@ export function useResetPassword(email: string) {
 
         if (error) {
           console.log("Verify recovery code error:", error);
-          setError(
-            error.code === "otp_expired"
-              ? "Koden har gått ut. Tryck på Skicka igen för en ny kod."
-              : "Koden stämmer inte. Försök igen.",
-          );
+          // Supabase uses otp_expired for both a wrong and an expired code, so the message covers both
+          setError(authErrorMessage(error));
           return false;
         }
 
@@ -118,7 +129,7 @@ export function useResetPassword(email: string) {
 
         if (error) {
           console.log("Update password error:", error);
-          setError(passwordErrorMessage(error));
+          setError(authErrorMessage(error));
           return;
         }
 
@@ -139,5 +150,13 @@ export function useResetPassword(email: string) {
     [isLoading],
   );
 
-  return { verifyCode, resendCode, savePassword, countdown, isLoading, error };
+  return {
+    verifyCode,
+    resendCode,
+    savePassword,
+    countdown,
+    isLoading,
+    error,
+    message,
+  };
 }

@@ -8,8 +8,8 @@ import SettingsMenu from "@/components/settings/settings-menu";
 import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
 import { SETTING_OPTIONS } from "@/constants/setting-options";
+import { useSession } from "@/hooks/auth/useSession";
 import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
-import { useSession } from "@/hooks/useSession";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useRef } from "react";
 import {

@@ -1,16 +1,9 @@
-import FormError from "@/components/form-error";
+import { CodeForm } from "@/components/auth/code-form";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
-import { RESEND_CODE_INTERVAL_SECONDS } from "@/constants/limits";
-import { useCountdown } from "@/hooks/useCountdown";
-import { resendSignUpCode, verifyEmailOtp } from "@/services/auth";
+import { useVerifyEmail } from "@/hooks/auth/useVerifyEmail";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useRef, useState } from "react";
-import { type TextStyle, View } from "react-native";
-
-const TABULAR_NUMBERS_STYLE: TextStyle = { fontVariant: ["tabular-nums"] };
+import { View } from "react-native";
 
 export function VerifyEmailForm() {
   const { email, source } = useLocalSearchParams<{
@@ -18,53 +11,8 @@ export function VerifyEmailForm() {
     source?: "login" | "register";
   }>();
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [code, setCode] = useState("");
-
-  // If user is redirected from /register - code is already sent and countdown starts right away
-  // If user if redirected from /login - no code has been sent, countdown starts after send
-  const { countdown, restartCountdown } = useCountdown(
-    RESEND_CODE_INTERVAL_SECONDS,
-    source !== "login",
-  );
-
-  // Send code when user is redirected from /login
-  const hasSentInitialCode = useRef(false);
-  useEffect(() => {
-    if (source !== "login" || hasSentInitialCode.current) return;
-    hasSentInitialCode.current = true;
-
-    resendSignUpCode(email).then(({ error }) => {
-      if (error) {
-        setError("Kunde inte skicka koden, försök igen.");
-      } else {
-        restartCountdown();
-      }
-    });
-  }, [source, email, restartCountdown]);
-
-  async function onSubmit() {
-    if (isLoading) return;
-    setError(null);
-    setIsLoading(true);
-
-    try {
-      const { error } = await verifyEmailOtp(email, code);
-
-      if (error?.code === "otp_expired") {
-        setError("Koden är fel eller har gått ut.");
-      } else if (error) {
-        setError("Något gick fel, försök igen.");
-      }
-
-      // If succeeded navigation will automatically redirect user to next step
-    } catch {
-      setError("Något gick fel, försök igen.");
-    } finally {
-      setIsLoading(false);
-    }
-  }
+  const { verifyCode, resendCode, countdown, isLoading, error, message } =
+    useVerifyEmail(email, source);
 
   return (
     <View className="gap-6 w-full max-w-sm px-14">
@@ -72,69 +20,64 @@ export function VerifyEmailForm() {
         Verifiera e-post
       </Text>
       <Text className="text-center text-background">
-        Fyll i koden som skickats till din mail. Glöm inte kolla i skräpposten.
+        Vi har skickat en kod till{" "}
+        <Text variant="bold" className="text-background">
+          {email}
+        </Text>
+        . Glöm inte att kolla skräpposten.
       </Text>
-      <View className="gap-1.5">
-        <Label htmlFor="verify-code" className="text-background">
-          Verifieringskod
-        </Label>
-        <Input
-          id="verify-code"
-          placeholder="000000"
-          autoCapitalize="none"
-          returnKeyType="send"
-          keyboardType="numeric"
-          autoComplete="sms-otp"
-          textContentType="oneTimeCode"
-          onSubmitEditing={onSubmit}
-          value={code}
-          onChangeText={setCode}
-          editable={!isLoading}
-          maxLength={6}
-        />
-        <Button
-          variant="link"
-          size="sm"
-          disabled={countdown > 0 || isLoading}
-          onPress={async () => {
-            const { error } = await resendSignUpCode(email);
-            if (error) {
-              setError("Kunde inte skicka koden, försök igen.");
-            } else {
-              restartCountdown();
-            }
-          }}
-        >
-          <Text className="text-center text-sm text-background">
-            Skicka igen{" "}
-            {countdown > 0 ? (
-              <Text
-                className="text-sm text-background"
-                style={TABULAR_NUMBERS_STYLE}
-              >
-                ({countdown})
-              </Text>
-            ) : null}
+
+      <CodeForm
+        onVerify={verifyCode}
+        onResend={resendCode}
+        countdown={countdown}
+        isLoading={isLoading}
+        error={error}
+        message={message}
+      />
+
+      {/* Supabase sends no code to an email that already has an account, so this gives a way on */}
+      {source === "register" && (
+        <View className="items-center gap-1">
+          <Text className="text-center text-background">
+            Har du redan ett konto?
           </Text>
-        </Button>
-      </View>
+          <View className="flex-row gap-1 items-center justify-center">
+            <Button
+              variant="link"
+              onPress={() => router.dismissTo("/login")}
+              disabled={isLoading}
+            >
+              <Text className="leading-4 text-background">Logga in</Text>
+            </Button>
+            <Text className="text-background">|</Text>
+            <Button
+              variant="link"
+              onPress={() =>
+                router.push({
+                  pathname: "/forgotten-password",
+                  params: { email },
+                })
+              }
+              disabled={isLoading}
+            >
+              <Text className="leading-4 text-background">
+                Återställ lösenord
+              </Text>
+            </Button>
+          </View>
+        </View>
+      )}
 
-      {error && <FormError>{error}</FormError>}
-
-      <View className="gap-6 items-center justify-center mt-6">
-        <Button className="px-10" onPress={onSubmit} disabled={isLoading}>
-          <Text>{!isLoading ? "Verifiera" : "Verifierar..."}</Text>
-        </Button>
-        <Button
-          variant="link"
-          onPress={() =>
-            router.dismissTo(source === "login" ? "/login" : "/register")
-          }
-          disabled={isLoading}
-        >
-          <Text className="text-background">Tillbaka</Text>
-        </Button>
-      </View>
+      <Button
+        variant="link"
+        onPress={() =>
+          router.dismissTo(source === "login" ? "/login" : "/register")
+        }
+        disabled={isLoading}
+      >
+        <Text className="text-background">Tillbaka</Text>
+      </Button>
     </View>
   );
 }
