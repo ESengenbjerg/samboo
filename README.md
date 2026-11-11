@@ -83,16 +83,26 @@ You can try the app against your own Supabase project without setting up e-mail,
 
 The `EMAILS` and `GOOGLE MAPS` sections in `.env` can be left empty for the demo. The map is then hidden and no e-mails are sent.
 
-1. Create a new, empty project on [supabase.com](https://supabase.com). Use a separate project for demo data, never one with real users.
+1. Create a new, empty project on [supabase.com](https://supabase.com). Enable RLS-policies! Use a separate project for demo data, never one with real users.
 2. Enable the `pg_cron` and `pg_net` extensions (Database → Extensions).
 3. Run all of [supabase/schema.sql](supabase/schema.sql) in the SQL Editor.
 4. Run [supabase/setup-extras.sql](supabase/setup-extras.sql) in the SQL Editor, **except the last three lines** (the `dispatch-scrape`, `dispatch-purge-avatars` and `dispatch-email` jobs). This file is required: it creates the trigger that gives every new account a profile, the rate limit, the `avatars` bucket for profile pictures and the daily cleanup jobs. The three `dispatch-*` jobs start GitHub Actions workflows in the original repository and need a GitHub token in Vault, so they are not part of the demo. If the SQL Editor refuses the storage policies, create them under Storage → Policies instead.
-5. Fill in `.env` (created under [Installation](#installation)):
-   - `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_KEY` (publishable/anon key) and `SUPABASE_SERVICE_ROLE_KEY` from Project Settings → API. The service role key is only used by the scripts and must never end up in the app.
+5. Check: Run these SQL commands, one by one, in the SQL Editor
+   - select table_name from information_schema.tables where table_schema = 'public' order by 1;
+     You'll find 17 tables
+   - select jobid, jobname, schedule from cron.job order by jobid;
+     You'll find 8 jobs
+   - select id, public from storage.buckets;
+     You'll find 1 bucket named avatar
+
+   Go to Authentication -> Policies, check that RLS is active and policies exists. This is important when using publishable key i clients
+
+6. Fill in `.env` (created under [Installation](#installation)):
+   - `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_KEY` (publishable/anon key) and `SUPABASE_SERVICE_ROLE_KEY` TIP: Look in "Connect" in topbar, choose Expo React Native as framwork, under "Add files" and ".env.local" you'll find the public keys. Then from Project Settings → API. The service role key is found. This is only used by the scripts and must never end up in the app!
    - `SEED_USER`, `SEED_FRIEND` and their passwords are prefilled. Change them if you like (passwords need at least 8 characters). No mail is sent to these addresses.
-6. Run `nvm use 24`, then fill in Sweden's counties and municipalities, and the areas of Göteborg, Mölndal and Partille, from the project root: `node scripts/seed/places/seedPlaces.ts`
-7. Create the demo data, from the project root: `node scripts/seed/demo/seedDemo.ts`
-8. Start the app and sign in as `SEED_USER`:
+7. Run `nvm use 24`, then fill in Sweden's counties and municipalities, and the areas of Göteborg, Mölndal and Partille, from the project root: `node scripts/seed/places/seedPlaces.ts`
+8. Create the demo data, from the project root: `node scripts/seed/demo/seedDemo.ts`
+9. Start the app and sign in as `SEED_USER`:
    - `npx expo start --web` to run it in the browser, or
    - `npx expo start` and scan the QR code with Expo Go.
 
