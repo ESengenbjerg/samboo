@@ -108,7 +108,7 @@ export function SendInviteDialog({
             <Button
               variant="ghost"
               onPress={addEmail}
-              className="self-start min-h-0 px-0 py-0 justify-start"
+              className="self-start min-h-11 px-0 py-0 justify-start"
               style={Platform.select({
                 web: { marginLeft: -12 },
                 default: undefined,
