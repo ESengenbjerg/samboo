@@ -155,7 +155,8 @@ The product owner manages the product from an admin view in the app. Who is admi
 - **Security lives in the database.** Every admin function starts with an `is_admin()` check. Hiding the view in the app is only for the user's sake.
 - **Admin functions:** `admin_scrape_status()` (one row per agency: latest run, latest ok run, active listings, open issues) and `admin_open_issues()` (open rows in `scrape_issues` with a plain Swedish `description`). A non-admin gets `Endast för administratörer` with code `42501`. The Swedish texts for the scraper's reasons live in `admin_open_issues()`, so a new reason in `scripts/lib/types.ts` needs a text there too (until then the raw reason is shown).
 - **Scrape issues are read-only for the admin.** The product owner sees them and contacts the developer, who fixes the scraper. There is no resolve button: issues close themselves on the next clean run.
-- **Blocking users:** `admin_list_users()` (every user with e-mail and status) and `admin_set_user_active(p_user_id, p_active)`, which sets the `is_active` kill switch described above. An admin cannot block themselves, since that would remove their own admin rights with no way back.
+- **Blocking users:** `admin_find_user(p_email)` looks up one user by exact e-mail (case-insensitive), and `admin_set_user_active(p_user_id, p_active)` sets the `is_active` kill switch described above. The view searches instead of listing everyone, since a full list grows with every user and shows every address on screen; exact match only, so the admin cannot browse addresses. An admin cannot block themselves, since that would remove their own admin rights with no way back.
+- **`admin_list_users()`** (every user with e-mail and status) is not used by the app since the search above replaced it. Kept until after the freeze.
 
 ## Account deletion
 

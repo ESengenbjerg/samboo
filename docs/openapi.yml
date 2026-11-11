@@ -482,7 +482,7 @@ paths:
       tags: [Admin]
       summary: All users
       description: |
-        Every user, newest first, with e-mail and status. No search parameter: the view filters the list itself.
+        Every user, newest first, with e-mail and status. Not used by the app: the admin view uses `admin_find_user` instead.
         Admin only. Must be called with GET (STABLE), see the common rules.
       operationId: admin_list_users
       responses:
@@ -492,6 +492,31 @@ paths:
             application/json:
               schema:
                 type: array
+                items: { $ref: '#/components/schemas/AdminUser' }
+        '403': { $ref: '#/components/responses/NotAdmin' }
+
+  /rpc/admin_find_user:
+    get:
+      tags: [Admin]
+      summary: Find one user by e-mail
+      description: |
+        The user with exactly this e-mail, ignoring case and surrounding spaces. Part of an address finds nothing,
+        so the admin cannot browse addresses. Use it before `admin_set_user_active`, so the admin sees who the account belongs to.
+        Admin only. Must be called with GET (STABLE), see the common rules.
+      operationId: admin_find_user
+      parameters:
+        - name: p_email
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: One user, or an empty list if no user has the address.
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 1
                 items: { $ref: '#/components/schemas/AdminUser' }
         '403': { $ref: '#/components/responses/NotAdmin' }
 
