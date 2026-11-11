@@ -5,6 +5,7 @@ import { Stack } from "expo-router";
 
 import { useEffect } from "react";
 
+import AdminHeader from "@/components/admin/admin-header";
 import Header from "@/components/header";
 import { Toast } from "@/components/toast";
 import { Button } from "@/components/ui/button";
@@ -120,7 +121,10 @@ export default function RootLayout() {
           guard={isAdmin}
           redirectTo={isLoggedIn ? homeHref : loginHref}
         >
-          <Stack.Screen name="admin" />
+          <Stack.Screen
+            name="admin"
+            options={{ headerShown: true, header: () => <AdminHeader /> }}
+          />
         </Stack.Protected>
         <Stack.Protected
           guard={isLoggedIn && isOnboarded && !isAdmin}
