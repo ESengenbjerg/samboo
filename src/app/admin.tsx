@@ -1,3 +1,4 @@
+import ScrapeStatusSection from "@/components/admin/scrape-status-section";
 import { Text } from "@/components/ui/text";
 import { ScrollView, View } from "react-native";
 
@@ -7,6 +8,8 @@ export default function AdminScreen() {
     <ScrollView className="bg-background" contentContainerClassName="pb-8">
       <View className="flex-1 px-8 bg-background gap-8">
         <Text variant="h1">Administration</Text>
+
+        <ScrapeStatusSection />
       </View>
     </ScrollView>
   );
