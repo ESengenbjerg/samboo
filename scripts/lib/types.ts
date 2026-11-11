@@ -70,6 +70,16 @@ export type ActiveListing = Pick<
 export type IssueKind = Enums<"scrape_issue_kind">;
 export type IssueReason = "F1" | "F2" | "F3" | "F4" | "mass_removal";
 
+// What happened to one agency in one run, saved as a row in scrape_runs (see scraper/runHistory.ts)
+export type AgencyRun = {
+  outcome: Enums<"scrape_run_outcome">;
+  reason: IssueReason | null;
+  saved: number;
+  failedPages: number;
+  removed: number;
+  message: string | null;
+};
+
 // The columns of scrape_issues (the backlog) that the scraper reads (COLUMNS in scraper/issues.ts)
 export type ScrapeIssue = Omit<
   Pick<Tables<"scrape_issues">, "id" | "agency" | "kind" | "reason" | "occurrences" | "notified_at">,
