@@ -3,7 +3,9 @@ import {
   createUserTag,
   deleteUserTag,
   removeListingTag,
+  updateUserTag,
 } from "@/services/tags";
+
 import { SaveCategorizationInput, UserTag } from "@/types/tags";
 import { capitalize } from "@/utils/capitalize-string";
 import { useCallback, useState } from "react";
@@ -39,6 +41,31 @@ export function useSaveTag() {
           setError("Du har redan en tagg med det namnet.");
         else if (error.code === "P0001") setError(error.message);
         else setError("Kunde inte skapa tagg. Försök igen.");
+        return null;
+      }
+      return data;
+    },
+    [],
+  );
+
+  const renameTag = useCallback(
+    async (tagId: number, name: string): Promise<UserTag | null> => {
+      setError(null);
+      setIsSaving(true);
+      const { data, error } = await updateUserTag(
+        tagId,
+        // Same spelling as createTag, so "villa" and "Villa" hit the unique rule
+        capitalize(name.trim()),
+      );
+      setIsSaving(false);
+
+      if (error) {
+        console.error("Failed to rename tag: ", error);
+        // 23505 = user_tags_unique
+        if (error.code === "rate_limited") setError(RATE_LIMITED_MESSAGE);
+        else if (error.code === "23505")
+          setError("Du har redan en tagg med det namnet.");
+        else setError("Kunde inte byta namn på taggen. Försök igen.");
         return null;
       }
       return data;
@@ -133,6 +160,7 @@ export function useSaveTag() {
 
   return {
     createTag,
+    renameTag,
     deleteTag,
     applyTag,
     unapplyTag,

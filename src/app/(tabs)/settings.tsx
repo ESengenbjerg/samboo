@@ -1,3 +1,4 @@
+import BackToTopButton from "@/components/back-to-top-button";
 import ConnectedAccountsSettings from "@/components/settings/connected-accounts-settings";
 import DeleteAccount from "@/components/settings/delete-account-settings";
 import FilterSettings from "@/components/settings/filter-settings";
@@ -5,19 +6,16 @@ import ConnectAccountsSettings from "@/components/settings/invited-accounts-sett
 import ProfileSettingsForm from "@/components/settings/profile-settings-form";
 import ReceivedInvitesSettings from "@/components/settings/received-invites-settings";
 import SettingsMenu from "@/components/settings/settings-menu";
+import TagSettings from "@/components/settings/tags-settings";
 import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
 import { SETTING_OPTIONS } from "@/constants/setting-options";
 import { useSession } from "@/hooks/auth/useSession";
+import { useBackToTop } from "@/hooks/useBackToTop";
 import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useRef } from "react";
-import {
-  LayoutChangeEvent,
-  ScrollView,
-  type ScrollViewInstance,
-  View,
-} from "react-native";
+import { LayoutChangeEvent, ScrollView, View } from "react-native";
 
 export default function SettingsScreen() {
   const { session } = useSession();
@@ -34,7 +32,9 @@ export default function SettingsScreen() {
     }, [refresh, clearSkippedShowings]),
   );
 
-  const scrollRef = useRef<ScrollViewInstance>(null);
+  const { scrollRef, showBackToTop, handleScroll, scrollToTop } =
+    useBackToTop();
+
   // Y-position for each section, saved without triggering rerender
   const sectionY = useRef<Record<string, number>>({});
 
@@ -52,48 +52,58 @@ export default function SettingsScreen() {
   }
 
   return (
-    <ScrollView
-      ref={scrollRef}
-      className="bg-background"
-      contentContainerClassName="pb-8"
-    >
-      <View className="flex-1 px-8 bg-background gap-8">
-        <View className="gap-3">
-          <Text variant="h1">Kontoinställningar</Text>
+    <View className="flex-1 px-6 bg-background">
+      <ScrollView
+        ref={scrollRef}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        className="bg-background"
+        contentContainerClassName="pb-8"
+      >
+        <View className="flex-1 px-2 bg-background gap-8">
+          <View className="gap-3">
+            <Text variant="h1">Kontoinställningar</Text>
 
-          <SettingsMenu title={SETTING_OPTIONS} onSelect={scrollToSection} />
-        </View>
+            <SettingsMenu title={SETTING_OPTIONS} onSelect={scrollToSection} />
+          </View>
 
-        <Separator />
-        <View onLayout={trackSection("din bevakning")}>
-          <FilterSettings />
-        </View>
+          <Separator />
+          <View onLayout={trackSection("din bevakning")}>
+            <FilterSettings />
+          </View>
 
-        <Separator />
-        <View onLayout={trackSection("kopplade konton")}>
-          <ConnectedAccountsSettings accounts={accounts} />
-        </View>
+          <Separator />
+          <View onLayout={trackSection("dina taggar")}>
+            <TagSettings />
+          </View>
 
-        <Separator />
-        <View onLayout={trackSection("mottagna inbjudningar")}>
-          <ReceivedInvitesSettings accounts={accounts} />
-        </View>
+          <Separator />
+          <View onLayout={trackSection("kopplade konton")}>
+            <ConnectedAccountsSettings accounts={accounts} />
+          </View>
 
-        <Separator />
-        <View onLayout={trackSection("bjud in konto")}>
-          <ConnectAccountsSettings accounts={accounts} />
-        </View>
+          <Separator />
+          <View onLayout={trackSection("mottagna inbjudningar")}>
+            <ReceivedInvitesSettings accounts={accounts} />
+          </View>
 
-        <Separator />
-        <View onLayout={trackSection("uppdatera profil")}>
-          <ProfileSettingsForm />
-        </View>
+          <Separator />
+          <View onLayout={trackSection("bjud in konto")}>
+            <ConnectAccountsSettings accounts={accounts} />
+          </View>
 
-        <Separator />
-        <View onLayout={trackSection("radera konto")}>
-          <DeleteAccount />
+          <Separator />
+          <View onLayout={trackSection("uppdatera profil")}>
+            <ProfileSettingsForm />
+          </View>
+
+          <Separator />
+          <View onLayout={trackSection("radera konto")}>
+            <DeleteAccount />
+          </View>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+      {showBackToTop && <BackToTopButton onPress={scrollToTop} />}
+    </View>
   );
 }

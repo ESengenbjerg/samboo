@@ -82,14 +82,12 @@ export default function ObjectPageScreen({
     error: listingTagsError,
   } = useListingTags(userId);
   const {
-    applyTag,
     unapplyTag,
     saveCategorization,
     isSaving: isSavingTag,
     error: saveTagError,
     clearError,
   } = useSaveTag();
-
 
   // Load errors (tags or applied tags) and save errors are shown in the same place
   const error =
@@ -115,11 +113,11 @@ export default function ObjectPageScreen({
   // Called by the dialog with the selected category ids, the ids the dialog was opened
   //with, and the names of new categories. New categories are created here, on save
   async function handleSave(
-    selectedIds: number[], 
+    selectedIds: number[],
     initialIds: number[],
     newNames: string[],
   ) {
-    if (!userId || !userListing) return;
+    if (!userId || !userListing) return;
     setIsSaving(true);
 
     const ok = await saveCategorization({
@@ -129,7 +127,7 @@ export default function ObjectPageScreen({
       selectedIds,
       initialIds,
       newNames,
-    })
+    });
 
     // Always fetch again, also on failure: some tags might have been created before it failed
     reloadTags();
@@ -137,7 +135,7 @@ export default function ObjectPageScreen({
 
     // Keep the dialog open if something failed, so error is visible
     if (ok) setCategoriesDialogOpen(false);
-    setIsSaving(false)
+    setIsSaving(false);
   }
 
   // Removes one category from this listing directly, without opening the dialog
