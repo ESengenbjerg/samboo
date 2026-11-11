@@ -12,10 +12,10 @@ import { useSaveTag } from "@/hooks/useSaveTag";
 import { useSession } from "@/hooks/useSession";
 import { useUserTags } from "@/hooks/useUserTags";
 import { Listing } from "@/types/listing";
+import handleBack from "@/utils/handle-back";
 import { isNewConstruction } from "@/utils/is-new-construction";
 import { formatPrice } from "@shared/format";
 import { Image } from "expo-image";
-import { router } from "expo-router";
 import { PlusSquare } from "lucide-react-native";
 import { useState } from "react";
 import { Linking, Pressable, ScrollView, View } from "react-native";
@@ -177,7 +177,7 @@ export default function ObjectPageScreen({
     return (
       <View className="flex-1 px-8 py-6 gap-6 bg-background justify-center items-center ">
         <Text>Kunde inte hitta objekt.</Text>
-        <Button className="w-36" onPress={() => router.back()}>
+        <Button className="w-36" onPress={handleBack}>
           <Text>Tillbaka</Text>
         </Button>
       </View>
@@ -185,11 +185,7 @@ export default function ObjectPageScreen({
 
   return (
     <View className="flex-1 bg-background">
-      <Button
-        className="justify-start"
-        variant="link"
-        onPress={() => router.back()}
-      >
+      <Button className="justify-start" variant="link" onPress={handleBack}>
         <Text>Tillbaka</Text>
       </Button>
       <ScrollView
@@ -234,7 +230,7 @@ export default function ObjectPageScreen({
                 onPress={openCategoriesDialog}
                 className="flex-row justify-start items-center gap-1 w-[50%]"
               >
-                <Text variant="bold">Kategorisera</Text>
+                <Text variant="bold">Lägg till taggar</Text>
                 <Icon as={PlusSquare} size={18} />
               </Pressable>
             )}

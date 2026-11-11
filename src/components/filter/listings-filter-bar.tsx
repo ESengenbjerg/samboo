@@ -24,7 +24,7 @@ export default function ListingsFilterBar({
   return (
     <ScrollView
       horizontal
-      className="flex-grow-0 flex-shrink-0 pb-2"
+      className="flex-grow-0 flex-shrink-0 py-6"
       contentContainerClassName="gap-1"
       showsHorizontalScrollIndicator={false}
     >
@@ -46,7 +46,8 @@ export default function ListingsFilterBar({
       )}
       {showCategoryFilter && (
         <FilterSelect
-          placeholder="Kategorier"
+          placeholder="Taggar"
+          dropdownLabel="Dina taggar"
           value={category}
           onValueChange={setCategory}
           options={[ALL_OPTION, ...tagOptions]}

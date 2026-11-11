@@ -91,7 +91,7 @@ export function CategoriesDialog({
     if (existing) {
       // Already chosen: keep the text and tell the user, so it does not look like nothing happened
       if (draftIds.includes(existing.id)) {
-        setMessage(`Kategorin ${capitalize(existing.tag_name)} är redan vald.`);
+        setMessage(`Taggen ${capitalize(existing.tag_name)} är redan vald.`);
         return;
       }
       addToDraft(existing.id);
@@ -108,27 +108,27 @@ export function CategoriesDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="gap-8">
         <DialogHeader>
-          <DialogTitle>Kategorisera objekt</DialogTitle>
+          <DialogTitle>Tagga objekt</DialogTitle>
         </DialogHeader>
 
         <View className="gap-6">
           {/* --- CHOOSE FROM EXISTING CATEGORIES --- */}
 
           <View className="gap-2">
-            <Label>Dina kategorier</Label>
+            <Label>Dina taggar</Label>
             <Select
               onValueChange={(option) => {
                 if (option) addToDraft(Number(option.value));
               }}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Välj kategori" />
+                <SelectValue placeholder="Välj tagg" />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  <SelectLabel>Dina kategorier</SelectLabel>
+                  <SelectLabel>Dina taggar</SelectLabel>
                   {availableCategories.map((c) => (
                     <SelectItem
                       key={c.id}
@@ -143,7 +143,7 @@ export function CategoriesDialog({
 
           {/* --- CREATE A NEW CATEGORY --- */}
           <View className="gap-2">
-            <Label>Lägg till kategori</Label>
+            <Label>Lägg till tagg</Label>
             <View className="flex-row gap-2 flex-wrap">
               <Input
                 className="flex-1"
@@ -168,18 +168,16 @@ export function CategoriesDialog({
             </View>
             {isFull && (
               <Text variant="small">
-                {`Du har nått gränsen på ${MAX_TAGS_PER_USER} kategorier. Välj bland dina befintliga ovan.`}
+                {`Du har nått gränsen på ${MAX_TAGS_PER_USER} taggar. Välj bland dina befintliga ovan.`}
               </Text>
             )}
           </View>
 
-          {/* --- CHOSEN CATEGORY --- */}
+          {/* --- CHOSEN TAG --- */}
           <View>
-            <Label>Valda kategorier</Label>
+            <Label>Valda taggar</Label>
             <View className="flex-row gap-2 flex-wrap">
-              {draftCategories.length === 0 && (
-                <Text>Inga valda kategorier.</Text>
-              )}
+              {draftCategories.length === 0 && <Text>Inga valda taggar.</Text>}
               {draftCategories.map((c) => (
                 <Pressable key={c.id} onPress={() => removeFromDraft(c.id)}>
                   <CategoryTag text={c.tag_name} removable />
@@ -197,7 +195,7 @@ export function CategoriesDialog({
               disabled={isSaving}
               onPress={() => onSave(draftIds, initialIds)}
             >
-              <Text>{isSaving ? "Sparar..." : "Spara kategorisering"}</Text>
+              <Text>{isSaving ? "Sparar..." : "Spara taggning"}</Text>
             </Button>
           </View>
         </DialogFooter>

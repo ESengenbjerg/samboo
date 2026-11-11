@@ -54,7 +54,7 @@ export function useListing(listingId: string | undefined) {
     isLoading: !!listingId && !current,
     // A failed load is not the same as having no row (a group member's listing)
     error: current?.failed
-      ? "Kunde inte hämta dina kategorier för objektet."
+      ? "Kunde inte hämta dina taggar för objektet."
       : null,
   };
 }
