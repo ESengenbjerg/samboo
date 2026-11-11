@@ -99,7 +99,7 @@ The `EMAILS` and `GOOGLE MAPS` sections in `.env` can be left empty for the demo
 
 6. Fill in `.env` (created under [Installation](#installation)):
    - `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_KEY` (publishable/anon key) and `SUPABASE_SERVICE_ROLE_KEY` TIP: Look in "Connect" in topbar, choose Expo React Native as framwork, under "Add files" and ".env.local" you'll find the public keys. Then from Project Settings → API. The service role key is found. This is only used by the scripts and must never end up in the app!
-   - `SEED_USER`, `SEED_FRIEND` and their passwords are prefilled. Change them if you like (passwords need at least 8 characters). No mail is sent to these addresses.
+   - `SEED_USER`, `SEED_FRIEND` and their passwords are prefilled. Change them if you like (passwords need at least 6 characters). No mail is sent to these addresses.
 7. Run `nvm use 24`, then fill in Sweden's counties and municipalities, and the areas of Göteborg, Mölndal and Partille, from the project root: `node scripts/seed/places/seedPlaces.ts`
 8. Create the demo data, from the project root: `node scripts/seed/demo/seedDemo.ts`
 9. Start the app and sign in as `SEED_USER`:
