@@ -10,7 +10,7 @@ export const EMAIL_MAX_LENGTH = 254;
 // profiles_name_length: 1-100 characters
 export const NAME_MAX_LENGTH = 100;
 
-// user_tags_name_length: 1-100 characters
+// user_tags_name_length: 1-20 characters
 export const TAG_NAME_MAX_LENGTH = 20;
 
 // showings_note_length
