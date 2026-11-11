@@ -1987,7 +1987,7 @@ CREATE TABLE IF NOT EXISTS "public"."user_tags" (
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "user_id" "uuid" NOT NULL,
     "tag_name" "text" NOT NULL,
-    CONSTRAINT "user_tags_name_length" CHECK ((("char_length"("tag_name") >= 1) AND ("char_length"("tag_name") <= 100))),
+    CONSTRAINT "user_tags_name_length" CHECK ((("char_length"("tag_name") >= 1) AND ("char_length"("tag_name") <= 20))),
     CONSTRAINT "user_tags_name_not_blank" CHECK (("tag_name" ~ '\S'::"text"))
 );
 
