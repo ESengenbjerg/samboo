@@ -8,13 +8,13 @@ import { AgencyStatus, ScrapeRunOutcome } from "@/types/admin";
 import { formatDateTime } from "@/utils/date-format";
 import { View } from "react-native";
 
-// Swedish label and badge color per outcome of the latest run
+// Swedish label and badge color per outcome of the latest run. Green for ok (primary is yellow, which reads as a warning), neutral for skipped, red for problems
 const OUTCOME_BADGE: Record<
   ScrapeRunOutcome,
-  { label: string; variant: "default" | "secondary" | "destructive" }
+  { label: string; variant: "secondary" | "outline" | "destructive" }
 > = {
-  ok: { label: "OK", variant: "default" },
-  skipped: { label: "Inget att hämta", variant: "secondary" },
+  ok: { label: "OK", variant: "secondary" },
+  skipped: { label: "Inget att hämta", variant: "outline" },
   failed: { label: "Misslyckades", variant: "destructive" },
   suspicious: { label: "Misstänkt resultat", variant: "destructive" },
   error: { label: "Fel", variant: "destructive" },
