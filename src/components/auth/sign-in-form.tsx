@@ -4,50 +4,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
 import { EMAIL_MAX_LENGTH } from "@/constants/limits";
-import { signIn } from "@/services/auth";
+import { useSignIn } from "@/hooks/auth/useSignIn";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
 import { type TextInputInstance, View } from "react-native";
 
 export function SignInForm() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { logIn, isLoading, error } = useSignIn();
 
   const passwordInputRef = useRef<TextInputInstance>(null);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  async function onSubmit() {
-    if (isLoading) return;
-    setError(null);
-    setIsLoading(true);
-
-    try {
-      // Match credentials to Supabase
-      const { error } = await signIn(email.trim(), password);
-
-      if (error) {
-        console.log("Auth error:", error);
-
-        // If user exist but they never confirmed their email,
-        // send new verification email and redirect to /verify-email
-        if (error.code === "email_not_confirmed") {
-          router.push({
-            pathname: "/verify-email",
-            params: { email: email.trim(), source: "login" },
-          });
-          return;
-        }
-
-        setError("Fel e-post eller lösenord.");
-        return;
-      }
-    } catch {
-      setError("Något gick fel, försök igen.");
-    } finally {
-      setIsLoading(false);
-    }
+  function onSubmit() {
+    logIn(email, password);
   }
 
   return (
@@ -109,9 +80,7 @@ export function SignInForm() {
               router.push("/forgotten-password");
             }}
           >
-            <Text className="leading-4 text-background">
-              Glömt lösenord?
-            </Text>
+            <Text className="leading-4 text-background">Glömt lösenord?</Text>
           </Button>
           <Text className="text-background">|</Text>
           <Button
@@ -121,9 +90,7 @@ export function SignInForm() {
               router.push("/register");
             }}
           >
-            <Text className="leading-4 text-background">
-              Skapa konto
-            </Text>
+            <Text className="leading-4 text-background">Skapa konto</Text>
           </Button>
         </View>
       </View>
