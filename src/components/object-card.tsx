@@ -76,7 +76,7 @@ export function ObjectCard({
 
   return (
     <View className={cn(objectCardVariants({ size }), className)}>
-      <Card className="py-0 overflow-hidden">
+      <Card className="flex-1 py-0 overflow-hidden">
         <View className={imageWrapperVariants({ size })}>
           <Image
             source={showFallback ? fallbackImage : { uri: imageUrl }}
@@ -163,7 +163,7 @@ export function ObjectCard({
         listingId={listingId}
         size={20}
         className={
-          isSmall ? "absolute right-1 bottom-2" : "absolute right-4 bottom-16"
+          isSmall ? "absolute right-1 bottom-2" : "absolute right-4 bottom-20"
         }
       />
     </View>
