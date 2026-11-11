@@ -1,7 +1,7 @@
-// This file aims to test the per-user write limit (check_request(), see supabase/schema.sql)
+// Test the per-user write limit (check_request(), see supabase/schema.sql)
 
-// Signs in as the seed user (Admin) with the PUBLISHABLE key, like the app does, and sends write requests in a loop.
-// A write is an update of the user's own profile name to the value it already has, so nothing changes.
+// Signs in as the test user and sends write requests in a loop.
+
 // Expected: the first 100 writes in a 5 minute window succeed, the following ones are rejected with HTTP 429.
 // A read after the loop should still succeed (reads are not limited).
 // The counters are per minute and the window is about 5 minutes, so wait that long before running it again.
@@ -16,8 +16,8 @@ const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const key =
   process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
   process.env.EXPO_PUBLIC_SUPABASE_KEY;
-const email = process.env.SEED_USER_EMAIL;
-const password = process.env.SEED_USER_PASSWORD;
+const email = process.env.TEST_USER_EMAIL;
+const password = process.env.TEST_USER_PASSWORD;
 
 if (!url || !key || !email || !password) {
   throw new Error(
@@ -108,19 +108,3 @@ const pass =
   !readError;
 console.log(pass ? "\nRESULT: as expected" : "\nRESULT: NOT as expected");
 process.exitCode = pass ? 0 : 1;
-
-// Ran in Terminal:
-// node scripts/test/testRateLimit.ts
-
-// Result:
-// Signed in as admin@samboo.com
-
-// Writes sent: 105
-//   succeeded:       100
-//   rejected (429):  5
-//   other errors:    0
-//   first rejected:  request 101 ("Too many requests, try again in a moment")
-
-// Read after the loop: ok
-
-// RESULT: as expected

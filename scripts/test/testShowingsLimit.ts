@@ -24,10 +24,10 @@ const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const key =
   process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
   process.env.EXPO_PUBLIC_SUPABASE_KEY;
-const email1 = process.env.SEED_USER_EMAIL;
-const password1 = process.env.SEED_USER_PASSWORD;
-const email2 = process.env.SEED_USER2_EMAIL;
-const password2 = process.env.SEED_USER2_PASSWORD;
+const email1 = process.env.TEST_USER_EMAIL;
+const password1 = process.env.TEST_USER_PASSWORD;
+const email2 = process.env.TEST_USER2_EMAIL;
+const password2 = process.env.TEST_USER2_PASSWORD;
 
 if (!url || !key || !email1 || !password1 || !email2 || !password2) {
   throw new Error(
@@ -103,7 +103,9 @@ const { data: already } = await supabaseAdmin
 const alreadyKeys = new Set(
   (already ?? []).map((r) => `${r.user_id}:${r.listing_id}`),
 );
-const added = wanted.filter((r) => !alreadyKeys.has(`${r.user_id}:${r.listing_id}`));
+const added = wanted.filter(
+  (r) => !alreadyKeys.has(`${r.user_id}:${r.listing_id}`),
+);
 
 let inviteId: number | null = null;
 
@@ -214,7 +216,8 @@ try {
     "accept_invite",
     { invite_id: inviteId },
   );
-  if (acceptError) throw new Error(`accept_invite failed: ${acceptError.message}`);
+  if (acceptError)
+    throw new Error(`accept_invite failed: ${acceptError.message}`);
   check(
     "no showings dropped when joining",
     Array.isArray(dropped) && dropped.length === 0,
@@ -226,7 +229,8 @@ try {
     .select("group_id")
     .eq("id", user1.id)
     .single();
-  if (!member?.group_id) throw new Error("user1 has no group after accept_invite");
+  if (!member?.group_id)
+    throw new Error("user1 has no group after accept_invite");
   const { count } = await supabaseAdmin
     .from("showings")
     .select("*", { count: "exact", head: true })
@@ -249,7 +253,9 @@ try {
   process.exitCode = 1;
 } finally {
   await cleanup();
-  console.log("\nCleaned up (groups, showings, invite and added user_listings)");
+  console.log(
+    "\nCleaned up (groups, showings, invite and added user_listings)",
+  );
 }
 
 const pass = results.length > 0 && results.every((r) => r.pass);
