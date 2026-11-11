@@ -1,4 +1,6 @@
+import OpenIssuesSection from "@/components/admin/open-issues-section";
 import ScrapeStatusSection from "@/components/admin/scrape-status-section";
+import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
 import { ScrollView, View } from "react-native";
 
@@ -10,6 +12,9 @@ export default function AdminScreen() {
         <Text variant="h1">Administration</Text>
 
         <ScrapeStatusSection />
+
+        <Separator />
+        <OpenIssuesSection />
       </View>
     </ScrollView>
   );

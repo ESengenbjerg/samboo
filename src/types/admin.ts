@@ -14,3 +14,6 @@ export type AgencyStatus = RpcRow<
   | "last_ok_at"
   | "last_seen_at"
 >;
+
+// One open scrape issue from admin_open_issues(). Show description, not reason. notified_at is null until the GitHub alert is raised
+export type OpenIssue = RpcRow<"admin_open_issues", "notified_at">;
