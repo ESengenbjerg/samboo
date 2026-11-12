@@ -16,6 +16,13 @@ export function onAuthStateChange(
   return () => subscription.unsubscribe();
 }
 
+// Asks the Auth server whether the stored session still exists. If it was revoked (signed out from another device, for example after a password change), supabase-js removes it and sends SIGNED_OUT to onAuthStateChange
+export async function verifySessionWithServer() {
+  const { data } = await supabase.auth.getSession();
+  if (!data.session) return;
+  await supabase.auth.getUser();
+}
+
 export async function getCurrentUser() {
   const {
     data: { user },
