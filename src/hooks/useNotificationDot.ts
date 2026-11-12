@@ -1,4 +1,5 @@
 import { useSession } from "@/hooks/auth/useSession";
+import { useAnsweredInviteStore } from "@/stores/answered-invite";
 import { useNotificationsStore } from "@/stores/notifications";
 import { useSkippedShowingsStore } from "@/stores/skipped-showings";
 import { usePathname } from "expo-router";
@@ -20,6 +21,7 @@ export function useNotificationDot() {
   const reset = useNotificationsStore((s) => s.reset);
   // Lost showings after accepting an invite are not in the database, so the dot
   // cannot know about them. Lit until the notifications page has shown them
+  const hasAnswered = useAnsweredInviteStore((s) => s.answer != null);
   const hasSkipped = useSkippedShowingsStore((s) => s.showings.length > 0);
 
   useEffect(() => {
@@ -31,5 +33,5 @@ export function useNotificationDot() {
     if (!isOnNotificationsPage) refresh();
   }, [userId, pathname, isOnNotificationsPage, refresh, reset]);
 
-  return { showDot: (hasNew || hasSkipped) && !isOnNotificationsPage };
+  return { showDot: (hasNew || hasSkipped || hasAnswered) && !isOnNotificationsPage };
 }

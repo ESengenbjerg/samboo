@@ -1,17 +1,14 @@
 import { ConnectedAccounts } from "@/hooks/useConnectedAccounts";
-import { InviteStatus } from "@/types/connected-accounts";
-import { useCallback, useState } from "react";
-
-type Answer = Extract<InviteStatus, "accepted" | "declined">;
+import { Answer, useAnsweredInviteStore } from "@/stores/answered-invite";
 
 // Answers a received invite and remembers the answer so the UI can confirm it.
 // Shared by the settings page and the notifications page
 export function useAnswerInvite(accounts: ConnectedAccounts) {
   const { acceptInvite, declineInvite, receivedInvites } = accounts;
-  const [answeredInvite, setAnsweredInvite] = useState<Answer | null>(null);
-  // The sender's name, saved when answering: after the answer the invites are reloaded
-  // and the answered invite is no longer in receivedInvites
-  const [answeredFromName, setAnsweredFromName] = useState<string | null>(null);
+  const answeredInvite = useAnsweredInviteStore((s) => s.answer);
+  const answeredFromName = useAnsweredInviteStore((s) => s.fromName);
+  const setAnswer = useAnsweredInviteStore((s) => s.set);
+  const clearAnswer = useAnsweredInviteStore((s) => s.clear);
 
   // Only show the confirmation if the database call succeeded
   async function onAnswer(inviteId: number, answer: Answer) {
@@ -23,17 +20,8 @@ export function useAnswerInvite(accounts: ConnectedAccounts) {
       answer === "accepted"
         ? await acceptInvite(inviteId)
         : await declineInvite(inviteId);
-    if (ok) {
-      setAnsweredInvite(answer);
-      setAnsweredFromName(fromName);
-    }
+    if (ok) setAnswer(answer, fromName);
   }
-
-  // For pages that stay mounted, e.g. a tab: forget the answer when the user leaves
-  const clearAnswer = useCallback(() => {
-    setAnsweredInvite(null);
-    setAnsweredFromName(null);
-  }, []);
 
   return { answeredInvite, answeredFromName, onAnswer, clearAnswer };
 }
