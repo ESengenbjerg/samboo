@@ -155,6 +155,7 @@ export function TagsDialog({
           <View className="gap-2">
             <Label>Dina taggar</Label>
             <Select
+              key={draftIds.length}
               onValueChange={(option) => {
                 if (option) addToDraft(Number(option.value));
               }}
@@ -165,9 +166,11 @@ export function TagsDialog({
               >
                 <SelectValue
                   placeholder={
-                    availableTags.length === 0
-                      ? "Inga ovalda taggar"
-                      : "Välj tagg"
+                    availableTags.length > 0
+                      ? "Välj tagg"
+                      : tags.length === 0
+                        ? "Inga taggar än"
+                        : "Alla taggar är valda"
                   }
                 />
               </SelectTrigger>
