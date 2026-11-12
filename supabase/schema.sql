@@ -934,6 +934,12 @@ CREATE OR REPLACE FUNCTION "public"."is_active_user"() RETURNS boolean
       where p.id = (select auth.uid())
     ),
     false
+  )
+  and exists (
+    select 1
+    from auth.sessions s
+    where s.id = nullif((select auth.jwt()) ->> 'session_id', '')::uuid
+      and s.user_id = (select auth.uid())
   );
 $$;
 
