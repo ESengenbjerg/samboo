@@ -1,4 +1,4 @@
-// User 2's two tags (categories), put on some of the liked listings.
+// User 2's two tags, put on some of the liked listings.
 // Returns the number of tags created.
 import { supabaseAdmin } from "../../../lib/supabaseAdmin.ts";
 import { check, ok, type IdOf } from "../setup/helpers.ts";

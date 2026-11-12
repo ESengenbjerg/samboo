@@ -21,9 +21,9 @@ import { useState } from "react";
 import { Linking, Pressable, ScrollView, View } from "react-native";
 import FormError from "../form-error";
 import { LikeButton } from "../like-button";
-import { CategoriesDialog } from "../modals/categories-dialog";
+import { TagsDialog } from "../modals/tags-dialog";
 import { ConfirmDialog } from "../modals/confirm-dialog";
-import CategoryTag from "../tags/category-tag";
+import Tag from "../tags/tag";
 import { Icon } from "../ui/icon";
 import { Spinner } from "../ui/spinner";
 import ObjectDescription from "./object-description";
@@ -54,7 +54,7 @@ export default function ObjectPageScreen({
   listing,
   isLoading,
 }: ObjectPageProps) {
-  const [categoriesDialogOpen, setCategoriesDialogOpen] = useState(false);
+  const [tagsDialogOpen, setTagsDialogOpen] = useState(false);
   const [tagToDelete, setTagToDelete] = useState<number | null>(null);
 
   const { session } = useSession();
@@ -85,7 +85,7 @@ export default function ObjectPageScreen({
   } = useListingTags(userId);
   const {
     unapplyTag,
-    saveCategorization,
+    saveTags,
     isSaving: isSavingTag,
     error: saveTagError,
     clearError,
@@ -96,7 +96,7 @@ export default function ObjectPageScreen({
     userListingError || tagsError || listingTagsError || saveTagError;
   // The dialog starts from the applied tags, so it must not open before both lists are
   // loaded. Otherwise saving would remove tags that just had not been fetched yet
-  const canCategorize =
+  const canEditTags =
     !!userListing &&
     !tagsLoading &&
     !listingTagsLoading &&
@@ -104,7 +104,7 @@ export default function ObjectPageScreen({
     !listingTagsError;
   const saving = isSaving || isSavingTag;
 
-  // The ids of my categories (user_tags.id) that are on this listing.
+  // The ids of my tags (user_tags.id) that are on this listing.
   // listingTags holds every tag application I have, so filter on this listing's row
   const appliedTagIds = userListing
     ? listingTags
@@ -112,8 +112,8 @@ export default function ObjectPageScreen({
         .map((lt) => lt.user_tag_id)
     : [];
 
-  // Called by the dialog with the selected category ids, the ids the dialog was opened
-  //with, and the names of new categories. New categories are created here, on save
+  // Called by the dialog with the selected tag ids, the ids the dialog was opened
+  //with, and the names of new tags. New tags are created here, on save
   async function handleSave(
     selectedIds: number[],
     initialIds: number[],
@@ -122,7 +122,7 @@ export default function ObjectPageScreen({
     if (!userId || !userListing) return;
     setIsSaving(true);
     try {
-      const ok = await saveCategorization({
+      const ok = await saveTags({
         userId,
         userListingId: userListing.id,
         existingTags: tags,
@@ -136,13 +136,13 @@ export default function ObjectPageScreen({
       reloadListingTags();
 
       // Keep the dialog open if something failed, so error is visible
-      if (ok) setCategoriesDialogOpen(false);
+      if (ok) setTagsDialogOpen(false);
     } finally {
       setIsSaving(false);
     }
   }
 
-  // Removes one category from this listing directly, without opening the dialog
+  // Removes one tag from this listing directly, without opening the dialog
   async function handleRemoveTag(tagId: number) {
     if (!userListing) return;
 
@@ -152,15 +152,15 @@ export default function ObjectPageScreen({
   }
 
   // Clears an old error from a previous attempt before the dialog opens
-  function openCategoriesDialog() {
+  function openTagsDialog() {
     clearError();
-    setCategoriesDialogOpen(true);
+    setTagsDialogOpen(true);
   }
 
   // Clears an old error when dialog is closed
-  function closeCategoriesDialog() {
+  function closeTagsDialog() {
     clearError();
-    setCategoriesDialogOpen(false);
+    setTagsDialogOpen(false);
   }
 
   if (isLoading)
@@ -219,12 +219,12 @@ export default function ObjectPageScreen({
           </View>
           <Separator />
 
-          {/* --- CATEGORIES --- */}
+          {/* --- TAGS --- */}
           <View className="gap-2">
             {/* Only possible if I have my own user_listings row and the tags are loaded */}
-            {canCategorize && (
+            {canEditTags && (
               <Pressable
-                onPress={openCategoriesDialog}
+                onPress={openTagsDialog}
                 className="flex-row justify-start items-center gap-1 w-[50%]"
               >
                 <Text variant="bold">Lägg till taggar</Text>
@@ -232,13 +232,13 @@ export default function ObjectPageScreen({
               </Pressable>
             )}
             <View className="flex-row flex-wrap justify-start gap-2">
-              {isNewConstruction(listing) && <CategoryTag isNewConstruction />}
-              {/* My own categories on this listing */}
+              {isNewConstruction(listing) && <Tag isNewConstruction />}
+              {/* My own tags on this listing */}
               {tags
                 .filter((t) => appliedTagIds.includes(t.id))
                 .map((t) => (
                   <Pressable key={t.id} onPress={() => setTagToDelete(t.id)}>
-                    <CategoryTag text={t.tag_name} removable />
+                    <Tag text={t.tag_name} removable />
                   </Pressable>
                 ))}
             </View>
@@ -263,14 +263,14 @@ export default function ObjectPageScreen({
             )}
 
             {/* The dialog shows its own error, so only show it here when it is closed */}
-            {error && !categoriesDialogOpen && <FormError>{error}</FormError>}
+            {error && !tagsDialogOpen && <FormError>{error}</FormError>}
           </View>
 
-          {categoriesDialogOpen && (
-            <CategoriesDialog
-              open={categoriesDialogOpen}
-              onOpenChange={closeCategoriesDialog}
-              categories={tags}
+          {tagsDialogOpen && (
+            <TagsDialog
+              open={tagsDialogOpen}
+              onOpenChange={closeTagsDialog}
+              tags={tags}
               selectedIds={appliedTagIds}
               onSave={handleSave}
               isSaving={saving}

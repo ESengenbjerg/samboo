@@ -6,7 +6,7 @@ import { capitalize } from "@/utils/capitalize-string";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import FormError from "../form-error";
-import CategoryTag from "../tags/category-tag";
+import Tag from "../tags/tag";
 import {
   Dialog,
   DialogContent,
@@ -26,10 +26,10 @@ import {
   SelectValue,
 } from "../ui/select";
 
-type CategoriesDialogProps = {
+type TagsDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  categories: UserTag[];
+  tags: UserTag[];
   selectedIds: number[];
   // newNames = taggar som ska skapas först när användaren sparar
   onSave: (
@@ -42,23 +42,23 @@ type CategoriesDialogProps = {
   onClearError: () => void;
 };
 
-export function CategoriesDialog({
+export function TagsDialog({
   open,
   onOpenChange,
-  categories,
+  tags,
   selectedIds,
   onSave,
   isSaving,
   error,
   onClearError,
-}: CategoriesDialogProps) {
+}: TagsDialogProps) {
   // What the dialog was opened with. Sent back on save so only the user's own changes are diffed
   const [initialIds] = useState<number[]>(selectedIds);
   const [draftIds, setDraftIds] = useState<number[]>(initialIds);
   // Names typed in the dialog. They are NOT created until the user presses save
   const [pendingNames, setPendingNames] = useState<string[]>([]);
   const [newName, setNewName] = useState("");
-  // Feedback from the dialog itself, e.g. when the category is already chosen
+  // Feedback from the dialog itself, e.g. when the tag is already chosen
   const [message, setMessage] = useState<string | null>(null);
 
   // The dialog's own message goes first, then errors from saving
@@ -68,37 +68,37 @@ export function CategoriesDialog({
   // Those are not "new" any more, so they are not counted or shown as new
   const newNames = pendingNames.filter(
     (n) =>
-      !categories.some((c) => c.tag_name.toLowerCase() === n.toLowerCase()),
+      !tags.some((c) => c.tag_name.toLowerCase() === n.toLowerCase()),
   );
 
   // A pending name that now exists in the database (created by a save that failed later)
   // is moved over to the selected ids, so a retry still applies it to the listing
-  const createdCategories = categories.filter((c) =>
+  const createdTags = tags.filter((c) =>
     pendingNames.some((n) => n.toLowerCase() === c.tag_name.toLowerCase()),
   );
-  if (createdCategories.length > 0) {
+  if (createdTags.length > 0) {
     setDraftIds((ids) => [
       ...ids,
-      ...createdCategories.map((c) => c.id).filter((id) => !ids.includes(id)),
+      ...createdTags.map((c) => c.id).filter((id) => !ids.includes(id)),
     ]);
     setPendingNames((names) =>
       names.filter(
         (n) =>
-          !createdCategories.some(
+          !createdTags.some(
             (c) => c.tag_name.toLowerCase() === n.toLowerCase(),
           ),
       ),
     );
   }
 
-  // The database allows MAX_TAGS_PER_USER categories per user, counting the ones not saved yet
-  const totalCount = categories.length + newNames.length;
+  // The database allows MAX_TAGS_PER_USER tags per user, counting the ones not saved yet
+  const totalCount = tags.length + newNames.length;
   const isFull = totalCount >= MAX_TAGS_PER_USER;
 
-  // Categories currently chosen in the dialog (shown as removable tags)
-  const draftCategories = categories.filter((c) => draftIds.includes(c.id));
-  // Categories that can still be added (shown in the select)
-  const availableCategories = categories.filter(
+  // Tags currently chosen in the dialog (shown as removable tags)
+  const draftTags = tags.filter((c) => draftIds.includes(c.id));
+  // Tags that can still be added (shown in the select)
+  const availableTags = tags.filter(
     (c) => !draftIds.includes(c.id),
   );
 
@@ -120,9 +120,9 @@ export function CategoriesDialog({
     const name = capitalize(newName.trim());
     if (!name) return;
 
-    // "Villa" and "villa" are the same category. If it exists, select it instead of
+    // "Villa" and "villa" are the same tag. If it exists, select it instead of
     // creating a duplicate (the database only treats identical spelling as equal)
-    const existing = categories.find(
+    const existing = tags.find(
       (c) => c.tag_name.toLowerCase() === name.toLowerCase(),
     );
     if (existing) {
@@ -154,7 +154,7 @@ export function CategoriesDialog({
         </DialogHeader>
 
         <View className="gap-6">
-          {/* --- CHOOSE FROM EXISTING CATEGORIES --- */}
+          {/* --- CHOOSE FROM EXISTING TAGS --- */}
           <View className="gap-2">
             <Label>Dina taggar</Label>
             <Select
@@ -168,7 +168,7 @@ export function CategoriesDialog({
               <SelectContent>
                 <SelectGroup>
                   <SelectLabel>Dina taggar</SelectLabel>
-                  {availableCategories.map((c) => (
+                  {availableTags.map((c) => (
                     <SelectItem
                       key={c.id}
                       label={capitalize(c.tag_name)}
@@ -180,7 +180,7 @@ export function CategoriesDialog({
             </Select>
           </View>
 
-          {/* --- CREATE A NEW CATEGORY (creates on save) --- */}
+          {/* --- CREATE A NEW TAG (creates on save) --- */}
           <View className="gap-2">
             <View className="flex-row gap-2">
               <Label>Lägg till tagg</Label>
@@ -219,17 +219,17 @@ export function CategoriesDialog({
           <View>
             <Label>Valda taggar</Label>
             <View className="flex-row gap-2 flex-wrap">
-              {draftCategories.length === 0 && newNames.length === 0 && (
+              {draftTags.length === 0 && newNames.length === 0 && (
                 <Text>Inga valda taggar.</Text>
               )}
-              {draftCategories.map((c) => (
+              {draftTags.map((c) => (
                 <Pressable key={c.id} onPress={() => removeFromDraft(c.id)}>
-                  <CategoryTag text={c.tag_name} removable />
+                  <Tag text={c.tag_name} removable />
                 </Pressable>
               ))}
               {newNames.map((n) => (
                 <Pressable key={n} onPress={() => removePendingName(n)}>
-                  <CategoryTag text={`${n} (ny)`} removable />
+                  <Tag text={`${n} (ny)`} removable />
                 </Pressable>
               ))}
             </View>

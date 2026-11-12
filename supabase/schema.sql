@@ -2297,7 +2297,7 @@ CREATE TABLE IF NOT EXISTS "public"."user_tags" (
 ALTER TABLE "public"."user_tags" OWNER TO "postgres";
 
 
-COMMENT ON TABLE "public"."user_tags" IS 'Each user''s own tags (categories in the app).';
+COMMENT ON TABLE "public"."user_tags" IS 'Each user''s own tags.';
 
 
 

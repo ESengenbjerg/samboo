@@ -63,7 +63,7 @@ export function markListingSeen(listingId: number) {
 
 // The listing ids (listings.id) that are new to me: my own matches I have not opened, plus
 // listings a group member has liked that I have never opened (also outside my search).
-// Matching on listings.id lets "new" work in every list, the same way as the category filter.
+// Matching on listings.id lets "new" work in every list, the same way as the tag filter.
 // Removed listings are left out by the database.
 // STABLE function: must be called with GET (see docs/database-design.md)
 export async function getNewListingIds() {

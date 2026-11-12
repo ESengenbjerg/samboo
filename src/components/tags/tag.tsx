@@ -10,7 +10,7 @@ type TagProps = {
   removable?: boolean;
 };
 
-export default function CategoryTag({
+export default function Tag({
   isNewConstruction,
   text,
   removable,

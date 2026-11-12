@@ -20,7 +20,7 @@ export function useFilteredListings(
 
   const [sort, setSort] = useState<SelectOption>();
   const [selectedType, setPropertyType] = useState<SelectOption>();
-  const [selectedCategory, setCategory] = useState<SelectOption>();
+  const [selectedTag, setTag] = useState<SelectOption>();
 
   // Only the property types that exist among the listings
   // string: compared with the options' values, which are plain strings
@@ -45,7 +45,7 @@ export function useFilteredListings(
     .map((t) => ({ value: String(t.id), label: t.tag_name }));
 
   // Nothing to filter on until at least one tag is used in this list
-  const showCategoryFilter = tagOptions.length > 0;
+  const showTagFilter = tagOptions.length > 0;
 
   // A choice only counts while its filter is visible and still offers that option.
   // Otherwise it would filter invisibly, with no way for the user to reset it
@@ -64,22 +64,22 @@ export function useFilteredListings(
     showPropertyTypeFilter,
     propertyTypeOptions,
   );
-  const category = activeOption(
-    selectedCategory,
-    showCategoryFilter,
+  const tag = activeOption(
+    selectedTag,
+    showTagFilter,
     tagOptions,
   );
 
   // The listings after the filters and the sorting. Listings arrive newest first
   const visibleListings = useMemo(() => {
-    // The listing ids (listings.id) that have the chosen category. Matching on listings.id
+    // The listing ids (listings.id) that have the chosen tag. Matching on listings.id
     // instead of user_listing_id makes it work in every list: in a group member's list the
     // rows are theirs, and in the shared list there is no user_listing_id at all
     const taggedIds =
-      category && category.value !== ALL_VALUE
+      tag && tag.value !== ALL_VALUE
         ? new Set(
             listingTags
-              .filter((lt) => String(lt.user_tag_id) === category.value)
+              .filter((lt) => String(lt.user_tag_id) === tag.value)
               .map((lt) => lt.user_listings?.listing_id),
           )
         : null;
@@ -89,8 +89,8 @@ export function useFilteredListings(
         !propertyType ||
         propertyType.value === ALL_VALUE ||
         l.property_type === propertyType.value;
-      const matchesCategory = !taggedIds || taggedIds.has(l.id);
-      return matchesType && matchesCategory;
+      const matchesTag = !taggedIds || taggedIds.has(l.id);
+      return matchesType && matchesTag;
     });
 
     switch (sort?.value) {
@@ -106,24 +106,24 @@ export function useFilteredListings(
       default:
         return filtered;
     }
-  }, [listings, propertyType, sort, category, listingTags]);
+  }, [listings, propertyType, sort, tag, listingTags]);
 
   return {
     visibleListings,
-    // Only relevant when the category filter is shown. If useUserTags fails, tags is
+    // Only relevant when the tag filter is shown. If useUserTags fails, tags is
     // empty and the filter is hidden, so only the listing_tags error can show here
-    error: showCategoryFilter ? listingTagsError : null,
+    error: showTagFilter ? listingTagsError : null,
     filters: {
       sort,
       setSort,
       propertyType,
       setPropertyType,
-      category,
-      setCategory,
+      tag,
+      setTag,
       propertyTypeOptions,
       tagOptions,
       showPropertyTypeFilter,
-      showCategoryFilter,
+      showTagFilter,
     },
   };
 }
