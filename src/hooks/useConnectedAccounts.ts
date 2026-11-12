@@ -267,8 +267,6 @@ export function useConnectedAccounts(userId: string | undefined) {
     [isInGroup, run, setSkippedShowings],
   );
 
-  // The notice is only for the visit right after accepting. Call it when the user leaves
-
   const declineInvite = useCallback(
     (inviteId: number) =>
       run(() => declineInviteRpc(inviteId), "Decline invite"),
