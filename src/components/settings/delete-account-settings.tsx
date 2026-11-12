@@ -1,4 +1,4 @@
-import { useDeleteAccount } from "@/hooks/useDeleteAccount";
+import { useDeleteAccount } from "@/hooks/auth/useDeleteAccount";
 import { useState } from "react";
 import { View } from "react-native";
 import FormError from "../form-error";

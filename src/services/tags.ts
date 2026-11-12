@@ -8,11 +8,21 @@ export function getUserTags() {
     .order("tag_name", { ascending: true });
 }
 
-// tag_name must be 1-100 characters and unique per user (error code 23505 if it exists)
+// tag_name must be 1-20 characters and unique per user (error code 23505 if it exists)
 export function createUserTag(userId: string, tagName: string) {
   return supabase
     .from("user_tags")
     .insert({ user_id: userId, tag_name: tagName })
+    .select("id, tag_name")
+    .single();
+}
+
+// tag_name must be 1-20 characters and unique per user (error code 23505 if it exists)
+export function updateUserTag(tagId: number, tagName: string) {
+  return supabase
+    .from("user_tags")
+    .update({ tag_name: tagName })
+    .eq("id", tagId)
     .select("id, tag_name")
     .single();
 }

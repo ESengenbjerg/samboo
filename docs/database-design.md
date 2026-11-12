@@ -32,8 +32,8 @@ The dump keeps function bodies (including comments inside them) and `COMMENT ON`
 
 ## Security model
 
-- **RLS on every table, policies only for `authenticated`.** `anon` has no grants at all in `public`: no tables, sequences or functions, and no default privileges for objects that `postgres` creates later. The only thing left is `USAGE` on the schema, inherited from `PUBLIC` (a Postgres default). It allows looking up names but not reading or calling anything, and it is kept because Supabase's own roles (Auth, Storage, Realtime) may depend on it. Supabase's default privileges for objects created by `supabase_admin` still mention `anon`; they cannot be changed from `postgres` and do not apply to our objects. Tables that only scripts and functions use (`scrape_issues`, `search_params_log`, `api_rate_limit`, `seen_listings`, `showing_events`) have RLS on and no policies, so only `service_role` and security definer functions reach them.
-- **`is_active_user()` is the gate.** Nearly every policy and RPC calls it: the profile must exist, be active and have a confirmed e-mail. An already issued JWT stays valid until it expires, but once the profile is deleted or deactivated the function returns `false` and RLS blocks everything. `profiles.is_active` is never set by the app: it is a manual kill switch that is checked live on every request. It exists for copyright reasons, so the listing data can be kept from someone who should not have it. Deleting that person's account is not enough, because the e-mail address becomes free and they can sign up again. With `is_active = false` the row in `auth.users` stays, so the address remains taken and blocked. It blocks that address, not the person: a different address can still sign up.
+- **RLS on every table, policies only for `authenticated`.** `anon` has no grants at all in `public`: no tables, sequences or functions, and no default privileges for objects that `postgres` creates later. The only thing left is `USAGE` on the schema, inherited from `PUBLIC` (a Postgres default). It allows looking up names but not reading or calling anything, and it is kept because Supabase's own roles (Auth, Storage, Realtime) may depend on it. Supabase's default privileges for objects created by `supabase_admin` still mention `anon`; they cannot be changed from `postgres` and do not apply to our objects. Tables that only scripts and functions use (`admins`, `scrape_issues`, `scrape_runs`, `search_params_log`, `api_rate_limit`, `seen_listings`, `showing_events`) have RLS on and no policies, so only `service_role` and security definer functions reach them.
+- **`is_active_user()` is the gate.** Nearly every policy and RPC calls it: the profile must exist, be active and have a confirmed e-mail. An already issued JWT stays valid until it expires, but once the profile is deleted or deactivated the function returns `false` and RLS blocks everything. `profiles.is_active` is never set by the app's users: it is a manual kill switch, set by an admin through `admin_set_user_active()`, that is checked live on every request. It exists for copyright reasons, so the listing data can be kept from someone who should not have it. Deleting that person's account is not enough, because the e-mail address becomes free and they can sign up again. With `is_active = false` the row in `auth.users` stays, so the address remains taken and blocked. It blocks that address, not the person: a different address can still sign up.
 - **Narrow grants, then RLS.** Supabase's default privileges give new tables and sequences `ALL` for `authenticated` (no longer for `anon`, see above), and new functions `EXECUTE` for `authenticated` and, through Postgres itself, for `PUBLIC`. This database revokes that and grants only what the app needs. Direct writes are limited to a few columns (for example `profiles.name`, `user_listings.liked`, `showings.note`). Everything else, such as `profiles.group_id` and `user_listings.is_new`, changes only through functions. **Every new table or function must get its grants revoked and granted explicitly**, otherwise it is open to `authenticated` by default.
 - **Security definer functions to avoid recursion.** A policy that reads another table with its own policy can loop (error 42P17). `can_see_listing()` (used by the `showings` insert policy) and `my_avatar_count()` (used by the storage policy) exist only to break such loops.
 - **Messages in Swedish.** Functions and triggers use `raise exception` with Swedish text, so the app can show the message as is.
@@ -67,6 +67,7 @@ Columns with a fixed list of values are Postgres enums, not text with a check co
 | `email_frequency`      | `profiles.email_frequency`                                       | `day`, `week`, `none`                                        |
 | `scrape_issue_kind`    | `scrape_issues.kind`                                             | `failed`, `suspicious`                                       |
 | `scrape_issue_status`  | `scrape_issues.status`                                           | `open`, `resolved`                                           |
+| `scrape_run_outcome`   | `scrape_runs.outcome`                                            | `ok`, `failed`, `suspicious`, `skipped`, `error`             |
 | `showing_event_action` | `showing_events.action`                                          | `created`, `updated`, `deleted`                              |
 
 - **Why enums:** the type generator cannot read check constraints, so a text column only becomes `string`. An enum becomes a union type and a runtime list (`Constants.public.Enums`) in `shared/database.types.ts`, so the app and the scripts take the values from the database instead of keeping their own copies.
@@ -74,12 +75,13 @@ Columns with a fixed list of values are Postgres enums, not text with a check co
 - **Adding a value** is easy: `alter type public.<type> add value '<value>'`, then `npm run gen:types`. The new value can not be used in the same transaction that adds it. **Removing or renaming a value** is not possible: it needs a new type and a column change, like the migration that introduced the enums.
 - **Changing a column's type** is blocked by everything that refers to the column: the `UPDATE OF` triggers on `search_params`, the policy `invites_select` and the partial indexes `invites_one_pending` and `scrape_issues_one_open`. They have to be dropped and recreated in the same transaction.
 - **No rights for `anon`:** Postgres gives every new type to `PUBLIC`. The enum types have that revoked and `USAGE` granted to `authenticated` and `service_role`. A new enum type needs the same.
-- **Not enums on purpose:** `scrape_issues.reason` (the database does not limit it, the list `F1`–`F4`, `mass_removal` belongs to the scraper's rules in `scripts/lib/types.ts`) and `search_params_log.operation` (written only by a trigger from `tg_op`, never read by code).
+- **Not enums on purpose:** `scrape_issues.reason` and `scrape_runs.reason` (the database does not limit it, the list `F1`–`F4`, `mass_removal` belongs to the scraper's rules in `scripts/lib/types.ts`) and `search_params_log.operation` (written only by a trigger from `tg_op`, never read by code).
 
 ## Listings and matching
 
 - **`listings` is shared data, not tied to a user.** The scraper writes it with `service_role`. A user sees a listing only through a row in `user_listings` (own or a group member's) or a showing.
 - **`user_listings` is the match table.** `match_user_listings()` fills it. It runs when a search changes (trigger) and after every scrape. It also removes rows that no longer match, except rows that are liked, tagged, or for a removed listing. Those are kept so nothing the user has acted on disappears.
+- **`in_search` says what belongs in the search feed.** `match_user_listings()` sets it to true for rows that match the current search and to false for kept rows that no longer match. A row created by `like_listing()` for a group member's listing starts as false. The feed (Sök bostad) shows only `in_search = true`, while the liked lists ignore it. Access is not affected: a kept row still lets the user and the group read the listing.
 - **Matching rules:**
   - A search without a municipality matches nothing.
   - Areas narrow a municipality down. With areas chosen in a municipality, a listing there must have one of them (ignoring upper and lower case), and a listing without an area is hidden.
@@ -144,11 +146,23 @@ The notifications page and the dot on its icon. Most notifications are not store
 - **New members** see up to 30 days of the group's earlier showing events, since the time a user joined is not stored.
 - **Not built:** notifications when a member leaves or is removed, showing reminders, and a stored history of every notification.
 
+## Admins
+
+The product owner manages the product from an admin view in the app. Who is admin lives in `admins(user_id)`, not in the JWT and not in `profiles`.
+
+- **Only the Dashboard or `service_role` adds an admin.** The table has RLS on, no policies, and no grants for `authenticated`, so nobody can make themselves admin. A column in `profiles` would not be safe, since users may update their own profile row.
+- **`is_admin()` is the gate,** checked live on every call like `is_active_user()`, so removing a row takes effect at once. It also requires `is_active_user()`, so the `is_active` kill switch applies to admins too. `authenticated` may call it, so the app can decide whether to show the admin view; it only reveals the caller's own status.
+- **Security lives in the database.** Every admin function starts with an `is_admin()` check. Hiding the view in the app is only for the user's sake.
+- **Admin functions:** `admin_scrape_status()` (one row per agency: latest run, latest ok run, active listings, open issues) and `admin_open_issues()` (open rows in `scrape_issues` with a plain Swedish `description`). A non-admin gets `Endast för administratörer` with code `42501`. The Swedish texts for the scraper's reasons live in `admin_open_issues()`, so a new reason in `scripts/lib/types.ts` needs a text there too (until then the raw reason is shown).
+- **Scrape issues are read-only for the admin.** The product owner sees them and contacts the developer, who fixes the scraper. There is no resolve button: issues close themselves on the next clean run.
+- **Blocking users:** `admin_find_user(p_email)` looks up one user by exact e-mail (case-insensitive), and `admin_set_user_active(p_user_id, p_active)` sets the `is_active` kill switch described above. The view searches instead of listing everyone, since a full list grows with every user and shows every address on screen; exact match only, so the admin cannot browse addresses. An admin cannot block themselves, since that would remove their own admin rights with no way back.
+- **`admin_list_users()`** (every user with e-mail and status) is not used by the app since the search above replaced it. Kept until after the freeze.
+
 ## Account deletion
 
 `delete_my_account()` deletes the row in `auth.users`. It is permanent, with no grace period.
 
-- **Cascade:** the profile, search, matches, tags, seen listings, showing events the user caused, invites the user sent, and personal showings. Invites sent _to_ the user's e-mail are deleted by the function itself, since they have no foreign key.
+- **Cascade:** the profile, admin row, search, matches, tags, seen listings, showing events the user caused, invites the user sent, and personal showings. Invites sent _to_ the user's e-mail are deleted by the function itself, since they have no foreign key.
 - **Groups:** the trigger `on_profile_deleted` applies the group rule above.
 - **Profile image:** a trigger cannot delete files, so the file becomes an orphan and is removed by the next avatar purge run.
 - `listings` is unaffected (shared data).
@@ -179,13 +193,16 @@ A mail about new matches and group members' likes, sent with Resend by `scripts/
 
 Cleanup runs inside the database with pg_cron, so it does not depend on GitHub Actions. The jobs are listed in `setup-extras.sql`.
 
-The scraper, the avatar purge and the emails run as GitHub Actions. GitHub's schedule does not always fire, so pg_cron also starts each workflow through `dispatch_github_workflow()` (pg_net + the GitHub API, token in Vault). The scrape and avatar purge workflows skip themselves if they already succeeded in the last 12 hours. The email workflow has no such guard: `due_emails()` only returns users who have not been emailed today, so extra runs send nothing. Both triggers can therefore be active at once. No role may call `dispatch_github_workflow()`, not even `service_role`, because it reads a secret. It currently hardcodes the repository `ESengenbjerg/samboo` and the branch `develop`.
+The scraper, the avatar purge and the emails run as GitHub Actions. GitHub's schedule does not always fire, so pg_cron also starts each workflow through `dispatch_github_workflow()` (pg_net + the GitHub API, token in Vault). The scrape and avatar purge workflows skip themselves if they already succeeded in the last 12 hours. The email workflow has no such guard: `due_emails()` only returns users who have not been emailed today, so extra runs send nothing. Both triggers can therefore be active at once. No role may call `dispatch_github_workflow()`, not even `service_role`, because it reads a secret. The repository and branch are read from Vault too (`github_repo`, `github_branch`), so a fork sets its own values instead of editing the function. The branch must be the repository's default branch, the same one GitHub's schedule runs on, so both triggers run the same code.
 
 ## Realtime
 
-`invites` and `profiles` are in the `supabase_realtime` publication, so the other account updates immediately (for example, the inviter sees an accept or decline at once). Realtime only delivers rows the user can read under RLS.
+`invites`, `profiles` and `showings` are in the `supabase_realtime` publication, so other accounts update immediately (for example, the inviter sees an accept or decline at once, and group members see each other's showings). Realtime only delivers INSERT and UPDATE events for rows the user can read under RLS.
+
+DELETE events are not checked against RLS, because the row no longer exists. They go to every subscriber of the table and contain only the primary key (`old = { id }`). This leaks nothing beyond the id, but clients must ignore ids they do not know, or simply refetch on every event. `REPLICA IDENTITY FULL` would not help: with RLS on, `old` still contains only the primary key.
 
 ## Open points
 
-- `dispatch_github_workflow()` hardcodes the repository, so a fork's backup jobs dispatch to the wrong repo. Plan: read repo and branch from Vault.
+### Known issues
+
 - `listings.rooms` and `search_params.min_rooms`/`max_rooms` are `numeric(3,1)` (max 99.9), while the check constraints allow up to 100. A value of 100 fails with a numeric overflow instead of the check.

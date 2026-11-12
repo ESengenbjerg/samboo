@@ -3,9 +3,11 @@
 -- Why things are built this way: docs/database-design.md.
 --
 -- Not in this file, done by hand:
---   * Vault secret github_dispatch_token (GitHub fine-grained PAT, only this repo, Actions: read and write), used by
---     public.dispatch_github_workflow(). Without it the dispatch-* jobs below fail every run, and only GitHub's own schedule is left.
---     Create it in the SQL Editor, never in a file: select vault.create_secret('<token>', 'github_dispatch_token');
+--   * Vault secrets used by public.dispatch_github_workflow(). Without them the dispatch-* jobs below fail every run,
+--     and only GitHub's own schedule is left. Create them in the SQL Editor, never in a file:
+--       select vault.create_secret('<token>', 'github_dispatch_token');  -- GitHub fine-grained PAT, only this repo, Actions: read and write
+--       select vault.create_secret('<owner>/<repo>', 'github_repo');
+--       select vault.create_secret('<default branch>', 'github_branch');
 --   * Auth settings (SMTP, e-mail templates, redirect URLs): docs/email-setup.md
 --   * Reference data: node scripts/seed/places/seedPlaces.ts
 
@@ -103,11 +105,12 @@ select cron.schedule('purge-old-invites',         '30 3 * * *',   $$select publi
 select cron.schedule('purge-search-params-log',   '45 3 * * *',   $$select public.purge_search_params_log()$$);
 select cron.schedule('purge-old-showings',        '50 3 * * *',   $$select public.purge_old_showings()$$);
 select cron.schedule('purge-old-showing-events',  '55 3 * * *',   $$select public.purge_old_showing_events()$$);
+select cron.schedule('purge-old-scrape-runs',     '0 3 * * *',    $$select public.purge_old_scrape_runs()$$);
 select cron.schedule('purge-cron-history',        '0 4 * * *',    $$delete from cron.job_run_details where end_time < now() - interval '7 days'$$);
 
 -- Backups for GitHub's own schedule, which does not always fire. Scrape and avatar purge skip themselves if they already succeeded in the last 12 hours.
 -- The email workflow has no such guard: due_emails() only returns users who have not been emailed today.
 -- Need the Vault secret above.
-select cron.schedule('dispatch-scrape',           '20 4,6 * * *', $$select public.dispatch_github_workflow('scrape.yml')$$);
+select cron.schedule('dispatch-scrape',           '20 2,4 * * *', $$select public.dispatch_github_workflow('scrape.yml')$$);
 select cron.schedule('dispatch-purge-avatars',    '50 4,6 * * *', $$select public.dispatch_github_workflow('purge-avatars.yml')$$);
 select cron.schedule('dispatch-email',            '20 5,6 * * *', $$select public.dispatch_github_workflow('email.yml')$$);

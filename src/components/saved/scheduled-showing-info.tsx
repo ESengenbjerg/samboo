@@ -1,6 +1,7 @@
-import { useDeleteShowing } from "@/hooks/useDeleteShowing";
-import { useUpdateShowing } from "@/hooks/useUpdateShowing";
-import { ScheduledShowing } from "@/types/showings";
+import { useDeleteShowing } from "@/hooks/showings/useDeleteShowing";
+import { useSaveShowing } from "@/hooks/showings/useSaveShowing";
+import { useUpdateShowing } from "@/hooks/showings/useUpdateShowing";
+import { ScheduledShowing, ShowingValues } from "@/types/showings";
 import { toIsoDate } from "@/utils/date-format";
 import { goToObject } from "@/utils/go-to-object";
 import { googleMapsUrl } from "@/utils/google-maps-url";
@@ -45,14 +46,22 @@ export default function ScheduledShowingInfo({
   const {
     updateShowing,
     isUpdating,
+    isGone,
     error: updateError,
     clearError: clearUpdateError,
   } = useUpdateShowing();
 
+  const {
+    saveShowing,
+    isSaving,
+    error: saveError,
+    clearError: clearSaveError,
+  } = useSaveShowing();
   const { deleteShowing, isDeleting } = useDeleteShowing();
 
   function openEditDialog() {
     clearUpdateError(); // Clears error from last time
+    clearSaveError();
     onStartAction(); // Tells the parent to hide message from last action
     setEditDialogOpen(true);
   }
@@ -71,6 +80,16 @@ export default function ScheduledShowingInfo({
       values,
       toIsoDate(showing.startsAt),
     );
+
+    if (ok) {
+      setEditDialogOpen(false);
+      onUpdated(); // Tells the parent to fetch the list again
+    }
+  }
+
+  // The showing was deleted by someone else: save the typed values as a new one
+  async function onSaveAsNew(values: ShowingValues) {
+    const ok = await saveShowing(showing.listingId, values);
 
     if (ok) {
       setEditDialogOpen(false);
@@ -105,9 +124,7 @@ export default function ScheduledShowingInfo({
             })}
           >
             <Icon as={House} className="size-[18px]" />
-            <Text className="text-base font-sans-bold">
-              {showing.address}
-            </Text>
+            <Text className="text-base font-sans-bold">{showing.address}</Text>
           </Button>
           <View className="flex-row gap-2 items-center">
             <Icon as={Globe} size={18} />
@@ -185,9 +202,13 @@ export default function ScheduledShowingInfo({
         <SaveShowingDialog
           open={true}
           onOpenChange={() => setEditDialogOpen(false)}
-          onSave={(values) => onUpdate(showing.id, values)}
-          isSaving={isUpdating}
-          error={updateError}
+          onSave={
+            isGone ? onSaveAsNew : (values) => onUpdate(showing.id, values)
+          }
+          isSaving={isUpdating || isSaving}
+          error={isGone ? (saveError ?? updateError) : updateError}
+          title="Redigera visning"
+          saveLabel={isGone ? "Spara som ny visning" : "Spara ändringar"}
           initialDate={showing.startsAt}
           initialTime={showing.startsAt}
           initialNote={showing.note ?? ""}

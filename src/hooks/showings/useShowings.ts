@@ -1,4 +1,8 @@
-import { getPastShowings, getUpcomingShowings } from "@/services/showings";
+import {
+  getPastShowings,
+  getUpcomingShowings,
+  subscribeToShowings,
+} from "@/services/showings";
 import { ScheduledShowing, ShowingRow } from "@/types/showings";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
@@ -11,7 +15,7 @@ type ShowingsResult = {
 
 // showing_date ("2026-10-29") and start_time ("11:00:00" or null) are local time.
 // The Date is built from numbers, since parsing a string without time zone differs between engines
-function toScheduledShowing(row: ShowingRow): ScheduledShowing {
+export function toScheduledShowing(row: ShowingRow): ScheduledShowing {
   const [year, month, day] = row.showing_date.split("-").map(Number);
   const [hour, minute] = (row.start_time ?? "00:00").split(":").map(Number);
 
@@ -70,6 +74,15 @@ export function useShowings(
   // Reloads every time the screen comes into focus, so a showing saved on
   // another screen shows up when the user comes back to this one
   useFocusEffect(fetchShowings);
+
+  // Fetches again when a showing changes (e.g. a group member saves or deletes one)
+  // while the screen is in focus
+  useFocusEffect(
+    useCallback(
+      () => subscribeToShowings(() => void fetchShowings()),
+      [fetchShowings],
+    ),
+  );
 
   // Removes a showing from a list without fetching again.
   // Used after a delete that the server has already confirmed.

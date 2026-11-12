@@ -51,6 +51,6 @@ export function useListingTags(userId: string | undefined) {
     reload,
     listingTags: current?.listingTags ?? [],
     isLoading: !!userId && !current,
-    error: current?.failed ? "Kunde inte hämta kategorier." : null,
+    error: current?.failed ? "Kunde inte hämta taggar." : null,
   };
 }

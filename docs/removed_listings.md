@@ -65,6 +65,15 @@ Small scopes are not affected by the percentage. For example, if 2 of 3 listings
 - A row is closed automatically by the next complete run for the agency. A successful run closes both failed and suspicious rows. A suspicious run only closes open failed rows.
 - If the agency gets a new suspicious run while a suspicious row is open, the counter is raised. A suspicious case that is real, for example an agency that really takes everything down, must be acknowledged manually by an admin.
 
+## Run history (table `scrape_runs`)
+
+- Every run saves one row per agency, written by `scripts/scraper/runHistory.ts`: outcome (`ok`, `failed`, `suspicious`, `skipped`, `error`), reason, saved listings, failed pages and listings marked as removed.
+- The rows of one run share `run_started_at`. `github_run_id` points to the Actions log (`null` for a local run).
+- `skipped` means the agency had nothing to scrape in the scope. `error` is an unexpected error (a bug or a broken database call), which has no row in `scrape_issues`.
+- If the whole run has nothing to scrape (no searches), no rows are written.
+- A failed history save does not stop the run, but it makes the run fail (exit code 1) so it is noticed.
+- Rows are deleted after 90 days (`purge_old_scrape_runs()`, pg_cron).
+
 ## When the admin is notified
 
 | Problem | Notification |

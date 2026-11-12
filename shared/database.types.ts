@@ -16,6 +16,29 @@ export type Database = {
   }
   public: {
     Tables: {
+      admins: {
+        Row: {
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admins_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       api_rate_limit: {
         Row: {
           minute: string
@@ -368,6 +391,51 @@ export type Database = {
         }
         Relationships: []
       }
+      scrape_runs: {
+        Row: {
+          agency: string
+          failed_pages: number
+          finished_at: string
+          github_run_id: number | null
+          id: number
+          message: string | null
+          outcome: Database["public"]["Enums"]["scrape_run_outcome"]
+          reason: string | null
+          removed: number
+          run_started_at: string
+          saved: number
+          started_at: string
+        }
+        Insert: {
+          agency: string
+          failed_pages?: number
+          finished_at?: string
+          github_run_id?: number | null
+          id?: never
+          message?: string | null
+          outcome: Database["public"]["Enums"]["scrape_run_outcome"]
+          reason?: string | null
+          removed?: number
+          run_started_at: string
+          saved?: number
+          started_at: string
+        }
+        Update: {
+          agency?: string
+          failed_pages?: number
+          finished_at?: string
+          github_run_id?: number | null
+          id?: never
+          message?: string | null
+          outcome?: Database["public"]["Enums"]["scrape_run_outcome"]
+          reason?: string | null
+          removed?: number
+          run_started_at?: string
+          saved?: number
+          started_at?: string
+        }
+        Relationships: []
+      }
       search_params: {
         Row: {
           areas: string[]
@@ -606,6 +674,7 @@ export type Database = {
         Row: {
           created_at: string
           id: number
+          in_search: boolean
           is_new: boolean
           liked: boolean
           liked_at: string | null
@@ -615,6 +684,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: number
+          in_search?: boolean
           is_new?: boolean
           liked?: boolean
           liked_at?: string | null
@@ -624,6 +694,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: number
+          in_search?: boolean
           is_new?: boolean
           liked?: boolean
           liked_at?: string | null
@@ -682,6 +753,65 @@ export type Database = {
     }
     Functions: {
       accept_invite: { Args: { invite_id: number }; Returns: Json }
+      admin_find_user: {
+        Args: { p_email: string }
+        Returns: {
+          created_at: string
+          email: string
+          email_confirmed: boolean
+          id: string
+          is_active: boolean
+          is_admin: boolean
+          last_sign_in_at: string
+          name: string
+        }[]
+      }
+      admin_list_users: {
+        Args: never
+        Returns: {
+          created_at: string
+          email: string
+          email_confirmed: boolean
+          id: string
+          is_active: boolean
+          is_admin: boolean
+          last_sign_in_at: string
+          name: string
+        }[]
+      }
+      admin_open_issues: {
+        Args: never
+        Returns: {
+          agency: string
+          description: string
+          details: Json
+          first_seen_at: string
+          id: number
+          kind: Database["public"]["Enums"]["scrape_issue_kind"]
+          last_seen_at: string
+          notified_at: string
+          occurrences: number
+          reason: string
+        }[]
+      }
+      admin_scrape_status: {
+        Args: never
+        Returns: {
+          active_listings: number
+          agency: string
+          last_message: string
+          last_ok_at: string
+          last_outcome: Database["public"]["Enums"]["scrape_run_outcome"]
+          last_reason: string
+          last_run_at: string
+          last_seen_at: string
+          open_issues: number
+        }[]
+      }
+      admin_set_user_active: {
+        Args: { p_active: boolean; p_user_id: string }
+        Returns: undefined
+      }
       can_see_listing: { Args: { p_listing_id: number }; Returns: boolean }
       cancel_invite: { Args: { invite_id: number }; Returns: undefined }
       check_request: { Args: never; Returns: undefined }
@@ -706,6 +836,7 @@ export type Database = {
       has_new_notifications: { Args: never; Returns: boolean }
       in_my_group: { Args: { target: string }; Returns: boolean }
       is_active_user: { Args: never; Returns: boolean }
+      is_admin: { Args: never; Returns: boolean }
       leave_group: { Args: never; Returns: undefined }
       like_listing: { Args: { p_listing_id: number }; Returns: undefined }
       mark_listing_seen: { Args: { p_listing_id: number }; Returns: undefined }
@@ -764,6 +895,7 @@ export type Database = {
         }[]
       }
       purge_old_invites: { Args: never; Returns: number }
+      purge_old_scrape_runs: { Args: never; Returns: number }
       purge_old_showing_events: { Args: never; Returns: number }
       purge_old_showings: { Args: never; Returns: number }
       purge_rate_limit_counters: { Args: never; Returns: number }
@@ -819,6 +951,7 @@ export type Database = {
         | "other"
       scrape_issue_kind: "failed" | "suspicious"
       scrape_issue_status: "open" | "resolved"
+      scrape_run_outcome: "ok" | "failed" | "suspicious" | "skipped" | "error"
       showing_event_action: "created" | "updated" | "deleted"
     }
     CompositeTypes: {
@@ -959,6 +1092,7 @@ export const Constants = {
       ],
       scrape_issue_kind: ["failed", "suspicious"],
       scrape_issue_status: ["open", "resolved"],
+      scrape_run_outcome: ["ok", "failed", "suspicious", "skipped", "error"],
       showing_event_action: ["created", "updated", "deleted"],
     },
   },

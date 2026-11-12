@@ -5,17 +5,17 @@ import ScheduleShowingSection from "@/components/object-page/schedule-showing-se
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
+import { useSession } from "@/hooks/auth/useSession";
+import { useSaveTag } from "@/hooks/tags/useSaveTag";
+import { useUserTags } from "@/hooks/tags/useUserTags";
 import { useListing } from "@/hooks/useListing";
 import { useListingTags } from "@/hooks/useListingTags";
 import { useMarkListingSeen } from "@/hooks/useMarkListingSeen";
-import { useSaveTag } from "@/hooks/useSaveTag";
-import { useSession } from "@/hooks/useSession";
-import { useUserTags } from "@/hooks/useUserTags";
 import { Listing } from "@/types/listing";
+import handleBack from "@/utils/handle-back";
 import { isNewConstruction } from "@/utils/is-new-construction";
 import { formatPrice } from "@shared/format";
 import { Image } from "expo-image";
-import { router } from "expo-router";
 import { PlusSquare } from "lucide-react-native";
 import { useState } from "react";
 import { Linking, Pressable, ScrollView, View } from "react-native";
@@ -82,9 +82,8 @@ export default function ObjectPageScreen({
     error: listingTagsError,
   } = useListingTags(userId);
   const {
-    createTag,
-    applyTag,
     unapplyTag,
+    saveCategorization,
     isSaving: isSavingTag,
     error: saveTagError,
     clearError,
@@ -111,38 +110,34 @@ export default function ObjectPageScreen({
         .map((lt) => lt.user_tag_id)
     : [];
 
-  // Called by the dialog when the user adds a new category.
-  // Returns the new category (or null on failure) so the dialog can select it
-  async function handleCreateTag(name: string) {
-    if (!userId) return null;
-
-    const tag = await createTag(userId, name);
-    if (tag) reloadTags();
-    return tag;
-  }
-
-  // Called by the dialog with the final list of selected category ids, and the ids the
-  // dialog was opened with. Only the user's own changes are sent to the database.
-  async function handleSave(selectedIds: number[], initialIds: number[]) {
-    if (!userListing) return;
+  // Called by the dialog with the selected category ids, the ids the dialog was opened
+  //with, and the names of new categories. New categories are created here, on save
+  async function handleSave(
+    selectedIds: number[],
+    initialIds: number[],
+    newNames: string[],
+  ) {
+    if (!userId || !userListing) return;
     setIsSaving(true);
+    try {
+      const ok = await saveCategorization({
+        userId,
+        userListingId: userListing.id,
+        existingTags: tags,
+        selectedIds,
+        initialIds,
+        newNames,
+      });
 
-    // Selected in the dialog but not selected when it was opened
-    const toAdd = selectedIds.filter((id) => !initialIds.includes(id));
-    // Selected when the dialog was opened but removed in the dialog
-    const toRemove = initialIds.filter((id) => !selectedIds.includes(id));
+      // Always fetch again, also on failure: some tags might have been created before it failed
+      reloadTags();
+      reloadListingTags();
 
-    // Run all changes in parallel. Each call returns true on success
-    const results = await Promise.all([
-      ...toAdd.map((id) => applyTag(id, userListing.id)),
-      ...toRemove.map((id) => unapplyTag(id, userListing.id)),
-    ]);
-
-    // Fetch again so the tags on the page match the database
-    reloadListingTags();
-    // Keep the dialog open if something failed, so the error is visible
-    if (results.every(Boolean)) setCategoriesDialogOpen(false);
-    setIsSaving(false);
+      // Keep the dialog open if something failed, so error is visible
+      if (ok) setCategoriesDialogOpen(false);
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   // Removes one category from this listing directly, without opening the dialog
@@ -177,7 +172,7 @@ export default function ObjectPageScreen({
     return (
       <View className="flex-1 px-8 py-6 gap-6 bg-background justify-center items-center ">
         <Text>Kunde inte hitta objekt.</Text>
-        <Button className="w-36" onPress={() => router.back()}>
+        <Button className="w-36" onPress={handleBack}>
           <Text>Tillbaka</Text>
         </Button>
       </View>
@@ -185,11 +180,7 @@ export default function ObjectPageScreen({
 
   return (
     <View className="flex-1 bg-background">
-      <Button
-        className="justify-start"
-        variant="link"
-        onPress={() => router.back()}
-      >
+      <Button className="justify-start" variant="link" onPress={handleBack}>
         <Text>Tillbaka</Text>
       </Button>
       <ScrollView
@@ -234,7 +225,7 @@ export default function ObjectPageScreen({
                 onPress={openCategoriesDialog}
                 className="flex-row justify-start items-center gap-1 w-[50%]"
               >
-                <Text variant="bold">Kategorisera</Text>
+                <Text variant="bold">Lägg till taggar</Text>
                 <Icon as={PlusSquare} size={18} />
               </Pressable>
             )}
@@ -259,7 +250,6 @@ export default function ObjectPageScreen({
               onOpenChange={closeCategoriesDialog}
               categories={tags}
               selectedIds={appliedTagIds}
-              onCreateCategory={handleCreateTag}
               onSave={handleSave}
               isSaving={saving}
               error={saveTagError}

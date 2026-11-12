@@ -24,11 +24,18 @@ import ShowingDateTimeFields from "./showing-date-time-fields";
 type SaveShowingDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  // Called when the user presses "Spara visning". The parent saves and closes the dialog.
+  // Called when the user presses the save button. The parent saves and closes the dialog.
   // date is "2027-01-15", time is "11:00" or "" if no start time
   onSave: (values: { date: string; time: string; note: string }) => void;
   isSaving: boolean;
   error: string | null;
+  // Heading and save button text. Default to "Spara visning", set when editing
+  title?: string;
+  saveLabel?: string;
+  // Set when saving failed because the listing already has a showing. Shows a
+  // "Ändra befintlig visning" button under the error, as the way forward
+  onEditExisting?: () => void;
+  // Start values when editing a showing. Without them the dialog starts on today at 12:00
   initialDate?: Date;
   initialTime?: Date;
   initialNote?: string;
@@ -40,11 +47,14 @@ export function SaveShowingDialog({
   onSave,
   isSaving,
   error,
+  title = "Spara visning",
+  saveLabel = "Spara visning",
+  onEditExisting,
   initialDate,
   initialTime,
   initialNote,
 }: SaveShowingDialogProps) {
-  // Starts on today, the user picks the real date
+  // Only read when the dialog mounts: initial values when editing, otherwise today at 12:00
   const [date, setDate] = useState(initialDate ?? startOfToday);
   const [time, setTime] = useState(initialTime ?? defaultShowingTime);
   const [note, setNote] = useState(initialNote ?? "");
@@ -55,7 +65,7 @@ export function SaveShowingDialog({
       <DialogContent>
         
           <DialogHeader>
-            <DialogTitle className="pb-6">Spara visning</DialogTitle>
+            <DialogTitle className="pb-6">{title}</DialogTitle>
           </DialogHeader>
 
           <ScrollView
@@ -86,6 +96,12 @@ export function SaveShowingDialog({
 
             {error && <FormError>{error}</FormError>}
 
+            {onEditExisting && (
+              <Button variant="outline" onPress={onEditExisting}>
+                <Text>Ändra befintlig visning</Text>
+              </Button>
+            )}
+
             <DialogFooter className="flex-col gap-6 pt-6">
               <Button
                 onPress={() =>
@@ -97,7 +113,7 @@ export function SaveShowingDialog({
                 }
                 disabled={isSaving}
               >
-                <Text>{isSaving ? "Sparar..." : "Spara visning"}</Text>
+                <Text>{isSaving ? "Sparar..." : saveLabel}</Text>
               </Button>
             </DialogFooter>
           </ScrollView>

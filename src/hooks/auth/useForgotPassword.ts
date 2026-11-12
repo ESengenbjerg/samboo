@@ -1,4 +1,5 @@
 import { requestPasswordReset } from "@/services/auth";
+import { authErrorMessage } from "@/utils/error-message/auth-error-message";
 import { isValidEmail } from "@shared/email";
 import { useCallback, useState } from "react";
 
@@ -27,11 +28,7 @@ export function useForgotPassword() {
 
         if (error) {
           console.log("Reset password error:", error);
-          setError(
-            error.code === "over_email_send_rate_limit"
-              ? "För många försök. Vänta en stund och försök igen."
-              : "Något gick fel, försök igen.",
-          );
+          setError(authErrorMessage(error));
           return false;
         }
 

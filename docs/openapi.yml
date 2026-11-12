@@ -51,6 +51,7 @@ tags:
   - name: Showings
   - name: Tags
   - name: Notifications
+  - name: Admin
 
 paths:
   # ---------------------------------------------------------------------
@@ -423,6 +424,132 @@ paths:
               schema: { $ref: '#/components/schemas/Error' }
         '429': { $ref: '#/components/responses/RateLimited' }
 
+  /rpc/is_admin:
+    get:
+      tags: [Admin]
+      summary: Am I an admin?
+      description: |
+        `true` if I am an active user with a row in `admins`. Use it to decide whether to show the admin view.
+        Only for showing or hiding the view: every admin function checks it again in the database.
+        Admins are added in the Dashboard, never by the app. Must be called with GET (STABLE), see the common rules.
+      operationId: is_admin
+      responses:
+        '200':
+          description: '`true` or `false`. Also `false` for an inactive or unconfirmed user.'
+          content:
+            application/json:
+              schema: { type: boolean }
+
+  /rpc/admin_scrape_status:
+    get:
+      tags: [Admin]
+      summary: Scraper status per agency
+      description: |
+        One row per agency (from run history, listings and open issues), sorted by agency.
+        Admin only. Must be called with GET (STABLE), see the common rules.
+      operationId: admin_scrape_status
+      responses:
+        '200':
+          description: The agencies.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AgencyStatus' }
+        '403': { $ref: '#/components/responses/NotAdmin' }
+
+  /rpc/admin_open_issues:
+    get:
+      tags: [Admin]
+      summary: Open scrape issues
+      description: |
+        Every open row in `scrape_issues`, oldest first. An agency can have one open `failed` and one open `suspicious`
+        issue at the same time. Show `description` to the product owner, not `reason`.
+        Admin only. Must be called with GET (STABLE), see the common rules.
+      operationId: admin_open_issues
+      responses:
+        '200':
+          description: The open issues, an empty list if there are none.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ScrapeIssue' }
+        '403': { $ref: '#/components/responses/NotAdmin' }
+
+  /rpc/admin_list_users:
+    get:
+      tags: [Admin]
+      summary: All users
+      description: |
+        Every user, newest first, with e-mail and status. Not used by the app: the admin view uses `admin_find_user` instead.
+        Admin only. Must be called with GET (STABLE), see the common rules.
+      operationId: admin_list_users
+      responses:
+        '200':
+          description: The users.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AdminUser' }
+        '403': { $ref: '#/components/responses/NotAdmin' }
+
+  /rpc/admin_find_user:
+    get:
+      tags: [Admin]
+      summary: Find one user by e-mail
+      description: |
+        The user with exactly this e-mail, ignoring case and surrounding spaces. Part of an address finds nothing,
+        so the admin cannot browse addresses. Use it before `admin_set_user_active`, so the admin sees who the account belongs to.
+        Admin only. Must be called with GET (STABLE), see the common rules.
+      operationId: admin_find_user
+      parameters:
+        - name: p_email
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: One user, or an empty list if no user has the address.
+          content:
+            application/json:
+              schema:
+                type: array
+                maxItems: 1
+                items: { $ref: '#/components/schemas/AdminUser' }
+        '403': { $ref: '#/components/responses/NotAdmin' }
+
+  /rpc/admin_set_user_active:
+    post:
+      tags: [Admin]
+      summary: Block or unblock a user
+      description: |
+        Sets `profiles.is_active`. Takes effect on the user's next request: `is_active_user()` is false, so RLS blocks
+        everything, no e-mails are sent, and an admin loses admin rights. An already issued JWT stays valid until it expires,
+        but it reaches nothing. The e-mail address stays taken, so the person cannot sign up again with it.
+        Admin only.
+      operationId: admin_set_user_active
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [p_user_id, p_active]
+              properties:
+                p_user_id: { type: string, format: uuid }
+                p_active: { type: boolean, description: '`false` blocks, `true` unblocks' }
+      responses:
+        '200': { $ref: '#/components/responses/VoidOk' }
+        '400':
+          description: '`Du kan inte spärra dig själv` or `Användaren finns inte`.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '403': { $ref: '#/components/responses/NotAdmin' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
   # ---------------------------------------------------------------------
   # Tables
   # ---------------------------------------------------------------------
@@ -597,6 +724,7 @@ paths:
       description: |
         Use `select=*,listings(*)` to get the listing in the same request. Filter on `user_id` for only mine.
         A match is kept when the user has liked or tagged the listing, even if the search no longer fits.
+        Add `in_search=eq.true` for the search feed: only listings that match my current search.
       operationId: user_listings_select
       responses:
         '200':
@@ -798,7 +926,7 @@ paths:
     post:
       tags: [Tags]
       summary: Create a tag
-      description: '`user_id` must be my id. `tag_name` is 1-100 characters, not only whitespace, and unique per user (otherwise 409). At most 30 tags per user.'
+      description: '`user_id` must be my id. `tag_name` is 1-20 characters, not only whitespace, and unique per user (otherwise 409). At most 30 tags per user.'
       operationId: user_tags_insert
       requestBody:
         required: true
@@ -809,7 +937,7 @@ paths:
               required: [user_id, tag_name]
               properties:
                 user_id: { type: string, format: uuid }
-                tag_name: { type: string, minLength: 1, maxLength: 100, pattern: '\S' }
+                tag_name: { type: string, minLength: 1, maxLength: 20, pattern: '\S' }
       responses:
         '201': { description: Created. }
         '400':
@@ -830,7 +958,7 @@ paths:
             schema:
               type: object
               properties:
-                tag_name: { type: string, minLength: 1, maxLength: 100, pattern: '\S' }
+                tag_name: { type: string, minLength: 1, maxLength: 20, pattern: '\S' }
       responses:
         '204': { description: Updated. }
         '400':
@@ -918,6 +1046,12 @@ components:
               code: { type: string, example: rate_limited }
               message: { type: string, example: 'Too many requests, try again in a moment' }
 
+    NotAdmin:
+      description: '`Endast för administratörer` (code `42501`). The caller is not an active admin.'
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
   schemas:
     Error:
       type: object
@@ -963,6 +1097,47 @@ components:
         showing_date: { type: string, format: date, description: 'The date after the change (before it for deleted)' }
         start_time: { type: string, format: time, nullable: true, example: '17:30:00' }
         is_unseen: { type: boolean, description: Newer than my notifications_seen_at }
+
+    AgencyStatus:
+      type: object
+      properties:
+        agency: { type: string }
+        last_run_at: { type: string, format: date-time, nullable: true, description: 'Start of the latest run for the agency. `null` if no run is in the history (kept 90 days)' }
+        last_outcome: { type: string, enum: [ok, failed, suspicious, skipped, error], nullable: true, description: Postgres enum `public.scrape_run_outcome` }
+        last_reason: { type: string, nullable: true, description: 'F1–F4 or mass_removal, `null` for ok, skipped and error' }
+        last_message: { type: string, nullable: true, description: Technical message from the scraper (English) }
+        last_ok_at: { type: string, format: date-time, nullable: true, description: End of the latest run with outcome ok }
+        active_listings: { type: integer, description: Listings without removed_at }
+        last_seen_at: { type: string, format: date-time, nullable: true, description: When the scraper last saw any of the agency's listings }
+        open_issues: { type: integer, description: 'Open rows in scrape_issues (0–2)' }
+
+    AdminUser:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        email: { type: string }
+        created_at: { type: string, format: date-time }
+        last_sign_in_at: { type: string, format: date-time, nullable: true }
+        email_confirmed: { type: boolean }
+        is_active: { type: boolean, description: '`false` = blocked' }
+        is_admin: { type: boolean }
+
+    ScrapeIssue:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        agency: { type: string }
+        kind: { type: string, enum: [failed, suspicious], description: Postgres enum `public.scrape_issue_kind` }
+        reason: { type: string, description: 'F1–F4 or mass_removal' }
+        description: { type: string, description: Plain Swedish explanation for the product owner }
+        details:
+          type: object
+          description: 'From the scraper: `message`, and depending on the reason `failedUrls`, `missingUrls` (max 20 each), `active`, `missing`'
+        occurrences: { type: integer, description: Runs in a row with this problem }
+        first_seen_at: { type: string, format: date-time }
+        last_seen_at: { type: string, format: date-time }
+        notified_at: { type: string, format: date-time, nullable: true, description: 'When the GitHub alert was raised, `null` if not yet' }
 
     ProfileUpdate:
       type: object
@@ -1049,6 +1224,7 @@ components:
         is_new: { type: boolean, description: 'true until the user has opened the listing page or liked it. A new match for a listing the user has already opened starts as false. Only says something about my own rows: use my_new_listing_ids for the "NEW" flag in every list' }
         liked: { type: boolean }
         liked_at: { type: string, format: date-time, nullable: true, description: When liked last became true. Set by the database, read-only }
+        in_search: { type: boolean, description: 'true when the listing matches my current search. false for rows kept because they are liked, tagged or removed, and for rows created by liking a group member''s listing. Set by match_user_listings(), read-only. The search feed shows only true' }
 
     Listing:
       type: object

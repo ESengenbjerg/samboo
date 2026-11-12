@@ -12,3 +12,17 @@ export type ListingTag = Pick<
   // so my tags also apply in a group member's list and in the shared list
   user_listings: Pick<Tables<"user_listings">, "listing_id">;
 };
+
+// Everything needed to save the categorization dialog in one go
+export type SaveCategorizationInput = {
+  userId: string;
+  // user_listings.id of the listing being categorized
+  userListingId: number;
+  // My tags as currently loaded. Used to reuse a tag if it already exists
+  existingTags: UserTag[];
+  // The tag ids selected in the dialog, and the ones it was opened with
+  selectedIds: number[];
+  initialIds: number[];
+  // Names typed in the dialog that are not created yet
+  newNames: string[];
+};

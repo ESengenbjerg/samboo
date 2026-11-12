@@ -1,6 +1,6 @@
 import { ALL_VALUE, PROPERTY_TYPES_OPTIONS } from "@/constants/filter-options";
+import { useUserTags } from "@/hooks/tags/useUserTags";
 import { useListingTags } from "@/hooks/useListingTags";
-import { useUserTags } from "@/hooks/useUserTags";
 import { Listing } from "@/types/listing";
 import { SelectOption } from "@/types/select-option";
 import { useMemo, useState } from "react";
@@ -22,21 +22,30 @@ export function useFilteredListings(
   const [selectedType, setPropertyType] = useState<SelectOption>();
   const [selectedCategory, setCategory] = useState<SelectOption>();
 
-  // Only worth filtering when there is more than one option to choose between
-  const showCategoryFilter = tags.length > 1;
-
   // Only the property types that exist among the listings
   // string: compared with the options' values, which are plain strings
-  const listingTypes = new Set<string | null>(listings.map((l) => l.property_type));
+  const listingTypes = new Set<string | null>(
+    listings.map((l) => l.property_type),
+  );
   const propertyTypeOptions = PROPERTY_TYPES_OPTIONS.filter((o) =>
     listingTypes.has(o.value),
   );
   const showPropertyTypeFilter = propertyTypeOptions.length > 1;
 
-  const tagOptions: SelectOption[] = tags.map((t) => ({
-    value: String(t.id),
-    label: t.tag_name,
-  }));
+  // Only my tags that are on at least one listing in this list. Matching on listings.id,
+  // like the filter below, so it also works in a group member's list and the shared list
+  const listingIds = new Set(listings.map((l) => l.id));
+  const usedTagIds = new Set(
+    listingTags
+      .filter((lt) => listingIds.has(lt.user_listings?.listing_id))
+      .map((lt) => lt.user_tag_id),
+  );
+  const tagOptions: SelectOption[] = tags
+    .filter((t) => usedTagIds.has(t.id))
+    .map((t) => ({ value: String(t.id), label: t.tag_name }));
+
+  // Nothing to filter on until at least one tag is used in this list
+  const showCategoryFilter = tagOptions.length > 0;
 
   // A choice only counts while its filter is visible and still offers that option.
   // Otherwise it would filter invisibly, with no way for the user to reset it

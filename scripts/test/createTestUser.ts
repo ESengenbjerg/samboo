@@ -1,28 +1,26 @@
-// This file aims to create a user
+// Create a test user via the Auth Admin API
+// The on_auth_user_created trigger creates the matching row in profiles
 
-// Create a seed user via the Auth Admin API
-// The on_auth_user_created triger creates the matching row in profiles
-
-// Fetch seed user credentials
+// Fetch test user credentials
 process.loadEnvFile(".env");
 
 // Fetch DB connection
 const { supabaseAdmin } = await import("../lib/supabaseAdmin.ts");
 
-const seedUsers = [
+const testUsers = [
   {
-    email: process.env.SEED_USER_EMAIL,
-    password: process.env.SEED_USER_PASSWORD,
+    email: process.env.TEST_USER_EMAIL,
+    password: process.env.TEST_USER_PASSWORD,
     name: "Admin",
   },
   {
-    email: process.env.SEED_USER2_EMAIL,
-    password: process.env.SEED_USER2_PASSWORD,
+    email: process.env.TEST_USER2_EMAIL,
+    password: process.env.TEST_USER2_PASSWORD,
     name: "User2",
   },
 ];
 
-for (const { email, password, name } of seedUsers) {
+for (const { email, password, name } of testUsers) {
   if (!email || !password) {
     console.error(`Missing email or password for ${name} in dotenv`);
     process.exitCode = 1;

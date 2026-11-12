@@ -91,7 +91,7 @@ function DialogContent({
         >
           <DialogPrimitive.Content
             className={cn(
-              "bg-card border-border z-50 mx-auto flex w-full max-w-[calc(100%-2rem)] flex-col gap-4 rounded-lg border p-8 shadow-lg shadow-black/5 sm:max-w-lg",
+              "bg-card border-border z-50 mx-auto flex w-[80vw] max-w-lg flex-col gap-4 rounded-lg border p-8 shadow-lg shadow-black/5",
               Platform.select({
                 web: "animate-in fade-in-0 zoom-in-95 duration-200",
               }),
@@ -102,7 +102,9 @@ function DialogContent({
             <>{children}</>
             <DialogPrimitive.Close
               className={cn(
-                "absolute right-4 top-4 rounded-sm opacity-70 active:opacity-100",
+                // p-3.5 gives a 44px hit area on web, where hitSlop has no effect.
+                // right-0.5/top-0.5 + p-3.5 keeps the icon where right-4/top-4 put it
+                "absolute right-0.5 top-0.5 p-3.5 rounded-sm opacity-70 active:opacity-100",
                 Platform.select({
                   web: "ring-offset-background focus:ring-ring data-[state=open]:bg-accent transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-offset-2",
                 }),

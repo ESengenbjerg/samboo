@@ -10,8 +10,8 @@ export const EMAIL_MAX_LENGTH = 254;
 // profiles_name_length: 1-100 characters
 export const NAME_MAX_LENGTH = 100;
 
-// user_tags_name_length: 1-100 characters
-export const TAG_NAME_MAX_LENGTH = 100;
+// user_tags_name_length: 1-20 characters
+export const TAG_NAME_MAX_LENGTH = 20;
 
 // showings_note_length
 export const SHOWING_NOTE_MAX_LENGTH = 500;
@@ -31,3 +31,6 @@ export const MAX_AREAS = 200;
 
 // Supabase Auth's cooldown between e-mails to the same address (an Auth setting, not in schema.sql)
 export const RESEND_CODE_INTERVAL_SECONDS = 60;
+
+// Supabase Auth's minimum password length (an Auth setting, not in schema.sql). No character rules
+export const PASSWORD_MIN_LENGTH = 6;

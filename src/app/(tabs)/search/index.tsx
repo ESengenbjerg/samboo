@@ -1,6 +1,6 @@
 import ListingsFeed from "@/components/listings-feed";
+import { useSession } from "@/hooks/auth/useSession";
 import { useListings } from "@/hooks/useListings";
-import { useSession } from "@/hooks/useSession";
 
 export default function SearchScreen() {
   const { session } = useSession();
@@ -8,12 +8,13 @@ export default function SearchScreen() {
 
   return (
     <ListingsFeed
-      title={"Filtrerad sökning"}
+      title={"Din bevakning"}
       listings={listings}
       path={"/search/object/[id]"}
       isLoading={isLoading}
       error={error}
       showUpdateFilter
+      emptyMessage="Vi letar efter bostäder som matchar din bevakning. Nya objekt dyker upp här."
     />
   );
 }

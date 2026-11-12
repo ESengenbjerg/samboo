@@ -8,8 +8,9 @@ type AvatarPublicInfoProps = {
 export default function AvatarPublicInfo({ location }: AvatarPublicInfoProps) {
   return (
     <Text variant="small">
-      Din profilbild är offentlig. Alla som besöker din profil kan se och spara
-      bilden. Du kan när som helst byta eller ta bort bilden
+      Konton du kopplar ihop dig med ser din profilbild. Bilden sparas med en
+      öppen länk, så den som får tag på länken kan också se den. Du kan när som
+      helst byta eller ta bort bilden
       {location ? ` under ${location}` : ""}.
     </Text>
   );

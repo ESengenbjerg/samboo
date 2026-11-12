@@ -1,32 +1,18 @@
 import { Icon } from "@/components/ui/icon";
 import { useNotificationDot } from "@/hooks/useNotificationDot";
-import { signOut } from "@/services/auth";
 import { Image } from "expo-image";
 import { Link, router } from "expo-router";
-import { Bell, LogOut, ShieldCheck } from "lucide-react-native";
+import { Bell, ShieldCheck } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PrivacyDialog } from "./modals/privacy-dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
-import { Text } from "./ui/text";
+import SignOutMenu from "./sign-out-menu";
 
 export default function Header() {
-  const [isLoading, setIsLoading] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const insets = useSafeAreaInsets();
   const { showDot } = useNotificationDot();
-  const contentInsets = {
-    top: insets.top,
-    bottom: insets.bottom,
-    left: 0,
-    right: 4,
-  };
 
   return (
     <>
@@ -67,24 +53,7 @@ export default function Header() {
               )}
             </View>
           </Pressable>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Pressable hitSlop={12} role="button" aria-label="Din profil">
-                <Icon as={LogOut} size={24} />
-              </Pressable>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent insets={contentInsets} align="end">
-              <DropdownMenuItem
-                onPress={async () => {
-                  setIsLoading(true);
-                  const { error } = await signOut();
-                  if (error) setIsLoading(false);
-                }}
-              >
-                <Text>{!isLoading ? "Logga ut" : "Loggar ut..."}</Text>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <SignOutMenu />
         </View>
       </View>
       <PrivacyDialog open={privacyOpen} onOpenChange={setPrivacyOpen} />

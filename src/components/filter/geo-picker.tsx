@@ -36,6 +36,13 @@ function labelOf(location: Municipality | Area) {
   return ("display_name" in location && location.display_name) || location.name;
 }
 
+function normalize(text: string) {
+  return text
+    .toLocaleLowerCase("sv")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
 type GeoPickerProps = {
   locations: (Municipality | Area)[];
   locationType: "municipality" | "area";
@@ -58,15 +65,15 @@ export default function GeoPicker({
   const isFull = selected.length >= config.max;
 
   // Matches anywhere in the label, labels starting with the query first
-  const search = query.trim().toLocaleLowerCase("sv");
+  const search = normalize(query.trim());
   const startsWithSearch = (l: Municipality | Area) =>
-    labelOf(l).toLocaleLowerCase("sv").startsWith(search);
+    normalize(labelOf(l)).startsWith(search);
   const suggestions = search
     ? locations
         .filter(
           (l) =>
             !selected.includes(l.name) &&
-            labelOf(l).toLocaleLowerCase("sv").includes(search),
+            normalize(labelOf(l)).includes(search),
         )
         .sort(
           (a, b) => Number(startsWithSearch(b)) - Number(startsWithSearch(a)),
@@ -125,6 +132,19 @@ export default function GeoPicker({
             ))}
           </View>
         )}
+
+        {/* If 0 suggestions */}
+        {search && suggestions.length === 0 ? (
+          <View className="absolute top-full left-0 right-0 mt-1 rounded-sm border border-input bg-background shadow-md z-10">
+            <Text>{`Inga träffar för "${query.trim()}".`}</Text>
+            {locationType === "area" ? (
+              <Text>
+                Prova ett större område eller lämna tomt fält för att söka i
+                hela kommunen.
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
       </View>
 
       {/* Selected */}

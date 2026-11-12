@@ -1,3 +1,6 @@
+import { useSession } from "@/hooks/auth/useSession";
+import { useAnswerInvite } from "@/hooks/useAnswerInvite";
+import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
 import { getCurrentUser } from "@/services/auth";
 import {
   createInvite,
@@ -7,24 +10,44 @@ import {
 import { saveOnboarding } from "@/services/onboarding";
 import { useOnboardingStore } from "@/stores/onboarding";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { View } from "react-native";
 import FormError from "../form-error";
-import FormMessage from "../form-message";
 import { SendInviteDialog } from "../modals/send-invite-dialog";
 import { Button } from "../ui/button";
 import { Text } from "../ui/text";
 
-export default function ConnectAccountForm() {
+type ConnectAccountFormProps = {
+  // Called when the "Inbjudan skickad" screen is shown. Everything is saved then,
+  // so the screen hides "Tillbaka"
+  onInviteSent?: () => void;
+};
+
+export default function ConnectAccountForm({
+  onInviteSent,
+}: ConnectAccountFormProps) {
   // TODO: setError will be used once Supabase implementation is complete
   const [isLoading, setIsLoading] = useState(false);
+  const inFlight = useRef(false);
+  const saved = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [invitationDialogOpen, setInvitationDialogOpen] = useState(false);
   const [inviteSent, setInviteSent] = useState(false);
   const completeOnboarding = useOnboardingStore((s) => s.completeOnboarding);
 
+  // Invites to me, so an invited partner can accept instead of inviting back.
+  // The database allows answering before onboarding is completed
+  const { session } = useSession();
+  const accounts = useConnectedAccounts(session?.user.id);
+  const { receivedInvites, isSubmitting, actionError } = accounts;
+  const { answeredInvite, answeredFromName, onAnswer } =
+    useAnswerInvite(accounts);
+
   async function finish() {
     setError(null);
+    if (saved.current === true) {
+      return true;
+    }
     setIsLoading(true);
 
     try {
@@ -52,6 +75,8 @@ export default function ConnectAccountForm() {
         clientFilter,
         informationInterval,
       );
+      // A retry after a failed invite must not save everything again
+      saved.current = true;
 
       // Everything is sabed. Tge caller decides when the user is moved to /search
       return true;
@@ -64,8 +89,24 @@ export default function ConnectAccountForm() {
     }
   }
 
+  // Blocks double taps: isLoading is set after an await, too late to stop a second tap.
+  // finally releases the lock on every exit, including the early returns
+  async function withLock<T>(blocked: T, action: () => Promise<T>) {
+    if (inFlight.current) return blocked;
+    inFlight.current = true;
+    try {
+      return await action();
+    } finally {
+      inFlight.current = false;
+    }
+  }
+
+  function onInvite(emails: string[]) {
+    return withLock(emails, () => sendInvites(emails));
+  }
+
   // Save onboarding, then send invites to other users
-  async function onInvite(emails: string[]) {
+  async function sendInvites(emails: string[]) {
     // Check all before saving or sending anything
     const validationError = validateInviteEmails(emails);
 
@@ -110,19 +151,48 @@ export default function ConnectAccountForm() {
     }
 
     if (lastError) {
-      setError(lastError);
+      // Only reached after finish() succeeded, so the profile is saved
+      setError(`${lastError} Din profil och bevakning är sparade.`);
       return failed;
     }
 
     // All invites sent: close dialog and show success view
     setInvitationDialogOpen(false);
     setInviteSent(true);
+    onInviteSent?.();
     return [];
   }
 
-  async function onSkip() {
-    const finished = await finish();
-    if (finished) completeOnboarding();
+  function onSkip() {
+    return withLock(undefined, async () => {
+      const finished = await finish();
+      if (finished) completeOnboarding();
+    });
+  }
+
+  // Shown after accepting an invite. Fortsätt saves onboarding like Hoppa över
+  if (answeredInvite === "accepted") {
+    return (
+      <View className="flex-1 justify-center w-full px-8 gap-6">
+        <View className="gap-2">
+          <Text variant="h1">Konton kopplade</Text>
+          <Text>
+            {`Du och ${answeredFromName ?? "din grupp"} kan nu se varandras sparade objekt och visningstider.`}
+          </Text>
+        </View>
+
+        {error && <FormError>{error}</FormError>}
+
+        <Button
+          variant="secondary"
+          onPress={onSkip}
+          disabled={isLoading}
+          className="px-10 self-start"
+        >
+          <Text>{isLoading ? "Sparar..." : "Fortsätt"}</Text>
+        </Button>
+      </View>
+    );
   }
 
   // Shown after invites are sent. The user decides when to continue
@@ -133,11 +203,9 @@ export default function ConnectAccountForm() {
           <Text variant="h1">Inbjudan skickad</Text>
           <Text>
             När personen du bjudit in accepterar kopplas era konton ihop. Du
-            hittar dina inbjudningar under kontoinställningar.
+            hittar dina inbjudningar under Inställningar.
           </Text>
         </View>
-
-        <FormMessage>Inbjudan är skickad!</FormMessage>
 
         <Button
           variant="secondary"
@@ -156,7 +224,7 @@ export default function ConnectAccountForm() {
         <Text variant="h1">Koppla konto</Text>
         <Text>
           Koppla ihop ditt konto med ett eller flera andra för att kunna se
-          varandras sparade objekt och gemensamma visningstider
+          varandras sparade objekt och gemensamma visningstider.
         </Text>
       </View>
 
@@ -173,6 +241,33 @@ export default function ConnectAccountForm() {
         />
       )}
 
+      {receivedInvites.map((i) => (
+        <View key={i.id} className="gap-2">
+          <Text variant="bold">
+            {`${i.from_name} (${i.from_email}) har bjudit in dig till sin grupp.`}
+          </Text>
+          <View className="flex-row gap-2">
+            <Button
+              variant="secondary"
+              onPress={() => onAnswer(i.id, "accepted")}
+              disabled={isSubmitting || isLoading}
+            >
+              <Text>Acceptera</Text>
+            </Button>
+            <Button
+              variant="destructive"
+              onPress={() => onAnswer(i.id, "declined")}
+              disabled={isSubmitting || isLoading}
+            >
+              <Text>Avböj</Text>
+            </Button>
+          </View>
+        </View>
+      ))}
+
+      {answeredInvite === "declined" && <Text>Inbjudan nekad.</Text>}
+      {actionError && <FormError>{actionError}</FormError>}
+
       {error && !invitationDialogOpen && <FormError>{error}</FormError>}
 
       <View className="gap-2 items-start">
@@ -187,14 +282,14 @@ export default function ConnectAccountForm() {
         >
           <Text>Bjud in konto</Text>
         </Button>
-        <Text>Detta kan göras senare via dina kontoinställningar</Text>
+        <Text>Det här kan du också göra senare under Inställningar.</Text>
         <Button
           variant="link"
           className="p-0"
           onPress={onSkip}
           disabled={isLoading}
         >
-          <Text>Hoppa över</Text>
+          <Text>{isLoading ? "Sparar..." : "Hoppa över"}</Text>
         </Button>
       </View>
     </View>

@@ -1,5 +1,4 @@
-// The 50 fake listings as plain rows (no database calls). Same listings every run,
-// only the dates follow the time the script runs.
+// The 50 fake listings as plain rows (no database calls). Same listings every run, only the dates follow the time the script runs.
 import type { PropertyType as AnyPropertyType } from "../../../lib/types.ts";
 import { AGENCY, DAY } from "../setup/helpers.ts";
 
@@ -12,35 +11,65 @@ export const PLACES = [
     lat: 57.655,
     lng: 12.014,
     areas: ["Centrum", "Krokslätt", "Kållered", "Lindome", "Fässberg"],
-    streets: ["Kvarnbygatan", "Göteborgsvägen", "Bergmansgatan", "Toltorpsgatan", "Brogatan"],
+    streets: [
+      "Kvarnbygatan",
+      "Göteborgsvägen",
+      "Bergmansgatan",
+      "Toltorpsgatan",
+      "Brogatan",
+    ],
   },
   {
     municipality: "Partille",
     lat: 57.739,
     lng: 12.106,
     areas: ["Centrum", "Sävedalen", "Öjersjö", "Jonsered", "Furulund"],
-    streets: ["Gamla Kronvägen", "Mellbyvägen", "Brattåsvägen", "Ugglumsleden", "Kyrkvägen"],
+    streets: [
+      "Gamla Kronvägen",
+      "Mellbyvägen",
+      "Brattåsvägen",
+      "Ugglumsleden",
+      "Kyrkvägen",
+    ],
   },
   {
     municipality: "Göteborg",
     lat: 57.708,
     lng: 11.974,
     areas: ["Majorna", "Linnéstaden", "Hisingen", "Frölunda", "Kortedala"],
-    streets: ["Mariaplan", "Linnégatan", "Vågmästaregatan", "Tunnlandsgatan", "Runstavsgatan"],
+    streets: [
+      "Mariaplan",
+      "Linnégatan",
+      "Vågmästaregatan",
+      "Tunnlandsgatan",
+      "Runstavsgatan",
+    ],
   },
 ];
 
 // Repeats every 10 listings, so each municipality gets every type
 const TYPE_CYCLE: PropertyType[] = [
-  "lagenhet", "lagenhet", "radhus", "villa", "lagenhet",
-  "tomt", "radhus", "villa", "fritidshus", "lagenhet",
+  "lagenhet",
+  "lagenhet",
+  "radhus",
+  "villa",
+  "lagenhet",
+  "tomt",
+  "radhus",
+  "villa",
+  "fritidshus",
+  "lagenhet",
 ];
 
 const DESCRIPTIONS: Record<PropertyType, string> = {
-  lagenhet: "Ljus och välplanerad lägenhet med balkong i västerläge. Nära till kollektivtrafik, skola och service.",
-  radhus: "Familjevänligt radhus med egen trädgård och uteplats. Lugnt område med lekplats i närheten.",
-  villa: "Rymlig villa på stor tomt med garage. Renoverat kök och badrum, nära natur och badplats.",
-  fritidshus: "Charmigt fritidshus i naturskönt läge. Perfekt för helger och somrar.",
+  lagenhet:
+    "Ljus och välplanerad lägenhet med balkong i västerläge. Nära till kollektivtrafik, skola och service.",
+  radhus:
+    "Familjevänligt radhus med egen trädgård och uteplats. Lugnt område med lekplats i närheten.",
+  villa:
+    "Rymlig villa på stor tomt med garage. Renoverat kök och badrum, nära natur och badplats.",
+  fritidshus:
+    "Charmigt fritidshus i naturskönt läge. Perfekt för helger och somrar.",
   tomt: "Byggklar tomt i attraktivt läge med kommunalt vatten och avlopp indraget.",
 };
 
@@ -56,7 +85,8 @@ export function buildListingRows(now: number) {
     return seed / 4294967296;
   }
   const between = (min: number, max: number) => min + random() * (max - min);
-  const roundTo = (value: number, step: number) => Math.round(value / step) * step;
+  const roundTo = (value: number, step: number) =>
+    Math.round(value / step) * step;
 
   return Array.from({ length: 50 }, (_, i) => {
     const n = i + 1;
@@ -64,7 +94,8 @@ export function buildListingRows(now: number) {
     const type = TYPE_CYCLE[i % 10];
     const area = place.areas[i % place.areas.length];
     const address = `${place.streets[(i * 3) % place.streets.length]} ${1 + ((i * 7) % 60)}`;
-    const isNewConstruction = (type === "lagenhet" || type === "radhus") && i % 9 === 4;
+    const isNewConstruction =
+      (type === "lagenhet" || type === "radhus") && i % 9 === 4;
 
     let price: number | null;
     let rooms: number | null = null;
@@ -108,7 +139,11 @@ export function buildListingRows(now: number) {
 
     const latitude = Number((place.lat + between(-0.02, 0.02)).toFixed(6));
     const longitude = Number((place.lng + between(-0.03, 0.03)).toFixed(6));
-    const buildYear = isNewConstruction ? 2026 : type === "tomt" ? null : Math.round(between(1930, 2020));
+    const buildYear = isNewConstruction
+      ? 2026
+      : type === "tomt"
+        ? null
+        : Math.round(between(1930, 2020));
     const description = DESCRIPTIONS[type];
 
     return {
