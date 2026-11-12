@@ -7,9 +7,7 @@ export default function FilterSettings() {
   return (
     <View className="gap-2">
       <Text variant="h2">Din bevakning</Text>
-      <Button
-        onPress={() => router.push("/update-filter")}
-      >
+      <Button onPress={() => router.push("/update-filter")}>
         <Text>Se eller uppdatera bevakning</Text>
       </Button>
     </View>
