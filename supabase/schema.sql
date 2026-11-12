@@ -1098,7 +1098,7 @@ begin
   -- no key update: does not block the foreign key check of other inserts
   perform 1 from public.profiles where id = new.user_id for no key update;
   if (select count(*) from public.user_tags where user_id = new.user_id) >= 30 then
-    raise exception 'Du har redan max antal kategorier (30)';
+    raise exception 'Du har redan max antal taggar (30)';
   end if;
   return new;
 end;
