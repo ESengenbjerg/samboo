@@ -16,3 +16,7 @@ Security decisions outside of the database. Guards inside the database (RLS, gra
   - Pros: bots are stopped before any email is sent, and the per-IP limits can stay generous for users who share an IP (office wifi, mobile networks).
   - Cons: real users sometimes get a challenge, which is an accessibility concern. It adds an outside service that sign-in depends on, and more keys to set up. It raises the cost of an attack but does not stop someone who pays for CAPTCHA solving.
   - When enabled, sign-up, sign-in and password reset calls need a `captchaToken`: the test scripts that use `signInWithPassword` and the ux-tester agent need test keys. The seeders use `auth.admin.createUser` and are not affected.
+
+## npm audit (production dependencies)
+
+Reported 11 findings in 5 packages (node-forge, zod, deepmerge, glob, minimatch). All come from Expo's build tooling (@expo/cli, @expo/config); the web build deployed to Vercel was searched and none of them are included in the code that runs in the user's browser, and no secret keys are present in it. The input to these tools is our own files, so the risk is judged low. Accepted without changes during the code freeze; to be re-checked after the next Expo SDK patch. npm audit fix --force was rejected since it would downgrade Expo to SDK 52.
