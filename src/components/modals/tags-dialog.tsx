@@ -31,7 +31,7 @@ type TagsDialogProps = {
   onOpenChange: (open: boolean) => void;
   tags: UserTag[];
   selectedIds: number[];
-  // newNames = taggar som ska skapas först när användaren sparar
+  // newNames = tags that are created first when the user saves
   onSave: (
     selectedIds: number[],
     initialIds: number[],
@@ -135,8 +135,8 @@ export function TagsDialog({
       return;
     }
 
-    // Alredady typed in this dialog but not saved yet
-    if (newNames.some((n) => n.toLowerCase() === name.toLocaleLowerCase())) {
+    // Already typed in this dialog but not saved yet
+    if (newNames.some((n) => n.toLowerCase() === name.toLowerCase())) {
       setMessage(`Taggen ${name} är redan tillagd.`);
       return;
     }
@@ -161,6 +161,7 @@ export function TagsDialog({
           <View className="gap-2">
             <Label>Dina taggar</Label>
             <Select
+              // New key after every change remounts the select, so it shows the placeholder again
               key={draftIds.length}
               onValueChange={(option) => {
                 if (option) addToDraft(Number(option.value));
@@ -230,7 +231,7 @@ export function TagsDialog({
             )}
           </View>
 
-          {/* --- CHOSEN TAG --- */}
+          {/* --- CHOSEN TAGS --- */}
           <View className="gap-3">
             <View>
               <Label>Valda taggar</Label>

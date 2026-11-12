@@ -10,11 +10,7 @@ type TagProps = {
   removable?: boolean;
 };
 
-export default function Tag({
-  isNewConstruction,
-  text,
-  removable,
-}: TagProps) {
+export default function Tag({ isNewConstruction, text, removable }: TagProps) {
   return (
     <>
       <View className="px-3 py-1 min-w-12 flex-row gap-1 items-center rounded-sm bg-secondary">

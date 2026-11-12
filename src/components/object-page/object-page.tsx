@@ -21,8 +21,8 @@ import { useState } from "react";
 import { Linking, Pressable, ScrollView, View } from "react-native";
 import FormError from "../form-error";
 import { LikeButton } from "../like-button";
-import { TagsDialog } from "../modals/tags-dialog";
 import { ConfirmDialog } from "../modals/confirm-dialog";
+import { TagsDialog } from "../modals/tags-dialog";
 import Tag from "../tags/tag";
 import { Icon } from "../ui/icon";
 import { Spinner } from "../ui/spinner";
@@ -113,7 +113,7 @@ export default function ObjectPageScreen({
     : [];
 
   // Called by the dialog with the selected tag ids, the ids the dialog was opened
-  //with, and the names of new tags. New tags are created here, on save
+  // with, and the names of new tags. New tags are created here, on save
   async function handleSave(
     selectedIds: number[],
     initialIds: number[],
@@ -146,9 +146,12 @@ export default function ObjectPageScreen({
   async function handleRemoveTag(tagId: number) {
     if (!userListing) return;
 
-    const removed = await unapplyTag(tagId, userListing.id);
-    // Fetch again so the tag disappears from the page
-    if (removed) reloadListingTags();
+    try {
+      const removed = await unapplyTag(tagId, userListing.id);
+      if (removed) reloadListingTags();
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   // Clears an old error from a previous attempt before the dialog opens
@@ -258,7 +261,7 @@ export default function ObjectPageScreen({
                 }}
                 cancelLabel={"Avbryt"}
                 onCancel={() => setTagToDelete(null)}
-                isLoading={isSavingTag}
+                isLoading={saving}
               />
             )}
 

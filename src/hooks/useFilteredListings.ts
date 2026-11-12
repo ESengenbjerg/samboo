@@ -64,11 +64,7 @@ export function useFilteredListings(
     showPropertyTypeFilter,
     propertyTypeOptions,
   );
-  const tag = activeOption(
-    selectedTag,
-    showTagFilter,
-    tagOptions,
-  );
+  const tag = activeOption(selectedTag, showTagFilter, tagOptions);
 
   // The listings after the filters and the sorting. Listings arrive newest first
   const visibleListings = useMemo(() => {
