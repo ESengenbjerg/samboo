@@ -43,7 +43,8 @@ type FilterFormProps = {
   savedScraperFilter: ScraperFilter | null;
   savedClientFilter: ClientFilter | null;
   onSave: (scraperFilter: ScraperFilter, clientFilter: ClientFilter) => void;
-  informationInterval?: ReactNode;
+  // Optional extra fields shown above the submit button
+  intervalField?: ReactNode;
   mainColor?: "secondary" | "primary";
   fieldColor?: "bg-white" | "bg-input";
 };
@@ -55,7 +56,7 @@ export default function FilterForm({
   savedScraperFilter,
   savedClientFilter,
   onSave,
-  informationInterval,
+  intervalField,
   mainColor = "secondary",
   fieldColor = "bg-input",
 }: FilterFormProps) {
@@ -266,8 +267,8 @@ export default function FilterForm({
         />
       </View>
 
-      {/* --- INFORMATION INTERVAL --- */}
-      {informationInterval}
+      {/* --- EXTRA FIELDS (e.g. information interval in onboarding) --- */}
+      {intervalField}
 
       {/* --- SUBMIT --- */}
       {/* Short reminder next to the button. The details are shown at each field */}
