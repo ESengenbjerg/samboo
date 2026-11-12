@@ -21,6 +21,7 @@ export function useAnswerInvite(accounts: ConnectedAccounts) {
         ? await acceptInvite(inviteId)
         : await declineInvite(inviteId);
     if (ok) setAnswer(answer, fromName);
+    return ok;
   }
 
   return { answeredInvite, answeredFromName, onAnswer, clearAnswer };
