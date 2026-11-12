@@ -20,8 +20,8 @@ export function useNotificationDot() {
   const refresh = useNotificationsStore((s) => s.refresh);
   const reset = useNotificationsStore((s) => s.reset);
   // Lost showings after accepting an invite are not in the database, so the dot
-  // cannot know about them. Lit until the notifications page has shown them
-  const hasAnswered = useAnsweredInviteStore((s) => s.answer != null);
+  // cannot know about them. Lit until the notifications page has shown them.
+  // The confirmation of an answer does not light it: the user just did that themselves
   const hasSkipped = useSkippedShowingsStore((s) => s.showings.length > 0);
   const clearAnswer = useAnsweredInviteStore((s) => s.clear);
   const clearSkipped = useSkippedShowingsStore((s) => s.clear);
@@ -46,6 +46,6 @@ export function useNotificationDot() {
   ]);
 
   return {
-    showDot: (hasNew || hasSkipped || hasAnswered) && !isOnNotificationsPage,
+    showDot: (hasNew || hasSkipped) && !isOnNotificationsPage,
   };
 }
