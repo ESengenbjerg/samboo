@@ -1,15 +1,9 @@
 import FilterForm from "@/components/filter/filter-form";
 import FormError from "@/components/form-error";
 import { useSession } from "@/hooks/auth/useSession";
-import { useProfile } from "@/hooks/useProfile";
 import { useSearchParams } from "@/hooks/useSearchParams";
 import { useUpdateSearchParams } from "@/hooks/useUpdateSearchParams";
-import { updateNotificationFrequency } from "@/services/profiles";
-import {
-  ClientFilter,
-  InformationInterval,
-  ScraperFilter,
-} from "@/stores/onboarding";
+import { ClientFilter, ScraperFilter } from "@/stores/onboarding";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { View } from "react-native";
@@ -23,11 +17,6 @@ export default function UpdateFilterForm() {
   const { scraperFilter, clientFilter, isLoading, error } =
     useSearchParams(userId);
   const {
-    profile,
-    isLoading: isLoadingProfile,
-    error: profileError,
-  } = useProfile(userId);
-  const {
     updateSearchParams,
     isUpdating,
     error: updateError,
@@ -35,23 +24,19 @@ export default function UpdateFilterForm() {
   } = useUpdateSearchParams();
 
   const [successMessage, setSuccessMessage] = useState<null | string>(null);
-  const [savedFrequency, setSavedFrequency] =
-    useState<InformationInterval | null>(null);
-  const [frequencyError, setFrequencyError] = useState<string | null>(null);
 
   // The tab never unmounts, so clear old messages when the user leaves it
   useFocusEffect(
     useCallback(() => {
       return () => {
         setSuccessMessage(null);
-        setFrequencyError(null);
         clearError();
       };
     }, [clearError]),
   );
 
-  // Reads start values once, and must not render until saved search and profile are fetched
-  if (!userId || isLoading || isLoadingProfile) {
+  // Reads start values once, and must not render until saved search is fetched
+  if (!userId || isLoading) {
     return <Spinner size="large" />;
   }
 
@@ -59,46 +44,14 @@ export default function UpdateFilterForm() {
     return <FormError>{error}</FormError>;
   }
 
-  if (profileError) {
-    return <FormError>{profileError}</FormError>;
-  }
-
-  // Interval saved on this visit, otherwise the one from Supabase
-  const currentFrequency =
-    savedFrequency ?? profile?.notificationFrequency ?? "day";
-
-  async function onSave(
-    scraper: ScraperFilter,
-    client: ClientFilter,
-    interval: InformationInterval,
-  ) {
+  async function onSave(scraper: ScraperFilter, client: ClientFilter) {
     setSuccessMessage(null);
-    setFrequencyError(null);
 
     if (isUpdating || !userId) return;
 
-    // Only save the interval if the user changed it
-    let frequencyOk = true;
-    if (interval !== currentFrequency) {
-      const { error: saveError } = await updateNotificationFrequency(
-        userId,
-        interval,
-      );
-
-      if (saveError) {
-        console.log("Update frequency error:", saveError);
-        setFrequencyError(
-          "Kunde inte spara hur ofta du vill få mejl. Försök igen.",
-        );
-        frequencyOk = false;
-      } else {
-        setSavedFrequency(interval);
-      }
-    }
-
     const searchOk = await updateSearchParams(userId, scraper, client);
 
-    if (searchOk && frequencyOk) setSuccessMessage("Bevakning uppdaterad!");
+    if (searchOk) setSuccessMessage("Bevakning uppdaterad.");
   }
 
   return (
@@ -109,7 +62,6 @@ export default function UpdateFilterForm() {
         submitLabel="Uppdatera bevakning"
         savedScraperFilter={scraperFilter}
         savedClientFilter={clientFilter}
-        savedInformationInterval={currentFrequency}
         onSave={onSave}
         mainColor="primary"
         fieldColor="bg-white"
@@ -124,12 +76,6 @@ export default function UpdateFilterForm() {
       {updateError && (
         <View className="px-6 mt-4 self-center">
           <FormError>{updateError}</FormError>
-        </View>
-      )}
-
-      {frequencyError && (
-        <View className="px-6 mt-4 self-center">
-          <FormError>{frequencyError}</FormError>
         </View>
       )}
     </View>
