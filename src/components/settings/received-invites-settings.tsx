@@ -3,14 +3,13 @@ import { ConnectedAccounts } from "@/hooks/useConnectedAccounts";
 import { View } from "react-native";
 import { Button } from "../ui/button";
 import { Text } from "../ui/text";
-import SkippedShowingNotification from "../notifications/skipped-showings-notification";
 
 export default function ReceivedInvitesSettings({
   accounts,
 }: {
   accounts: ConnectedAccounts;
 }) {
-  const { receivedInvites, isSubmitting, skippedShowings } = accounts;
+  const { receivedInvites, isSubmitting } = accounts;
   const { answeredInvite, onAnswer } = useAnswerInvite(accounts);
 
   return (
@@ -22,7 +21,6 @@ export default function ReceivedInvitesSettings({
 
       {answeredInvite === "accepted" && <Text>Inbjudan godkänd!</Text>}
       {answeredInvite === "declined" && <Text>Inbjudan nekad.</Text>}
-      <SkippedShowingNotification showings={skippedShowings} />
 
       {receivedInvites.map((i) => (
         <View key={i.id} className="gap-4">

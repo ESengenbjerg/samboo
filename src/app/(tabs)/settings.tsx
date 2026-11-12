@@ -23,13 +23,11 @@ export default function SettingsScreen() {
 
   // Reload connected accounts every time the tab is opened.
   // Catches changes Realtime cannot send, e.g. another member leaving the group.
-  // The notice about lost showings is only for the visit right after accepting
-  const { refresh, clearSkippedShowings } = accounts;
+  const { refresh } = accounts;
   useFocusEffect(
     useCallback(() => {
       refresh();
-      return () => clearSkippedShowings();
-    }, [refresh, clearSkippedShowings]),
+    }, [refresh]),
   );
 
   const { scrollRef, showBackToTop, handleScroll, scrollToTop } =
