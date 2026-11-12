@@ -4,7 +4,7 @@ import { MAX_TAGS_PER_USER, TAG_NAME_MAX_LENGTH } from "@/constants/limits";
 import { UserTag } from "@/types/tags";
 import { capitalize } from "@/utils/capitalize-string";
 import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import FormError from "../form-error";
 import Tag from "../tags/tag";
 import {
@@ -60,6 +60,8 @@ export function TagsDialog({
   const [newName, setNewName] = useState("");
   // Feedback from the dialog itself, e.g. when the tag is already chosen
   const [message, setMessage] = useState<string | null>(null);
+  // True when the chosen tags are taller than the scroll area (max-h-44 = 176px)
+  const [tagsOverflow, setTagsOverflow] = useState(false);
 
   // The dialog's own message goes first, then errors from saving
   const shownMessage = message ?? error;
@@ -229,23 +231,33 @@ export function TagsDialog({
           </View>
 
           {/* --- CHOSEN TAG --- */}
-          <View>
-            <Label>Valda taggar</Label>
-            <View className="flex-row gap-2 flex-wrap">
-              {draftTags.length === 0 && newNames.length === 0 && (
-                <Text>Inga valda taggar.</Text>
+          <View className="gap-3">
+            <View>
+              <Label>Valda taggar</Label>
+              {tagsOverflow && (
+                <Text variant="small">Scrolla för att se alla</Text>
               )}
-              {draftTags.map((c) => (
-                <Pressable key={c.id} onPress={() => removeFromDraft(c.id)}>
-                  <Tag text={c.tag_name} removable />
-                </Pressable>
-              ))}
-              {newNames.map((n) => (
-                <Pressable key={n} onPress={() => removePendingName(n)}>
-                  <Tag text={`${n} (ny)`} removable />
-                </Pressable>
-              ))}
             </View>
+            <ScrollView
+              className="max-h-44"
+              onContentSizeChange={(_, height) => setTagsOverflow(height > 176)}
+            >
+              <View className="flex-row gap-2 flex-wrap">
+                {draftTags.length === 0 && newNames.length === 0 && (
+                  <Text>Inga valda taggar.</Text>
+                )}
+                {draftTags.map((c) => (
+                  <Pressable key={c.id} onPress={() => removeFromDraft(c.id)}>
+                    <Tag text={c.tag_name} removable />
+                  </Pressable>
+                ))}
+                {newNames.map((n) => (
+                  <Pressable key={n} onPress={() => removePendingName(n)}>
+                    <Tag text={`${n} (ny)`} removable />
+                  </Pressable>
+                ))}
+              </View>
+            </ScrollView>
           </View>
 
           {shownMessage && <FormError>{shownMessage}</FormError>}
