@@ -55,6 +55,7 @@ export default function TagSettings() {
     if (!editingTag) return;
     setDeletingTag(editingTag);
     setEditingTag(null);
+    clearError();
   }
 
   async function handleDelete() {

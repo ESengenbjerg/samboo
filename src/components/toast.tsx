@@ -13,7 +13,7 @@ const styles = {
     container: "bg-muted-foreground",
     text: "text-secondary-foreground",
   },
-  error: { container: "destructive", text: "text-secondary-foreground" },
+  error: { container: "bg-destructive", text: "text-secondary-foreground" },
 };
 
 // Mount once in the root layout. Shows the latest message from useToastStore.

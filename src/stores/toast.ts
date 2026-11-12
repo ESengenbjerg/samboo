@@ -7,7 +7,7 @@ type ToastState = {
   variant: ToastVariant;
   // Bumps on every show(), so showing the same message twice restarts the timer
   id: number;
-  show: (message: string, vaiant?: ToastVariant) => void;
+  show: (message: string, variant?: ToastVariant) => void;
   hide: () => void;
 };
 
