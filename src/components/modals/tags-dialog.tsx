@@ -67,8 +67,7 @@ export function TagsDialog({
   // After a save that failed halfway, a pending name can exist in the database already.
   // Those are not "new" any more, so they are not counted or shown as new
   const newNames = pendingNames.filter(
-    (n) =>
-      !tags.some((c) => c.tag_name.toLowerCase() === n.toLowerCase()),
+    (n) => !tags.some((c) => c.tag_name.toLowerCase() === n.toLowerCase()),
   );
 
   // A pending name that now exists in the database (created by a save that failed later)
@@ -98,9 +97,7 @@ export function TagsDialog({
   // Tags currently chosen in the dialog (shown as removable tags)
   const draftTags = tags.filter((c) => draftIds.includes(c.id));
   // Tags that can still be added (shown in the select)
-  const availableTags = tags.filter(
-    (c) => !draftIds.includes(c.id),
-  );
+  const availableTags = tags.filter((c) => !draftIds.includes(c.id));
 
   // Only changes the draft. Nothing is saved until the user presses save
   function addToDraft(id: number) {
@@ -162,8 +159,17 @@ export function TagsDialog({
                 if (option) addToDraft(Number(option.value));
               }}
             >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Välj tagg" />
+              <SelectTrigger
+                className="w-full"
+                disabled={availableTags.length === 0}
+              >
+                <SelectValue
+                  placeholder={
+                    availableTags.length === 0
+                      ? "Inga ovalda taggar"
+                      : "Välj tagg"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
