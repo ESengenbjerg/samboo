@@ -267,7 +267,7 @@ export default function FilterForm({
         />
       </View>
 
-      {/* --- EXTRA FIELDS (e.g. information interval in onboarding) --- */}
+      {/* --- INFORMATION INTERVAL FIELDS --- */}
       {intervalField}
 
       {/* --- SUBMIT --- */}
