@@ -13,29 +13,17 @@ import {
   ROOM_OPTIONS,
 } from "@/constants/filter-options";
 import { usePlaces } from "@/hooks/usePlaces";
-import {
-  ClientFilter,
-  InformationInterval,
-  isInformationInterval,
-  ScraperFilter,
-} from "@/stores/onboarding";
+import { ClientFilter, ScraperFilter } from "@/stores/onboarding";
 import { SelectOption } from "@/types/select-option";
 import { capitalize } from "@/utils/capitalize-string";
-import { useState } from "react";
+import { ReactNode, useState } from "react";
 import { View } from "react-native";
 import FormError from "../form-error";
 import { Button } from "../ui/button";
-import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
+import { Spinner } from "../ui/spinner";
 import { Switch } from "../ui/switch";
 import FilterSelect from "./filter-select";
 import GeoPicker from "./geo-picker";
-import { Spinner } from "../ui/spinner";
-
-const INTERVAL_OPTIONS: { value: InformationInterval; label: string }[] = [
-  { value: "day", label: "Varje dag" },
-  { value: "week", label: "Varje vecka" },
-  { value: "none", label: "Aldrig" },
-];
 
 // "Ingen gräns" first, so a chosen limit can be cleared again
 const ROOM_SELECT_OPTIONS = [NO_LIMIT_OPTION, ...ROOM_OPTIONS];
@@ -54,12 +42,8 @@ type FilterFormProps = {
   // Values the form starts with. null means nothing saved yet
   savedScraperFilter: ScraperFilter | null;
   savedClientFilter: ClientFilter | null;
-  savedInformationInterval: InformationInterval;
-  onSave: (
-    scraperFilter: ScraperFilter,
-    clientFilter: ClientFilter,
-    informationInterval: InformationInterval,
-  ) => void;
+  onSave: (scraperFilter: ScraperFilter, clientFilter: ClientFilter) => void;
+  informationInterval?: ReactNode;
   mainColor?: "secondary" | "primary";
   fieldColor?: "bg-white" | "bg-input";
 };
@@ -70,8 +54,8 @@ export default function FilterForm({
   submitLabel,
   savedScraperFilter,
   savedClientFilter,
-  savedInformationInterval,
   onSave,
+  informationInterval,
   mainColor = "secondary",
   fieldColor = "bg-input",
 }: FilterFormProps) {
@@ -105,8 +89,6 @@ export default function FilterForm({
   const [showNewConstruction, setShowNewConstruction] = useState(
     savedClientFilter?.showNewConstruction ?? true,
   );
-  const [informationInterval, setInformationInterval] =
-    useState<InformationInterval>(savedInformationInterval);
 
   const {
     municipalities: allMunicipalities,
@@ -160,7 +142,7 @@ export default function FilterForm({
       showNewConstruction: showNewConstruction,
     };
 
-    onSave(scraperFilter, clientFilter, informationInterval);
+    onSave(scraperFilter, clientFilter);
   }
 
   return (
@@ -214,7 +196,9 @@ export default function FilterForm({
           type="multiple"
           aria-label="Bostadstyp"
           value={propertyType}
-          onValueChange={(values) => setPropertyType(values.filter(isPropertyType))}
+          onValueChange={(values) =>
+            setPropertyType(values.filter(isPropertyType))
+          }
           className="gap-2 flex-wrap"
           variant="secondary"
         >
@@ -244,6 +228,7 @@ export default function FilterForm({
         options={ROOM_SELECT_OPTIONS}
         placeholder={NO_LIMIT_LABEL}
         fieldColor={fieldColor}
+        fullWidth
       />
 
       <FilterSelect
@@ -253,6 +238,7 @@ export default function FilterForm({
         options={MONTHLY_FEE_SELECT_OPTIONS}
         placeholder={NO_LIMIT_LABEL}
         fieldColor={fieldColor}
+        fullWidth
       />
 
       <FilterSelect
@@ -262,6 +248,7 @@ export default function FilterForm({
         options={LIVING_AREA_SELECT_OPTIONS}
         placeholder={NO_LIMIT_LABEL}
         fieldColor={fieldColor}
+        fullWidth
       />
 
       {/* --- NEW PRODUCTION --- */}
@@ -280,38 +267,15 @@ export default function FilterForm({
       </View>
 
       {/* --- INFORMATION INTERVAL --- */}
-      {/* TODO: Update to correct functionality when column exist in Supabase */}
-      <View className="gap-4">
-        <Text variant="bold">Hur ofta vill du bli informerad?</Text>
-        <RadioGroup
-          value={informationInterval}
-          onValueChange={(v) => {
-            if (isInformationInterval(v)) setInformationInterval(v);
-          }}
-          className="flex-row flex-wrap gap-4 justify-between"
-        >
-          {INTERVAL_OPTIONS.map((o) => (
-            <View
-              key={o.value}
-              className="flex-row items-center gap-4 min-h-11 min-w-[45%] sm:min-w-[30%]"
-            >
-              <RadioGroupItem value={o.value} aria-label={o.label} />
-              <Label
-                containerClassName="mb-0"
-                onPress={() => setInformationInterval(o.value)}
-              >
-                {o.label}
-              </Label>
-            </View>
-          ))}
-        </RadioGroup>
-      </View>
+      {informationInterval}
 
       {/* --- SUBMIT --- */}
       {/* Short reminder next to the button. The details are shown at each field */}
-      {hasMissing && <FormError>Fyll i de obligatoriska fälten ovanför.</FormError>}
+      {hasMissing && (
+        <FormError>Fyll i de obligatoriska fälten ovanför.</FormError>
+      )}
 
-      <View className="items-center mt-10">
+      <View className="items-center mt-6">
         <Button
           variant={mainColor === "primary" ? "default" : "secondary"}
           className="max-w-44"
