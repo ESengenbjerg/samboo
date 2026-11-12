@@ -3,19 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { useSession } from "@/hooks/auth/useSession";
+import { useBackToTop } from "@/hooks/useBackToTop";
 import { FeedListing, useFilteredListings } from "@/hooks/useFilteredListings";
 import { BasePath, goToObject } from "@/utils/go-to-object";
 import { isNewConstruction } from "@/utils/is-new-construction";
 import { Link } from "expo-router";
-import { useRef, useState } from "react";
-import {
-  NativeScrollEvent,
-  NativeSyntheticEvent,
-  Pressable,
-  ScrollView,
-  type ScrollViewInstance,
-  View,
-} from "react-native";
+import { useState } from "react";
+import { Pressable, ScrollView, View } from "react-native";
 import BackToTopButton from "./back-to-top-button";
 import ListingsFilterBar from "./filter/listings-filter-bar";
 import FormError from "./form-error";
@@ -51,20 +45,12 @@ export default function ListingsFeed({
     filters,
   } = useFilteredListings(listings, userId);
 
-  const scrollRef = useRef<ScrollViewInstance>(null);
-  const [showBackToTop, setShowBackToTop] = useState(false);
-
-  const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    setShowBackToTop(e.nativeEvent.contentOffset.y > 400);
-  };
-
-  const scrollToTop = () => {
-    scrollRef.current?.scrollTo({ y: 0, animated: true });
-  };
+  const { scrollRef, showBackToTop, handleScroll, scrollToTop } =
+    useBackToTop();
 
   return (
     <>
-      <View className="flex-1 px-6">
+      <View className="flex-1 px-6 bg-background">
         <ScrollView
           ref={scrollRef}
           onScroll={handleScroll}

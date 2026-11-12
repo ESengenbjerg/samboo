@@ -184,7 +184,7 @@ export function CategoriesDialog({
           <View className="gap-2">
             <View className="flex-row gap-2">
               <Label>Lägg till tagg</Label>
-              <Text variant="small">(max 20 tecken)</Text>
+              <Text variant="small">(max {TAG_NAME_MAX_LENGTH} tecken)</Text>
             </View>
             <View className="flex-row gap-2 flex-wrap">
               <Input

@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
 import { useSession } from "@/hooks/auth/useSession";
+import { useSaveTag } from "@/hooks/tags/useSaveTag";
+import { useUserTags } from "@/hooks/tags/useUserTags";
 import { useListing } from "@/hooks/useListing";
 import { useListingTags } from "@/hooks/useListingTags";
 import { useMarkListingSeen } from "@/hooks/useMarkListingSeen";
-import { useSaveTag } from "@/hooks/useSaveTag";
-import { useUserTags } from "@/hooks/useUserTags";
 import { Listing } from "@/types/listing";
 import handleBack from "@/utils/handle-back";
 import { isNewConstruction } from "@/utils/is-new-construction";
@@ -82,14 +82,12 @@ export default function ObjectPageScreen({
     error: listingTagsError,
   } = useListingTags(userId);
   const {
-    applyTag,
     unapplyTag,
     saveCategorization,
     isSaving: isSavingTag,
     error: saveTagError,
     clearError,
   } = useSaveTag();
-
 
   // Load errors (tags or applied tags) and save errors are shown in the same place
   const error =
@@ -115,29 +113,31 @@ export default function ObjectPageScreen({
   // Called by the dialog with the selected category ids, the ids the dialog was opened
   //with, and the names of new categories. New categories are created here, on save
   async function handleSave(
-    selectedIds: number[], 
+    selectedIds: number[],
     initialIds: number[],
     newNames: string[],
   ) {
-    if (!userId || !userListing) return;
+    if (!userId || !userListing) return;
     setIsSaving(true);
+    try {
+      const ok = await saveCategorization({
+        userId,
+        userListingId: userListing.id,
+        existingTags: tags,
+        selectedIds,
+        initialIds,
+        newNames,
+      });
 
-    const ok = await saveCategorization({
-      userId,
-      userListingId: userListing.id,
-      existingTags: tags,
-      selectedIds,
-      initialIds,
-      newNames,
-    })
+      // Always fetch again, also on failure: some tags might have been created before it failed
+      reloadTags();
+      reloadListingTags();
 
-    // Always fetch again, also on failure: some tags might have been created before it failed
-    reloadTags();
-    reloadListingTags();
-
-    // Keep the dialog open if something failed, so error is visible
-    if (ok) setCategoriesDialogOpen(false);
-    setIsSaving(false)
+      // Keep the dialog open if something failed, so error is visible
+      if (ok) setCategoriesDialogOpen(false);
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   // Removes one category from this listing directly, without opening the dialog

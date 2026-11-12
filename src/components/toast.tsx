@@ -7,9 +7,19 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const VISIBLE_MS = 4000;
 
+const styles = {
+  info: { container: "bg-muted", text: "text-foreground" },
+  success: {
+    container: "bg-muted-foreground",
+    text: "text-secondary-foreground",
+  },
+  error: { container: "bg-destructive", text: "text-secondary-foreground" },
+};
+
 // Mount once in the root layout. Shows the latest message from useToastStore.
 export function Toast() {
   const message = useToastStore((s) => s.message);
+  const variant = useToastStore((s) => s.variant);
   const id = useToastStore((s) => s.id);
   const hide = useToastStore((s) => s.hide);
   const insets = useSafeAreaInsets();
@@ -31,9 +41,9 @@ export function Toast() {
       <Pressable
         onPress={hide}
         role="alert"
-        className="rounded-sm bg-destructive px-6 py-3"
+        className={`rounded-sm px-6 py-3 ${styles[variant].container}`}
       >
-        <Text className="text-center text-background">{message}</Text>
+        <Text className={`text-center ${styles[variant].text}`}>{message}</Text>
       </Pressable>
     </View>
   );
