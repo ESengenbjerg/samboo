@@ -23,15 +23,29 @@ export function useNotificationDot() {
   // cannot know about them. Lit until the notifications page has shown them
   const hasAnswered = useAnsweredInviteStore((s) => s.answer != null);
   const hasSkipped = useSkippedShowingsStore((s) => s.showings.length > 0);
+  const clearAnswer = useAnsweredInviteStore((s) => s.clear);
+  const clearSkipped = useSkippedShowingsStore((s) => s.clear);
 
   useEffect(() => {
     // Logged out: never keep the previous user's dot
     if (!userId) {
       reset();
+      clearAnswer();
+      clearSkipped();
       return;
     }
     if (!isOnNotificationsPage) refresh();
-  }, [userId, pathname, isOnNotificationsPage, refresh, reset]);
+  }, [
+    userId,
+    pathname,
+    isOnNotificationsPage,
+    refresh,
+    reset,
+    clearAnswer,
+    clearSkipped,
+  ]);
 
-  return { showDot: (hasNew || hasSkipped || hasAnswered) && !isOnNotificationsPage };
+  return {
+    showDot: (hasNew || hasSkipped || hasAnswered) && !isOnNotificationsPage,
+  };
 }
