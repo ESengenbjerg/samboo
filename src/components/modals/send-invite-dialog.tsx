@@ -2,6 +2,8 @@ import FormError from "@/components/form-error";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { EMAIL_MAX_LENGTH, MAX_GROUP_MEMBERS } from "@/constants/limits";
+import { useSession } from "@/hooks/auth/useSession";
+import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
 import { PlusSquare, X } from "lucide-react-native";
 import { useState } from "react";
 import { Platform, ScrollView, useWindowDimensions, View } from "react-native";
@@ -16,9 +18,9 @@ import { Icon } from "../ui/icon";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 
-// A group holds MAX_GROUP_MEMBERS people including me, so at most this many others can be invited.
-// useConnectedAccounts() also counts the members I already have when the invites are sent
-const MAX_INVITE_EMAILS = MAX_GROUP_MEMBERS - 1;
+// A group holds MAX_GROUP_MEMBERS people including me. The members I already have
+// (not counting me) are subtracted below, and sendInvite() checks it again when sending
+const MAX_OTHER_MEMBERS = MAX_GROUP_MEMBERS - 1;
 
 type SendInviteDialogProps = {
   open: boolean;
@@ -35,6 +37,13 @@ export function SendInviteDialog({
   isLoading,
   error,
 }: SendInviteDialogProps) {
+  const { session } = useSession();
+  const userId = session?.user.id;
+
+  const { members } = useConnectedAccounts(userId);
+  // How many more e-mails can be added to the form
+  const maxEmails = MAX_OTHER_MEMBERS - members.length;
+
   const [emails, setEmails] = useState<string[]>([""]);
   const { height } = useWindowDimensions();
 
@@ -113,11 +122,11 @@ export function SendInviteDialog({
                 web: { marginLeft: -12 },
                 default: undefined,
               })}
-              disabled={emails.length >= MAX_INVITE_EMAILS || isLoading}
+              disabled={emails.length >= maxEmails || isLoading}
             >
               <Icon as={PlusSquare} className="size-[18px]" />
               <Text>
-                {emails.length >= MAX_INVITE_EMAILS
+                {emails.length >= maxEmails
                   ? `Du har nått gränsen på ${MAX_GROUP_MEMBERS} personer`
                   : "Lägg till"}
               </Text>
