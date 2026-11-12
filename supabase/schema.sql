@@ -2071,7 +2071,8 @@ CREATE TABLE IF NOT EXISTS "public"."profiles" (
     "last_emailed_at" timestamp with time zone,
     "notifications_seen_at" timestamp with time zone,
     CONSTRAINT "profiles_avatar_path_check" CHECK ((("avatar_path" IS NULL) OR (("char_length"("avatar_path") <= 200) AND ("avatar_path" ~ (('^'::"text" || ("id")::"text") || '/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$'::"text"))))),
-    CONSTRAINT "profiles_name_length" CHECK ((("char_length"("name") >= 1) AND ("char_length"("name") <= 100)))
+    CONSTRAINT "profiles_name_length" CHECK ((("char_length"("name") >= 1) AND ("char_length"("name") <= 100))),
+    CONSTRAINT "profiles_name_not_blank" CHECK (("name" ~ '\S'::"text"))
 );
 
 
