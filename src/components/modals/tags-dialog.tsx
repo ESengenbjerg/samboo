@@ -145,9 +145,13 @@ export function TagsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-8">
+      <DialogContent className="gap-6">
         <DialogHeader>
           <DialogTitle>Tagga objekt</DialogTitle>
+          <Text variant="small">
+            Dina taggar är personliga och används för att lättare kunna filtrera
+            bland dina objekt.
+          </Text>
         </DialogHeader>
 
         <View className="gap-6">
