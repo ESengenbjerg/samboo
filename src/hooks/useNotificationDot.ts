@@ -1,5 +1,6 @@
 import { useSession } from "@/hooks/auth/useSession";
 import { useNotificationsStore } from "@/stores/notifications";
+import { useSkippedShowingsStore } from "@/stores/skipped-showings";
 import { usePathname } from "expo-router";
 import { useEffect } from "react";
 
@@ -17,6 +18,9 @@ export function useNotificationDot() {
   const hasNew = useNotificationsStore((s) => s.hasNew);
   const refresh = useNotificationsStore((s) => s.refresh);
   const reset = useNotificationsStore((s) => s.reset);
+  // Lost showings after accepting an invite are not in the database, so the dot
+  // cannot know about them. Lit until the notifications page has shown them
+  const hasSkipped = useSkippedShowingsStore((s) => s.showings.length > 0);
 
   useEffect(() => {
     // Logged out: never keep the previous user's dot
@@ -27,5 +31,5 @@ export function useNotificationDot() {
     if (!isOnNotificationsPage) refresh();
   }, [userId, pathname, isOnNotificationsPage, refresh, reset]);
 
-  return { showDot: hasNew && !isOnNotificationsPage };
+  return { showDot: (hasNew || hasSkipped) && !isOnNotificationsPage };
 }
