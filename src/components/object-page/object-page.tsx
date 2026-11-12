@@ -22,6 +22,7 @@ import { Linking, Pressable, ScrollView, View } from "react-native";
 import FormError from "../form-error";
 import { LikeButton } from "../like-button";
 import { CategoriesDialog } from "../modals/categories-dialog";
+import { ConfirmDialog } from "../modals/confirm-dialog";
 import CategoryTag from "../tags/category-tag";
 import { Icon } from "../ui/icon";
 import { Spinner } from "../ui/spinner";
@@ -54,6 +55,7 @@ export default function ObjectPageScreen({
   isLoading,
 }: ObjectPageProps) {
   const [categoriesDialogOpen, setCategoriesDialogOpen] = useState(false);
+  const [tagToDelete, setTagToDelete] = useState<number | null>(null);
 
   const { session } = useSession();
   const userId = session?.user.id;
@@ -235,11 +237,31 @@ export default function ObjectPageScreen({
               {tags
                 .filter((t) => appliedTagIds.includes(t.id))
                 .map((t) => (
-                  <Pressable key={t.id} onPress={() => handleRemoveTag(t.id)}>
+                  <Pressable key={t.id} onPress={() => setTagToDelete(t.id)}>
                     <CategoryTag text={t.tag_name} removable />
                   </Pressable>
                 ))}
             </View>
+
+            {tagToDelete !== null && (
+              <ConfirmDialog
+                open={true}
+                onOpenChange={(open) => {
+                  if (!open) setTagToDelete(null);
+                }}
+                title={"Ta bort tagg"}
+                description={"Vill du ta bort taggen från objektet?"}
+                actionLabel={"Ta bort"}
+                onAction={async () => {
+                  await handleRemoveTag(tagToDelete);
+                  setTagToDelete(null);
+                }}
+                cancelLabel={"Avbryt"}
+                onCancel={() => setTagToDelete(null)}
+                isLoading={isSavingTag}
+              />
+            )}
+
             {/* The dialog shows its own error, so only show it here when it is closed */}
             {error && !categoriesDialogOpen && <FormError>{error}</FormError>}
           </View>
