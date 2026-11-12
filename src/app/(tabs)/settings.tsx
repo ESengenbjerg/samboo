@@ -1,6 +1,7 @@
 import BackToTopButton from "@/components/back-to-top-button";
 import ConnectedAccountsSettings from "@/components/settings/connected-accounts-settings";
 import DeleteAccount from "@/components/settings/delete-account-settings";
+import EmailFrequencySettings from "@/components/settings/email-frequency-settings";
 import FilterSettings from "@/components/settings/filter-settings";
 import ConnectAccountsSettings from "@/components/settings/invited-accounts-settings";
 import ProfileSettingsForm from "@/components/settings/profile-settings-form";
@@ -65,6 +66,11 @@ export default function SettingsScreen() {
             <Text variant="h1">Kontoinställningar</Text>
 
             <SettingsMenu title={SETTING_OPTIONS} onSelect={scrollToSection} />
+          </View>
+
+          <Separator />
+          <View onLayout={trackSection("mejl")}>
+            <EmailFrequencySettings />
           </View>
 
           <Separator />
