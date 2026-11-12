@@ -236,6 +236,7 @@ export default function ConnectAccountForm({
             if (!open) setError(null);
           }}
           onAction={onInvite}
+          memberCount={accounts.members.length}
           isLoading={isLoading}
           error={error}
         />

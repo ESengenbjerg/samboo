@@ -2,8 +2,6 @@ import FormError from "@/components/form-error";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { EMAIL_MAX_LENGTH, MAX_GROUP_MEMBERS } from "@/constants/limits";
-import { useSession } from "@/hooks/auth/useSession";
-import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
 import { PlusSquare, X } from "lucide-react-native";
 import { useState } from "react";
 import { Platform, ScrollView, useWindowDimensions, View } from "react-native";
@@ -26,6 +24,8 @@ type SendInviteDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAction: (emails: string[]) => Promise<string[]>;
+  // Members I already have, not counting me
+  memberCount: number;
   isLoading?: boolean;
   error?: string | null;
 };
@@ -34,15 +34,12 @@ export function SendInviteDialog({
   open,
   onOpenChange,
   onAction,
+  memberCount,
   isLoading,
   error,
 }: SendInviteDialogProps) {
-  const { session } = useSession();
-  const userId = session?.user.id;
-
-  const { members } = useConnectedAccounts(userId);
   // How many more e-mails can be added to the form
-  const maxEmails = MAX_OTHER_MEMBERS - members.length;
+  const maxEmails = MAX_OTHER_MEMBERS - memberCount;
 
   const [emails, setEmails] = useState<string[]>([""]);
   const { height } = useWindowDimensions();

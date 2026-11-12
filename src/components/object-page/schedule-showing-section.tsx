@@ -91,7 +91,7 @@ export default function ScheduleShowingSection({
       {showing ? (
         <View className="gap-2">
           <Text variant="bold">{formatDateLabel(showing.startsAt)}</Text>
-          <Separator className="mb-4"/>
+          <Separator className="mb-4" />
           <ScheduledShowingInfo
             {...showing}
             onStartAction={() => setMessage(null)}
