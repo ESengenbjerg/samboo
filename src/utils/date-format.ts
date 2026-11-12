@@ -52,6 +52,17 @@ export function formatShowingWhen(date: string, time: string | null): string {
   return time ? `${day} kl. ${time.slice(0, 5)}` : day;
 }
 
+// "2026-11-11T06:02:00Z" -> "11 nov. 07:02" in local time, "–" if null
+export function formatDateTime(iso: string | null): string {
+  if (!iso) return "–";
+  return new Date(iso).toLocaleString("sv-SE", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 // "Torsdag 29 oktober"
 export function formatDateLabel(date: Date): string {
   return capitalize(

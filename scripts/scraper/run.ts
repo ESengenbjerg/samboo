@@ -6,6 +6,7 @@ import type { Json } from "../../shared/database.types.ts";
 import { ScrapeLayoutError } from "../lib/errors.ts";
 import type {
   Agency,
+  AgencyRun,
   IssueKind,
   IssueReason,
   ListingRow,
@@ -25,6 +26,7 @@ import {
   markRemoved,
   tooManyPagesFailed,
 } from "./removal.ts";
+import { newAgencyRun, recordRun } from "./runHistory.ts";
 import { buildScope } from "./scope.ts";
 
 process.loadEnvFile(".env");
@@ -111,9 +113,12 @@ let failedAgencies = 0;
 // Issues the admin must hear about now. Makes the run exit non-zero, so GitHub notifies
 let needsAttention = 0;
 const browser = await chromium.launch({ headless: true });
+// Shared by every agency's row in scrape_runs, so the rows of one run can be grouped
+const runStartedAt = new Date().toISOString();
 
 // Writes a failed/suspicious run to the backlog and notifies the admin when the rules say so
 async function flag(
+  run: AgencyRun,
   agencyName: string,
   kind: IssueKind,
   reason: IssueReason,
@@ -121,6 +126,9 @@ async function flag(
   details: { [key: string]: Json | undefined },
 ) {
   console.error(`${agencyName}: ${kind} (${reason}) - ${message}`);
+  run.outcome = kind;
+  run.reason = reason;
+  run.message = message;
   const issue = await recordIssue(supabaseAdmin, agencyName, kind, reason, {
     message,
     ...details,
@@ -133,10 +141,14 @@ async function flag(
 
 try {
   for (const agency of agencies) {
+    const startedAt = new Date().toISOString();
+    // Filled in below and saved to scrape_runs in finally, also after continue
+    const run = newAgencyRun();
     try {
       // No search URL for this agency (e.g. none of the chosen types exist there) means nothing was scraped, so nothing can be judged as removed
       if (agency.buildUrls(scope).length === 0) {
         console.log(`${agency.AGENCY}: nothing to scrape in this scope`);
+        run.outcome = "skipped";
         continue;
       }
 
@@ -153,7 +165,7 @@ try {
         result = await agency.scrape(scope, browser);
       } catch (error) {
         const reason = error instanceof ScrapeLayoutError ? "F2" : "F1";
-        await flag(agency.AGENCY, "failed", reason, String(error), {});
+        await flag(run, agency.AGENCY, "failed", reason, String(error), {});
         continue;
       }
       const { failedUrls } = result;
@@ -166,6 +178,7 @@ try {
         }
         return !problem;
       });
+      run.failedPages = failedUrls.length;
 
       if (rows.length > 0) {
         const { error } = await supabaseAdmin
@@ -173,10 +186,11 @@ try {
           .upsert(rows, { onConflict: "agency,external_id" });
         // Failure F4: the save failed, logged in the backlog
         if (error) {
-          await flag(agency.AGENCY, "failed", "F4", error.message, {});
+          await flag(run, agency.AGENCY, "failed", "F4", error.message, {});
           continue;
         }
       }
+      run.saved = rows.length;
 
       console.log(
         `${agency.AGENCY}: saved ${rows.length} listings, ${failedUrls.length} pages failed`,
@@ -185,6 +199,7 @@ try {
       // Failure F3: Too many listing pages failed, the scraper is probably broken
       if (tooManyPagesFailed(rows.length, failedUrls.length)) {
         await flag(
+          run,
           agency.AGENCY,
           "failed",
           "F3",
@@ -202,6 +217,7 @@ try {
       if (isSuspiciousRemoval(activeBefore.length, missing.length)) {
         await resolveIssues(supabaseAdmin, agency.AGENCY, ["failed"]);
         await flag(
+          run,
           agency.AGENCY,
           "suspicious",
           "mass_removal",
@@ -217,10 +233,12 @@ try {
 
       // Clean run. Not found = removed, and the open issues for this agency are closed
       await markRemoved(supabaseAdmin, missing, new Date().toISOString());
+      run.removed = missing.length;
       await resolveIssues(supabaseAdmin, agency.AGENCY, [
         "failed",
         "suspicious",
       ]);
+      run.outcome = "ok";
       console.log(
         `${agency.AGENCY}: marked ${missing.length} listings as removed`,
       );
@@ -228,6 +246,18 @@ try {
       // One agency failing does not stop the others
       failedAgencies++;
       console.error(`Agency ${agency.AGENCY} failed:`, error);
+      run.outcome = "error";
+      run.reason = null;
+      run.message = String(error);
+    } finally {
+      const saved = await recordRun(
+        supabaseAdmin,
+        runStartedAt,
+        agency.AGENCY,
+        startedAt,
+        run,
+      );
+      if (!saved) failedAgencies++;
     }
   }
 } finally {

@@ -131,6 +131,18 @@ COMMENT ON TYPE "public"."scrape_issue_status" IS 'Status of a scrape issue. At 
 
 
 
+CREATE TYPE "public"."scrape_run_outcome" AS ENUM (
+    'ok',
+    'failed',
+    'suspicious',
+    'skipped',
+    'error'
+);
+
+
+ALTER TYPE "public"."scrape_run_outcome" OWNER TO "postgres";
+
+
 CREATE TYPE "public"."showing_event_action" AS ENUM (
     'created',
     'updated',
@@ -218,6 +230,207 @@ $$;
 
 
 ALTER FUNCTION "public"."accept_invite"("invite_id" bigint) OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."admin_find_user"("p_email" "text") RETURNS TABLE("id" "uuid", "name" "text", "email" "text", "created_at" timestamp with time zone, "last_sign_in_at" timestamp with time zone, "email_confirmed" boolean, "is_active" boolean, "is_admin" boolean)
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+#variable_conflict use_column
+begin
+  -- Admin only: the app hides the view, the database enforces it
+  if not public.is_admin() then
+    raise exception 'Endast för administratörer' using errcode = '42501';
+  end if;
+
+  -- Exact match only, ignoring case and surrounding spaces, so the admin cannot browse addresses
+  return query
+  select p.id,
+         p.name,
+         u.email::text,
+         p.created_at,
+         u.last_sign_in_at,
+         u.email_confirmed_at is not null,
+         p.is_active,
+         exists (select 1 from public.admins a where a.user_id = p.id)
+  from public.profiles p
+  join auth.users u on u.id = p.id
+  where lower(u.email) = lower(trim(p_email))
+  limit 1;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."admin_find_user"("p_email" "text") OWNER TO "postgres";
+
+
+COMMENT ON FUNCTION "public"."admin_find_user"("p_email" "text") IS 'Admin only. The user with exactly this e-mail (case-insensitive), or no row. Same columns as admin_list_users().';
+
+
+
+CREATE OR REPLACE FUNCTION "public"."admin_list_users"() RETURNS TABLE("id" "uuid", "name" "text", "email" "text", "created_at" timestamp with time zone, "last_sign_in_at" timestamp with time zone, "email_confirmed" boolean, "is_active" boolean, "is_admin" boolean)
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+#variable_conflict use_column
+begin
+  -- Admin only: the app hides the view, the database enforces it
+  if not public.is_admin() then
+    raise exception 'Endast för administratörer' using errcode = '42501';
+  end if;
+
+  return query
+  select p.id,
+         p.name,
+         u.email::text,
+         p.created_at,
+         u.last_sign_in_at,
+         u.email_confirmed_at is not null,
+         p.is_active,
+         exists (select 1 from public.admins a where a.user_id = p.id)
+  from public.profiles p
+  join auth.users u on u.id = p.id
+  order by p.created_at desc;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."admin_list_users"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."admin_open_issues"() RETURNS TABLE("id" bigint, "agency" "text", "kind" "public"."scrape_issue_kind", "reason" "text", "description" "text", "details" "jsonb", "occurrences" integer, "first_seen_at" timestamp with time zone, "last_seen_at" timestamp with time zone, "notified_at" timestamp with time zone)
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+#variable_conflict use_column
+begin
+  -- Admin only: the app hides the view, the database enforces it
+  if not public.is_admin() then
+    raise exception 'Endast för administratörer' using errcode = '42501';
+  end if;
+
+  -- description: plain Swedish for the product owner, who contacts the developer. The reasons are defined by the scraper (docs/removed_listings.md)
+  return query
+  select i.id,
+         i.agency,
+         i.kind,
+         i.reason,
+         case i.reason
+           when 'F1' then 'Mäklarens sida gick inte att nå (fel, timeout eller blockering).'
+           when 'F2' then 'Mäklarens sida ser inte ut som väntat, troligen ändrad layout. Kräver en kodändring.'
+           when 'F3' then 'Många annonssidor hos mäklaren gick inte att läsa.'
+           when 'F4' then 'Annonserna kunde inte sparas i databasen.'
+           when 'mass_removal' then 'Ovanligt många annonser saknades hos mäklaren, så inget togs bort. Förvaltaren behöver kontrollera om de verkligen är borttagna.'
+           else i.reason
+         end,
+         i.details,
+         i.occurrences,
+         i.first_seen_at,
+         i.last_seen_at,
+         i.notified_at
+  from public.scrape_issues i
+  where i.status = 'open'
+  order by i.first_seen_at;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."admin_open_issues"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."admin_scrape_status"() RETURNS TABLE("agency" "text", "last_run_at" timestamp with time zone, "last_outcome" "public"."scrape_run_outcome", "last_reason" "text", "last_message" "text", "last_ok_at" timestamp with time zone, "active_listings" integer, "last_seen_at" timestamp with time zone, "open_issues" integer)
+    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+#variable_conflict use_column
+begin
+  -- Admin only: the app hides the view, the database enforces it
+  if not public.is_admin() then
+    raise exception 'Endast för administratörer' using errcode = '42501';
+  end if;
+
+  return query
+  with agencies as (
+    select r.agency from public.scrape_runs r
+    union
+    select l.agency from public.listings l
+    union
+    select i.agency from public.scrape_issues i where i.status = 'open'
+  ),
+  last_run as (
+    select distinct on (r.agency) r.agency, r.started_at, r.outcome, r.reason, r.message
+    from public.scrape_runs r
+    order by r.agency, r.started_at desc
+  ),
+  last_ok as (
+    select r.agency, max(r.finished_at) as at
+    from public.scrape_runs r
+    where r.outcome = 'ok'
+    group by r.agency
+  ),
+  listing_stats as (
+    select l.agency,
+           (count(*) filter (where l.removed_at is null))::int as active,
+           max(l.last_seen_at) as last_seen
+    from public.listings l
+    group by l.agency
+  ),
+  issue_counts as (
+    select i.agency, count(*)::int as n
+    from public.scrape_issues i
+    where i.status = 'open'
+    group by i.agency
+  )
+  select a.agency,
+         lr.started_at,
+         lr.outcome,
+         lr.reason,
+         lr.message,
+         lo.at,
+         coalesce(ls.active, 0),
+         ls.last_seen,
+         coalesce(ic.n, 0)
+  from agencies a
+  left join last_run lr on lr.agency = a.agency
+  left join last_ok lo on lo.agency = a.agency
+  left join listing_stats ls on ls.agency = a.agency
+  left join issue_counts ic on ic.agency = a.agency
+  order by a.agency;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."admin_scrape_status"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."admin_set_user_active"("p_user_id" "uuid", "p_active" boolean) RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+begin
+  -- Admin only: the app hides the view, the database enforces it
+  if not public.is_admin() then
+    raise exception 'Endast för administratörer' using errcode = '42501';
+  end if;
+
+  -- An admin who blocks themselves loses admin rights at once and cannot undo it
+  if p_user_id = (select auth.uid()) then
+    raise exception 'Du kan inte spärra dig själv';
+  end if;
+
+  -- is_active is the manual kill switch, checked live by is_active_user() on every request (docs/database-design.md)
+  update public.profiles
+  set is_active = p_active
+  where id = p_user_id;
+
+  if not found then
+    raise exception 'Användaren finns inte';
+  end if;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."admin_set_user_active"("p_user_id" "uuid", "p_active" boolean) OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."can_see_listing"("p_listing_id" bigint) RETURNS boolean
@@ -726,6 +939,21 @@ $$;
 
 
 ALTER FUNCTION "public"."is_active_user"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."is_admin"() RETURNS boolean
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+  select public.is_active_user()
+     and exists (
+       select 1 from public.admins a
+       where a.user_id = (select auth.uid())
+     );
+$$;
+
+
+ALTER FUNCTION "public"."is_admin"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."leave_group"() RETURNS "void"
@@ -1285,6 +1513,22 @@ $$;
 ALTER FUNCTION "public"."purge_old_invites"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."purge_old_scrape_runs"() RETURNS integer
+    LANGUAGE "sql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+  with deleted as (
+    delete from public.scrape_runs
+    where started_at < now() - interval '90 days'
+    returning 1
+  )
+  select count(*)::int from deleted;
+$$;
+
+
+ALTER FUNCTION "public"."purge_old_scrape_runs"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."purge_old_showing_events"() RETURNS integer
     LANGUAGE "sql" SECURITY DEFINER
     SET "search_path" TO ''
@@ -1649,6 +1893,19 @@ ALTER TABLE "public"."search_params" ALTER COLUMN "id" ADD GENERATED BY DEFAULT 
 
 
 
+CREATE TABLE IF NOT EXISTS "public"."admins" (
+    "user_id" "uuid" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+ALTER TABLE "public"."admins" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."admins" IS 'Product admins (the product owner). Rows are added only through the Dashboard or service_role. The app reads it only through is_admin().';
+
+
+
 CREATE TABLE IF NOT EXISTS "public"."api_rate_limit" (
     "user_id" "uuid" NOT NULL,
     "minute" timestamp with time zone NOT NULL,
@@ -1854,6 +2111,43 @@ ALTER TABLE "public"."scrape_issues" ALTER COLUMN "id" ADD GENERATED ALWAYS AS I
 
 
 
+CREATE TABLE IF NOT EXISTS "public"."scrape_runs" (
+    "id" bigint NOT NULL,
+    "run_started_at" timestamp with time zone NOT NULL,
+    "github_run_id" bigint,
+    "agency" "text" NOT NULL,
+    "started_at" timestamp with time zone NOT NULL,
+    "finished_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "outcome" "public"."scrape_run_outcome" NOT NULL,
+    "reason" "text",
+    "saved" integer DEFAULT 0 NOT NULL,
+    "failed_pages" integer DEFAULT 0 NOT NULL,
+    "removed" integer DEFAULT 0 NOT NULL,
+    "message" "text",
+    CONSTRAINT "scrape_runs_counts_check" CHECK ((("saved" >= 0) AND ("failed_pages" >= 0) AND ("removed" >= 0))),
+    CONSTRAINT "scrape_runs_message_length" CHECK ((("message" IS NULL) OR ("char_length"("message") <= 2000))),
+    CONSTRAINT "scrape_runs_reason_length" CHECK ((("reason" IS NULL) OR ("char_length"("reason") <= 50)))
+);
+
+
+ALTER TABLE "public"."scrape_runs" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."scrape_runs" IS 'One row per scrape run and agency, written by the scraper (service_role). Problems and their details live in scrape_issues. Rows older than 90 days are deleted by purge_old_scrape_runs().';
+
+
+
+ALTER TABLE "public"."scrape_runs" ALTER COLUMN "id" ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME "public"."scrape_runs_id_seq"
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+
 CREATE TABLE IF NOT EXISTS "public"."search_params_log" (
     "id" bigint NOT NULL,
     "user_id" "uuid" NOT NULL,
@@ -2018,6 +2312,11 @@ ALTER TABLE "public"."user_tags" ALTER COLUMN "id" ADD GENERATED BY DEFAULT AS I
 
 
 
+ALTER TABLE ONLY "public"."admins"
+    ADD CONSTRAINT "admins_pkey" PRIMARY KEY ("user_id");
+
+
+
 ALTER TABLE ONLY "public"."api_rate_limit"
     ADD CONSTRAINT "api_rate_limit_pkey" PRIMARY KEY ("user_id", "minute");
 
@@ -2085,6 +2384,11 @@ ALTER TABLE ONLY "public"."profiles"
 
 ALTER TABLE ONLY "public"."scrape_issues"
     ADD CONSTRAINT "scrape_issues_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."scrape_runs"
+    ADD CONSTRAINT "scrape_runs_pkey" PRIMARY KEY ("id");
 
 
 
@@ -2168,6 +2472,10 @@ CREATE UNIQUE INDEX "scrape_issues_one_open" ON "public"."scrape_issues" USING "
 
 
 
+CREATE INDEX "scrape_runs_agency_started" ON "public"."scrape_runs" USING "btree" ("agency", "started_at" DESC);
+
+
+
 CREATE INDEX "search_params_log_user_changed_idx" ON "public"."search_params_log" USING "btree" ("user_id", "changed_at");
 
 
@@ -2233,6 +2541,11 @@ CREATE OR REPLACE TRIGGER "user_listings_set_liked_at" BEFORE INSERT OR UPDATE O
 
 
 CREATE OR REPLACE TRIGGER "user_tags_limit_per_user" BEFORE INSERT ON "public"."user_tags" FOR EACH ROW EXECUTE FUNCTION "public"."limit_tags_per_user"();
+
+
+
+ALTER TABLE ONLY "public"."admins"
+    ADD CONSTRAINT "admins_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."profiles"("id") ON DELETE CASCADE;
 
 
 
@@ -2341,6 +2654,9 @@ ALTER TABLE ONLY "public"."user_tags"
 
 
 
+ALTER TABLE "public"."admins" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "public"."api_rate_limit" ENABLE ROW LEVEL SECURITY;
 
 
@@ -2435,6 +2751,9 @@ CREATE POLICY "profiles_update_own" ON "public"."profiles" FOR UPDATE TO "authen
 
 
 ALTER TABLE "public"."scrape_issues" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."scrape_runs" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."search_params" ENABLE ROW LEVEL SECURITY;
@@ -2574,6 +2893,12 @@ GRANT ALL ON TYPE "public"."scrape_issue_kind" TO "service_role";
 REVOKE ALL ON TYPE "public"."scrape_issue_status" FROM PUBLIC;
 GRANT ALL ON TYPE "public"."scrape_issue_status" TO "authenticated";
 GRANT ALL ON TYPE "public"."scrape_issue_status" TO "service_role";
+
+
+
+REVOKE ALL ON TYPE "public"."scrape_run_outcome" FROM PUBLIC;
+GRANT ALL ON TYPE "public"."scrape_run_outcome" TO "authenticated";
+GRANT ALL ON TYPE "public"."scrape_run_outcome" TO "service_role";
 
 
 
@@ -2757,6 +3082,36 @@ GRANT ALL ON FUNCTION "public"."accept_invite"("invite_id" bigint) TO "authentic
 
 
 
+REVOKE ALL ON FUNCTION "public"."admin_find_user"("p_email" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."admin_find_user"("p_email" "text") TO "service_role";
+GRANT ALL ON FUNCTION "public"."admin_find_user"("p_email" "text") TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."admin_list_users"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."admin_list_users"() TO "service_role";
+GRANT ALL ON FUNCTION "public"."admin_list_users"() TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."admin_open_issues"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."admin_open_issues"() TO "service_role";
+GRANT ALL ON FUNCTION "public"."admin_open_issues"() TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."admin_scrape_status"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."admin_scrape_status"() TO "service_role";
+GRANT ALL ON FUNCTION "public"."admin_scrape_status"() TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."admin_set_user_active"("p_user_id" "uuid", "p_active" boolean) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."admin_set_user_active"("p_user_id" "uuid", "p_active" boolean) TO "service_role";
+GRANT ALL ON FUNCTION "public"."admin_set_user_active"("p_user_id" "uuid", "p_active" boolean) TO "authenticated";
+
+
+
 REVOKE ALL ON FUNCTION "public"."can_see_listing"("p_listing_id" bigint) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."can_see_listing"("p_listing_id" bigint) TO "service_role";
 GRANT ALL ON FUNCTION "public"."can_see_listing"("p_listing_id" bigint) TO "authenticated";
@@ -2837,6 +3192,12 @@ GRANT ALL ON FUNCTION "public"."in_my_group"("target" "uuid") TO "service_role";
 REVOKE ALL ON FUNCTION "public"."is_active_user"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."is_active_user"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."is_active_user"() TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."is_admin"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."is_admin"() TO "service_role";
+GRANT ALL ON FUNCTION "public"."is_admin"() TO "authenticated";
 
 
 
@@ -2945,6 +3306,11 @@ GRANT ALL ON FUNCTION "public"."purge_old_invites"() TO "service_role";
 
 
 
+REVOKE ALL ON FUNCTION "public"."purge_old_scrape_runs"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."purge_old_scrape_runs"() TO "service_role";
+
+
+
 REVOKE ALL ON FUNCTION "public"."purge_old_showing_events"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."purge_old_showing_events"() TO "service_role";
 
@@ -3041,6 +3407,10 @@ GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE "public"."search_params" TO "authenti
 
 GRANT ALL ON SEQUENCE "public"."SearchParams_id_seq" TO "authenticated";
 GRANT ALL ON SEQUENCE "public"."SearchParams_id_seq" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."admins" TO "service_role";
 
 
 
@@ -3148,6 +3518,15 @@ GRANT ALL ON TABLE "public"."scrape_issues" TO "service_role";
 
 GRANT ALL ON SEQUENCE "public"."scrape_issues_id_seq" TO "authenticated";
 GRANT ALL ON SEQUENCE "public"."scrape_issues_id_seq" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."scrape_runs" TO "service_role";
+
+
+
+GRANT ALL ON SEQUENCE "public"."scrape_runs_id_seq" TO "authenticated";
+GRANT ALL ON SEQUENCE "public"."scrape_runs_id_seq" TO "service_role";
 
 
 
