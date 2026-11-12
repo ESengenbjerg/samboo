@@ -6,9 +6,9 @@ import { InformationInterval } from "@/stores/onboarding";
 import { showToast } from "@/stores/toast";
 import { useState } from "react";
 import { View } from "react-native";
+import InformationIntervalPicker from "../filter/information-interval-picker";
 import FormError from "../form-error";
 import { Spinner } from "../ui/spinner";
-import InformationIntervalSettings from "./information-interval-settings";
 
 export default function EmailFrequencySettings() {
   const { session } = useSession();
@@ -18,39 +18,48 @@ export default function EmailFrequencySettings() {
 
   // Choice made on this visit, otherwise the value from Supabase
   const [selected, setSelected] = useState<InformationInterval | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-
-  if (!userId || isLoading) return <Spinner size="large" />;
-  if (error) return <FormError>{error}</FormError>;
 
   const current = selected ?? profile?.notificationFrequency ?? "day";
 
   async function onChange(interval: InformationInterval) {
-    if (!userId || interval === current) return;
+    // Ignore clicks while a save is running, so a failed save
+    // cannot overwrite a newer choice
+    if (!userId || isSaving || interval === current) return;
 
     const previous = current;
     setSaveError(null);
     setSelected(interval);
+    setIsSaving(true);
 
     const { error: updateError } = await updateNotificationFrequency(
       userId,
       interval,
     );
 
+    setIsSaving(false);
+
     if (updateError) {
-      console.log("Update frequency error: ", updateError);
+      console.log("Update frequency error:", updateError);
       setSelected(previous);
-      setSaveError("Kunde inte spara hur ofta du vill få mail. Försök igen.");
+      setSaveError("Kunde inte spara hur ofta du vill få mejl. Försök igen.");
       return;
     }
 
-    showToast("Mailfrekvens uppdaterad!", "success");
+    showToast("Mejlfrekvens uppdaterad!", "success");
   }
 
   return (
-    <View>
+    <View className="gap-4">
       <Text variant="h2">Mejl</Text>
-      <InformationIntervalSettings value={current} onChange={onChange} />
+      {!userId || isLoading ? (
+        <Spinner size="large" />
+      ) : error ? (
+        <FormError>{error}</FormError>
+      ) : (
+        <InformationIntervalPicker value={current} onChange={onChange} />
+      )}
       {saveError && <FormError>{saveError}</FormError>}
     </View>
   );

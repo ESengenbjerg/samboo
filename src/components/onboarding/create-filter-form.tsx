@@ -8,7 +8,7 @@ import {
 } from "@/stores/onboarding";
 import { router } from "expo-router";
 import { useState } from "react";
-import InformationIntervalSettings from "../settings/information-interval-settings";
+import InformationIntervalPicker from "../filter/information-interval-picker";
 
 export default function CreateFilterForm() {
   // Wait until the store is hydrated, otherwise the saved values
@@ -45,8 +45,8 @@ function CreateFilterFields() {
       savedScraperFilter={savedScraperFilter}
       savedClientFilter={savedClientFilter}
       onSave={onSave}
-      informationInterval={
-        <InformationIntervalSettings
+      intervalField={
+        <InformationIntervalPicker
           value={informationInterval}
           onChange={setInformationInterval}
         />
