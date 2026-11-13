@@ -1142,7 +1142,7 @@ components:
     ProfileUpdate:
       type: object
       properties:
-        name: { type: string, minLength: 1, maxLength: 100 }
+        name: { type: string, minLength: 1, maxLength: 100, pattern: '\S' }
         onboarding_completed_at: { type: string, format: date-time, nullable: true }
         avatar_path:
           type: string

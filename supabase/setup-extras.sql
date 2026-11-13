@@ -68,7 +68,7 @@ create policy avatars_insert_own on storage.objects
     bucket_id = 'avatars'
     and (storage.foldername(name))[1] = (select auth.uid())::text
     and name ~ '^[^/]+/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$'
-    and public.is_active_user()
+    and (select public.is_active_user())
     and public.my_avatar_count() < 5
   );
 
@@ -87,7 +87,7 @@ create policy avatars_delete_own on storage.objects
   using (
     bucket_id = 'avatars'
     and (storage.foldername(name))[1] = (select auth.uid())::text
-    and public.is_active_user()
+    and (select public.is_active_user())
   );
 
 
