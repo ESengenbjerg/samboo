@@ -9,7 +9,7 @@ import { Pressable, View } from "react-native";
 import FormError from "../form-error";
 import { ConfirmDialog } from "../modals/confirm-dialog";
 import { EditTagsDialog } from "../modals/edit-tags-dialog";
-import CategoryTag from "../tags/category-tag";
+import Tag from "../tags/tag";
 import { Spinner } from "../ui/spinner";
 
 export default function TagSettings() {
@@ -91,7 +91,7 @@ export default function TagSettings() {
             accessibilityRole="button"
             accessibilityLabel={`Redigera taggen ${t.tag_name}`}
           >
-            <CategoryTag text={t.tag_name} />
+            <Tag text={t.tag_name} />
           </Pressable>
         ))}
       </View>

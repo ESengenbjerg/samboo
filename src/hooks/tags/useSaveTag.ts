@@ -5,7 +5,7 @@ import {
   removeListingTag,
   updateUserTag,
 } from "@/services/tags";
-import { SaveCategorizationInput, UserTag } from "@/types/tags";
+import { SaveTagsInput, UserTag } from "@/types/tags";
 import { capitalize } from "@/utils/capitalize-string";
 import { useCallback, useState } from "react";
 
@@ -137,7 +137,7 @@ export function useSaveTag() {
   // Returns true only if everything succeeded. Stops at the first failed create, so a tag is
   // never applied without the user seeing the error. The caller should reload both tag lists
   // afterwards, also on failure, since some tags may have been created before the failure
-  const saveCategorization = useCallback(
+  const saveTags = useCallback(
     async ({
       userId,
       userListingId,
@@ -145,7 +145,7 @@ export function useSaveTag() {
       selectedIds,
       initialIds,
       newNames,
-    }: SaveCategorizationInput) => {
+    }: SaveTagsInput) => {
       setError(null);
       const toAdd = selectedIds.filter((id) => !initialIds.includes(id));
       const toRemove = initialIds.filter((id) => !selectedIds.includes(id));
@@ -177,7 +177,7 @@ export function useSaveTag() {
     deleteTag,
     applyTag,
     unapplyTag,
-    saveCategorization,
+    saveTags,
     isSaving,
     error,
     clearError,

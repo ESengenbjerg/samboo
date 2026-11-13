@@ -13,12 +13,12 @@ export default function ListingsFilterBar({
     setSort,
     propertyType,
     setPropertyType,
-    category,
-    setCategory,
+    tag,
+    setTag,
     propertyTypeOptions,
     tagOptions,
     showPropertyTypeFilter,
-    showCategoryFilter,
+    showTagFilter,
   } = filters;
 
   return (
@@ -44,12 +44,12 @@ export default function ListingsFilterBar({
           fieldColor="bg-white"
         />
       )}
-      {showCategoryFilter && (
+      {showTagFilter && (
         <FilterSelect
           placeholder="Taggar"
           dropdownLabel="Dina taggar"
-          value={category}
-          onValueChange={setCategory}
+          value={tag}
+          onValueChange={setTag}
           options={[ALL_OPTION, ...tagOptions]}
           fieldColor="bg-white"
         />

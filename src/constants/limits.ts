@@ -19,7 +19,7 @@ export const SHOWING_NOTE_MAX_LENGTH = 500;
 // showings_date_range: 2000-01-01 to 2099-12-31. The app starts at today, so only the end is needed
 export const SHOWING_LAST_DATE = "2099-12-31";
 
-// limit_tags_per_user(): raises P0001 "Du har redan max antal kategorier (30)"
+// limit_tags_per_user(): raises P0001 "Du har redan max antal taggar (30)"
 export const MAX_TAGS_PER_USER = 30;
 
 // accept_invite(): a group can not grow past this

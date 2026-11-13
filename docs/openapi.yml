@@ -941,7 +941,7 @@ paths:
       responses:
         '201': { description: Created. }
         '400':
-          description: '`Du har redan max antal kategorier (30)`, or a check constraint (name only whitespace).'
+          description: '`Du har redan max antal taggar (30)`, or a check constraint (name only whitespace).'
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
