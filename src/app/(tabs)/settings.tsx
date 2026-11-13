@@ -14,8 +14,9 @@ import { SETTING_OPTIONS } from "@/constants/setting-options";
 import { useSession } from "@/hooks/auth/useSession";
 import { useBackToTop } from "@/hooks/useBackToTop";
 import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
+import { showToast } from "@/stores/toast";
 import { useFocusEffect } from "expo-router";
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { LayoutChangeEvent, ScrollView, View } from "react-native";
 
 export default function SettingsScreen() {
@@ -24,12 +25,25 @@ export default function SettingsScreen() {
 
   // Reload connected accounts every time the tab is opened.
   // Catches changes Realtime cannot send, e.g. another member leaving the group.
-  const { refresh } = accounts;
+  // The tab never unmounts, so old errors are cleared when the user leaves it
+  const { refresh, actionError, clearActionError, clearInviteError } = accounts;
   useFocusEffect(
     useCallback(() => {
       refresh();
-    }, [refresh]),
+      return () => {
+        clearActionError();
+        clearInviteError();
+      };
+    }, [refresh, clearActionError, clearInviteError]),
   );
+
+  // Errors from remove/leave/cancel/answer are shown as a toast, so they go away
+  // on their own. Errors from sending an invite stay in the invite dialog
+  useEffect(() => {
+    if (!actionError) return;
+    showToast(actionError);
+    clearActionError();
+  }, [actionError, clearActionError]);
 
   const { scrollRef, showBackToTop, handleScroll, scrollToTop } =
     useBackToTop();

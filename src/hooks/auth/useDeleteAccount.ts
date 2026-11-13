@@ -24,5 +24,7 @@ export function useDeleteAccount() {
     return true;
   }, []);
 
-  return { deleteAccount, isDeleting, error };
+  const clearError = useCallback(() => setError(null), []);
+
+  return { deleteAccount, isDeleting, error, clearError };
 }
