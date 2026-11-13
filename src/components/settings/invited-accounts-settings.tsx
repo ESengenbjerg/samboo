@@ -15,6 +15,7 @@ export default function ConnectAccountsSettings({
   accounts: ConnectedAccounts;
 }) {
   const {
+    members,
     pendingSentInvites,
     sendInvite,
     cancelInvite,
@@ -67,6 +68,7 @@ export default function ConnectAccountsSettings({
             if (!open) clearActionError();
           }}
           onAction={onInvite}
+          memberCount={members.length}
           isLoading={isSubmitting}
           error={inviteDialogOpen ? actionError : null}
         />
