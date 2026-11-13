@@ -4,7 +4,8 @@ import { useProfile } from "@/hooks/useProfile";
 import { updateNotificationFrequency } from "@/services/profiles";
 import { InformationInterval } from "@/stores/onboarding";
 import { showToast } from "@/stores/toast";
-import { useState } from "react";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import { View } from "react-native";
 import InformationIntervalPicker from "../filter/information-interval-picker";
 import FormError from "../form-error";
@@ -23,13 +24,22 @@ export default function EmailFrequencySettings() {
 
   const current = selected ?? profile?.notificationFrequency ?? "day";
 
+  // The tab never unmounts, so clear old errors when the user leaves it
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        setSaveError(null);
+      };
+    }, []),
+  );
+
   async function onChange(interval: InformationInterval) {
+    setSaveError(null);
     // Ignore clicks while a save is running, so a failed save
     // cannot overwrite a newer choice
     if (!userId || isSaving || interval === current) return;
 
     const previous = current;
-    setSaveError(null);
     setSelected(interval);
     setIsSaving(true);
 
