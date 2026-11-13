@@ -50,7 +50,11 @@ function isInviteAlreadyHandled(error: PostgrestError) {
 
 // Connected accounts (my group), invites to me and invites I have sent.
 // Pass undefined until the session is loaded
-export function useConnectedAccounts(userId: string | undefined) {
+export function useConnectedAccounts(
+  userId: string | undefined,
+  // Used to stop the user from inviting themselves
+  userEmail?: string | null,
+) {
   const [data, setData] = useState<ConnectedAccountsData | null>(null);
   // Changes when refresh() is called so the fetch runs again
   const [refreshCount, setRefreshCount] = useState(0);
@@ -200,7 +204,7 @@ export function useConnectedAccounts(userId: string | undefined) {
       }
 
       // Check all before sending any
-      const validationError = validateInviteEmails(emails);
+      const validationError = validateInviteEmails(emails, userEmail);
 
       // If error, show message and exit
       if (validationError) {
@@ -251,7 +255,7 @@ export function useConnectedAccounts(userId: string | undefined) {
       }
       return failed;
     },
-    [userId, members, refresh],
+    [userId, userEmail, members, refresh],
   );
 
   const acceptInvite = useCallback(

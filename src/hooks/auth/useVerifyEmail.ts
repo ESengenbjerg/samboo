@@ -8,6 +8,8 @@ import {
 } from "@/utils/error-message/auth-error-message";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+const RESEND_FALLBACK = "Kunde inte skicka koden. Försök igen.";
+
 // email and source are sent as params from /register or /login
 export function useVerifyEmail(email: string, source?: "login" | "register") {
   const [message, setMessage] = useState<string | null>(null);
@@ -27,15 +29,15 @@ export function useVerifyEmail(email: string, source?: "login" | "register") {
       const { error } = await resendSignUpCode(email);
 
       if (isRateLimitError(error)) {
-        console.log("Resend sign up code error:", error);
-        setError(authErrorMessage(error));
+        console.log("%s error:", error);
+        setError(authErrorMessage(error, RESEND_FALLBACK));
         restartCountdown();
         return false;
       }
 
       if (error) {
-        console.log("Resend sign up code error:", error);
-        setError(authErrorMessage(error));
+        console.log("%s error:", error);
+        setError(authErrorMessage(error, RESEND_FALLBACK));
         return false;
       }
 
@@ -43,7 +45,7 @@ export function useVerifyEmail(email: string, source?: "login" | "register") {
       return true;
     } catch (e) {
       console.log("Resend sign up code error:", e);
-      setError(authCatchMessage(e, "Kunde inte skicka koden. Försök igen."));
+      setError(authCatchMessage(e, RESEND_FALLBACK));
       return false;
     }
   }, [email, restartCountdown]);

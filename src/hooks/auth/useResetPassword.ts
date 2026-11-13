@@ -15,6 +15,8 @@ import {
 } from "@/utils/error-message/auth-error-message";
 import { useCallback, useEffect, useState } from "react";
 
+const RESEND_FALLBACK = "Kunde inte skicka koden. Försök igen.";
+
 // email is sent as a param from the forgot password screen
 export function useResetPassword(email: string) {
   const [message, setMessage] = useState<string | null>(null);
@@ -46,15 +48,15 @@ export function useResetPassword(email: string) {
       const { error } = await requestPasswordReset(email);
 
       if (isRateLimitError(error)) {
-        console.log("Resend reset code error:", error);
-        setError(authErrorMessage(error));
+        console.log("%s error:", error);
+        setError(authErrorMessage(error, RESEND_FALLBACK));
         restartCountdown();
         return;
       }
 
       if (error) {
-        console.log("Resend reset code error:", error);
-        setError(authErrorMessage(error));
+        console.log("%s error:", error);
+        setError(authErrorMessage(error, RESEND_FALLBACK));
         return;
       }
 
@@ -62,7 +64,7 @@ export function useResetPassword(email: string) {
       setMessage("Ny kod skickad.");
     } catch (e) {
       console.log("Resend reset code error:", e);
-      setError(authCatchMessage(e, "Kunde inte skicka koden. Försök igen."));
+      setError(authCatchMessage(e, RESEND_FALLBACK));
     } finally {
       setIsLoading(false);
     }

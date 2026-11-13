@@ -44,7 +44,7 @@ export default function ConnectAccountForm({
   // Invites to me, so an invited partner can accept instead of inviting back.
   // The database allows answering before onboarding is completed
   const { session } = useSession();
-  const accounts = useConnectedAccounts(session?.user.id);
+  const accounts = useConnectedAccounts(session?.user.id, session?.user.email);
   const { receivedInvites, isSubmitting, actionError, clearActionError } =
     accounts;
   const { answeredInvite, answeredFromName, onAnswer, clearAnswer } =

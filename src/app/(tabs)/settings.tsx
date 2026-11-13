@@ -21,7 +21,7 @@ import { LayoutChangeEvent, ScrollView, View } from "react-native";
 
 export default function SettingsScreen() {
   const { session } = useSession();
-  const accounts = useConnectedAccounts(session?.user.id);
+  const accounts = useConnectedAccounts(session?.user.id, session?.user.email);
 
   // Reload connected accounts every time the tab is opened.
   // Catches changes Realtime cannot send, e.g. another member leaving the group.
