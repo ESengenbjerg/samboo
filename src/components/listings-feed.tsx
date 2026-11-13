@@ -4,6 +4,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { useSession } from "@/hooks/auth/useSession";
 import { useBackToTop } from "@/hooks/useBackToTop";
+import { useTabBarInset } from "@/hooks/useTabBarInset";
 import { FeedListing, useFilteredListings } from "@/hooks/useFilteredListings";
 import { BasePath, goToObject } from "@/utils/go-to-object";
 import { isNewConstruction } from "@/utils/is-new-construction";
@@ -47,6 +48,7 @@ export default function ListingsFeed({
 
   const { scrollRef, showBackToTop, handleScroll, scrollToTop } =
     useBackToTop();
+  const tabBarInset = useTabBarInset();
 
   return (
     <>
@@ -56,7 +58,7 @@ export default function ListingsFeed({
           onScroll={handleScroll}
           scrollEventThrottle={16}
           className="bg-background"
-          contentContainerClassName="pb-8"
+          contentContainerStyle={{ paddingBottom: tabBarInset + 16 }}
           showsVerticalScrollIndicator={false}
         >
           <View>

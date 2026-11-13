@@ -89,7 +89,7 @@ export function SendInviteDialog({
                   <View className="relative">
                     <Input
                       id={`invite-email-${i}`}
-                      placeholder="m@example.com"
+                      placeholder="namn@example.com"
                       value={email}
                       onChangeText={(text) => updateEmail(i, text)}
                       keyboardType="email-address"
