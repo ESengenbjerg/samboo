@@ -7,6 +7,7 @@ import { useBackToTop } from "@/hooks/useBackToTop";
 import { useTabBarInset } from "@/hooks/useTabBarInset";
 import { FeedListing, useFilteredListings } from "@/hooks/useFilteredListings";
 import { BasePath, goToObject } from "@/utils/go-to-object";
+import { isListingRemoved } from "@/utils/is-listing-removed";
 import { isNewConstruction } from "@/utils/is-new-construction";
 import { Link } from "expo-router";
 import { useState } from "react";
@@ -128,6 +129,7 @@ export default function ListingsFeed({
                 imageUrl={listing.image_url ?? ""}
                 onPress={() => goToObject(listing.id, path)}
                 listingId={listing.id}
+                isRemoved={isListingRemoved(listing)}
                 isNew={listing.is_new}
                 isNewConstruction={isNewConstruction(listing)}
                 size={view === "grid" ? "small" : "default"}

@@ -15,10 +15,11 @@ import { useMarkListingSeen } from "@/hooks/useMarkListingSeen";
 import { useTabBarInset } from "@/hooks/useTabBarInset";
 import { Listing } from "@/types/listing";
 import handleBack from "@/utils/handle-back";
+import { isListingRemoved } from "@/utils/is-listing-removed";
 import { isNewConstruction } from "@/utils/is-new-construction";
 import { formatPrice } from "@shared/format";
 import { Image } from "expo-image";
-import { PlusSquare } from "lucide-react-native";
+import { MessageCircleWarningIcon, PlusSquare } from "lucide-react-native";
 import { useState } from "react";
 import { Linking, Pressable, ScrollView, View } from "react-native";
 import BackToTopButton from "../back-to-top-button";
@@ -231,6 +232,34 @@ export default function ObjectPageScreen({
             )}
           </View>
           <Separator />
+
+          {/* --- REMOVED OBJECTS --- */}
+          {isListingRemoved(listing) && (
+            <>
+              <View className="gap-2 rounded">
+                <View className="flex-row items-center gap-2">
+                  <Icon as={MessageCircleWarningIcon} size={18} />
+                  <Text variant="bold">Objekt hittades inte</Text>
+                </View>
+                <Text>
+                  Objektet hittades inte i vår senaste sökning. Det kan bero på
+                  att det blivit sålt eller tagits bort från mäklaren,
+                  alternativt att något gick fel under sökningen.
+                </Text>
+                <Text>
+                  Besök mäklaren för att ta reda på om det finns kvar.
+                </Text>
+                <Button
+                  variant="secondary"
+                  onPress={() => Linking.openURL(listing.url)}
+                  className="w-52 mt-4"
+                >
+                  <Text>Läs mer hos mäklaren</Text>
+                </Button>
+              </View>
+              <Separator />
+            </>
+          )}
 
           {/* --- TAGS --- */}
           <View className="gap-2">

@@ -12,9 +12,11 @@ import { Pressable, View } from "react-native";
 import { cn } from "@/lib/utils";
 import { formatPrice } from "@shared/format";
 import { cva, type VariantProps } from "class-variance-authority";
+import { ChevronRight } from "lucide-react-native";
 import { useState } from "react";
 import { LikeButton } from "./like-button";
 import OnCardTag from "./tags/card-tag";
+import { Icon } from "./ui/icon";
 
 const fallbackImage = require("@/assets/images/no-image.jpg");
 
@@ -47,6 +49,7 @@ type ObjectCardProps = VariantProps<typeof objectCardVariants> & {
   rooms: number | null;
   imageUrl: string;
   listingId: number;
+  isRemoved: boolean;
   isNew?: boolean;
   isNewConstruction?: boolean;
   onPress?: () => void;
@@ -62,6 +65,7 @@ export function ObjectCard({
   rooms,
   imageUrl,
   listingId,
+  isRemoved,
   isNew,
   isNewConstruction,
   onPress,
@@ -77,17 +81,41 @@ export function ObjectCard({
   return (
     <View className={cn(objectCardVariants({ size }), className)}>
       <Card className="grow py-0 overflow-hidden">
-        <View className={imageWrapperVariants({ size })}>
-          <Image
-            source={showFallback ? fallbackImage : { uri: imageUrl }}
-            onError={() => setFailedUrl(imageUrl ?? null)}
-            style={{ width: "100%", height: "100%" }}
-            contentFit="cover"
-          />
-          <OnCardTag
-            isNew={isNew}
-            isNewConstruction={isSmall && isNew ? false : isNewConstruction}
-          />
+        <View className="relative items-center justify-center">
+          {isRemoved && (
+            <View className="absolute z-10 items-center justify-center">
+              <Text variant="large" className="text-primary drop-shadow-sm">
+                Hittas inte
+              </Text>
+              <View className="flex-row items-center gap-1 px-4">
+                <Text variant="small" className="text-center text-primary">
+                  Mer info
+                </Text>
+                <Icon
+                  as={ChevronRight}
+                  className="text-secondary bg-primary rounded-full"
+                />
+              </View>
+            </View>
+          )}
+          <View className={imageWrapperVariants({ size })}>
+            <Image
+              source={showFallback ? fallbackImage : { uri: imageUrl }}
+              onError={() => setFailedUrl(imageUrl ?? null)}
+              style={{
+                width: "100%",
+                height: "100%",
+                filter: isRemoved
+                  ? "grayscale(0.2) brightness(40%)"
+                  : undefined,
+              }}
+              contentFit="cover"
+            />
+            <OnCardTag
+              isNew={isNew}
+              isNewConstruction={isSmall && isNew ? false : isNewConstruction}
+            />
+          </View>
         </View>
 
         {!isSmall ? (
