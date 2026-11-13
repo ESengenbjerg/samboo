@@ -74,7 +74,8 @@ export default function ListingsFeed({
               <View className="flex-row gap-1.5">
                 <Pressable
                   onPress={() => setView("column")}
-                  hitSlop={10}
+                  // 20 px icon + 12 px on each side = 44 px touch target, without changing how it looks
+                  hitSlop={12}
                   accessibilityRole="button"
                   accessibilityLabel="Kolumnvy"
                   accessibilityState={{ selected: view === "column" }}
@@ -83,7 +84,8 @@ export default function ListingsFeed({
                 </Pressable>
                 <Pressable
                   onPress={() => setView("grid")}
-                  hitSlop={10}
+                  // 20 px icon + 12 px on each side = 44 px touch target, without changing how it looks
+                  hitSlop={12}
                   accessibilityRole="button"
                   accessibilityLabel="Rutnätsvy"
                   accessibilityState={{ selected: view === "grid" }}

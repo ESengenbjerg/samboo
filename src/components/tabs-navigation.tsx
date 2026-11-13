@@ -166,7 +166,15 @@ export default function TabsNavigation({
               className="flex-1 h-[90%] m-1 items-center justify-center gap-1 rounded-full"
             >
               {options.tabBarIcon?.({ focused: isFocused, color, size: 24 })}
-              <Text style={{ color }} className="text-xs">
+              <Text
+                style={{ color }}
+                className="text-xs"
+                // Large system text must not clip or wrap the label: it shrinks only when it
+                // doesn't fit, so at normal text size nothing changes
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.7}
+              >
                 {label}
               </Text>
             </Pressable>
