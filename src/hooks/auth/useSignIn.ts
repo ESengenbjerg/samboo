@@ -19,12 +19,12 @@ export function useSignIn() {
       const trimmedEmail = email.trim();
 
       if (!trimmedEmail) {
-        setError("Fyll i e-post.");
+        setError("Fyll i mejl.");
         return;
       }
 
       if (!isValidEmail(trimmedEmail)) {
-        setError("Fyll i en giltig e-postadress.");
+        setError("Fyll i en giltig mejladress.");
         return;
       }
 
@@ -53,7 +53,7 @@ export function useSignIn() {
 
           setError(
             error.code === "invalid_credentials"
-              ? "Fel e-post eller lösenord."
+              ? "Fel mejl eller lösenord."
               : authErrorMessage(error),
           );
         }

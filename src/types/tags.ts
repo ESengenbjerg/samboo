@@ -13,10 +13,10 @@ export type ListingTag = Pick<
   user_listings: Pick<Tables<"user_listings">, "listing_id">;
 };
 
-// Everything needed to save the categorization dialog in one go
-export type SaveCategorizationInput = {
+// Everything needed to save the tags dialog in one go
+export type SaveTagsInput = {
   userId: string;
-  // user_listings.id of the listing being categorized
+  // user_listings.id of the listing being tagged
   userListingId: number;
   // My tags as currently loaded. Used to reuse a tag if it already exists
   existingTags: UserTag[];

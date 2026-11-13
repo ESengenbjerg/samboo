@@ -15,6 +15,7 @@ export default function SettingsMenu({ title, onSelect }: SettingsMenuProps) {
         <Button
           key={t}
           variant="outline"
+          size="sm"
           onPress={() => onSelect(t)}
           aria-label={`Gå till ${t}`}
           className="flex-none shrink-0"

@@ -135,8 +135,8 @@ export default function GeoPicker({
 
         {/* If 0 suggestions */}
         {search && suggestions.length === 0 ? (
-          <View className="absolute top-full left-0 right-0 mt-1 rounded-sm border border-input bg-background shadow-md z-10">
-            <Text>{`Inga träffar för "${query.trim()}".`}</Text>
+          <View className="absolute top-full left-0 right-0 mt-1 p-2 gap-2 rounded-sm border border-input bg-background shadow-md z-10">
+            <Text variant="bold">{`Inga träffar för "${query.trim()}".`}</Text>
             {locationType === "area" ? (
               <Text>
                 Prova ett större område eller lämna tomt fält för att söka i

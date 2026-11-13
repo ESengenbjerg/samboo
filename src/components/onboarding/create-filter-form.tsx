@@ -7,6 +7,8 @@ import {
   useOnboardingStore,
 } from "@/stores/onboarding";
 import { router } from "expo-router";
+import { useState } from "react";
+import InformationIntervalPicker from "../filter/information-interval-picker";
 
 export default function CreateFilterForm() {
   // Wait until the store is hydrated, otherwise the saved values
@@ -27,11 +29,10 @@ function CreateFilterFields() {
     (s) => s.informationInterval,
   );
 
-  function onSave(
-    scraperFilter: ScraperFilter,
-    clientFilter: ClientFilter,
-    informationInterval: InformationInterval,
-  ) {
+  const [informationInterval, setInformationInterval] =
+    useState<InformationInterval>(savedInformationInterval);
+
+  function onSave(scraperFilter: ScraperFilter, clientFilter: ClientFilter) {
     setFilters(scraperFilter, clientFilter, informationInterval);
     router.push({ pathname: "/connect" });
   }
@@ -39,12 +40,17 @@ function CreateFilterFields() {
   return (
     <FilterForm
       title="Skapa bevakning"
-      description="Du kan ändra din bevakning senare via Uppdatera bevakning på sök-sidan."
+      description="Du kan ändra din bevakning senare under fliken Bevakning."
       submitLabel="Skapa bevakning"
       savedScraperFilter={savedScraperFilter}
       savedClientFilter={savedClientFilter}
-      savedInformationInterval={savedInformationInterval}
       onSave={onSave}
+      intervalField={
+        <InformationIntervalPicker
+          value={informationInterval}
+          onChange={setInformationInterval}
+        />
+      }
     />
   );
 }

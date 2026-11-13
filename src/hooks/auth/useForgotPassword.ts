@@ -15,7 +15,7 @@ export function useForgotPassword() {
       setError(null);
 
       if (!isValidEmail(email)) {
-        setError("Fyll i en giltig e-postadress.");
+        setError("Fyll i en giltig mejladress.");
         return false;
       }
 

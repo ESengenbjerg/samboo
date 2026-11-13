@@ -66,7 +66,7 @@ export default function ConnectedAccountsSettings({
         <Text>Du har inga kopplade konton ännu.</Text>
       ) : (
         <View className="gap-2">
-          <Text>Tryck på namnet för att se kontots e-postadress.</Text>
+          <Text>Tryck på namnet för att se kontots mejladress.</Text>
           {members.map((m) => (
             <View key={m.id} className="flex-row justify-between items-center">
               {/* Avatar and name */}

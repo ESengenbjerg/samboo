@@ -69,50 +69,44 @@ export function SendInviteDialog({
           <DialogTitle>Skicka inbjudan</DialogTitle>
         </DialogHeader>
 
-        {isFull ? (
-          <Text className="text-muted-foreground">
-            {`Gruppen är full (${MAX_GROUP_MEMBERS} av ${MAX_GROUP_MEMBERS} personer). Du kan inte bjuda in fler just nu.`}
-          </Text>
-        ) : (
-          <ScrollView
-            className="w-full"
-            style={{ maxHeight: Math.max(180, height * 0.5) }}
-            contentContainerClassName="gap-4"
-            keyboardShouldPersistTaps="handled"
-          >
-            <View className="gap-2">
-              {emails.map((email, i) => (
-                <View key={i} className="mt-4">
-                  <Label htmlFor={`invite-email-${i}`}>
-                    {i > 0 ? `E-post ${i + 1}` : `E-post`}
-                  </Label>
-                  <View className="relative">
-                    <Input
-                      id={`invite-email-${i}`}
-                      placeholder="m@example.com"
-                      value={email}
-                      onChangeText={(text) => updateEmail(i, text)}
-                      keyboardType="email-address"
-                      autoComplete="email"
-                      autoCapitalize="none"
-                      maxLength={EMAIL_MAX_LENGTH}
-                      returnKeyType="next"
-                      submitBehavior="submit"
-                      textContentType="emailAddress"
-                      editable={!isLoading}
-                      className={i > 0 ? "pr-10" : undefined}
-                    />
-                    {i > 0 && (
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onPress={() => removeEmail(i)}
-                        className="absolute right-0 active:bg-transparent hover:bg-input hover:text-primary"
-                      >
-                        <Icon as={X} />
-                      </Button>
-                    )}
-                  </View>
+        <ScrollView
+          className="w-full"
+          style={{ maxHeight: Math.max(180, height * 0.5) }}
+          contentContainerClassName="gap-4"
+          keyboardShouldPersistTaps="handled"
+        >
+          <View className="gap-2">
+            {emails.map((email, i) => (
+              <View key={i} className="mt-4">
+                <Label htmlFor={`invite-email-${i}`}>
+                  {i > 0 ? `Mejl ${i + 1}` : `Mejl`}
+                </Label>
+                <View className="relative">
+                  <Input
+                    id={`invite-email-${i}`}
+                    placeholder="m@example.com"
+                    value={email}
+                    onChangeText={(text) => updateEmail(i, text)}
+                    keyboardType="email-address"
+                    autoComplete="email"
+                    autoCapitalize="none"
+                    maxLength={EMAIL_MAX_LENGTH}
+                    returnKeyType="next"
+                    submitBehavior="submit"
+                    textContentType="emailAddress"
+                    editable={!isLoading}
+                    className={i > 0 ? "pr-10" : undefined}
+                  />
+                  {i > 0 && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onPress={() => removeEmail(i)}
+                      className="absolute right-0 active:bg-transparent hover:bg-input hover:text-primary"
+                    >
+                      <Icon as={X} />
+                    </Button>
+                  )}
                 </View>
               ))}
             </View>

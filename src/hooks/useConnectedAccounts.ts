@@ -20,7 +20,7 @@ import {
   ReceivedInvite,
   SentInvite,
 } from "@/types/connected-accounts";
-import { SkippedShowing } from "@/types/showings";
+import { useSkippedShowingsStore } from "@/stores/skipped-showings";
 import { normalizeEmail } from "@shared/email";
 import type { PostgrestError } from "@supabase/supabase-js";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -56,7 +56,9 @@ export function useConnectedAccounts(userId: string | undefined) {
   // Info about changes made by others, e.g. someone left the group
   const [groupNotice, setGroupNotice] = useState<string | null>(null);
   // My own showings that did not follow into the group when I accepted an invite
-  const [skippedShowings, setSkippedShowings] = useState<SkippedShowing[]>([]);
+  const skippedShowings = useSkippedShowingsStore((s) => s.showings);
+  const setSkippedShowings = useSkippedShowingsStore((s) => s.set);
+  const clearSkippedShowings = useSkippedShowingsStore((s) => s.clear);
 
   // Members from the previous load, to see who disappeared
   const previousMembers = useRef<{
@@ -262,11 +264,8 @@ export function useConnectedAccounts(userId: string | undefined) {
         isInviteAlreadyHandled,
       );
     },
-    [isInGroup, run],
+    [isInGroup, run, setSkippedShowings],
   );
-
-  // The notice is only for the visit right after accepting. Call it when the user leaves
-  const clearSkippedShowings = useCallback(() => setSkippedShowings([]), []);
 
   const declineInvite = useCallback(
     (inviteId: number) =>

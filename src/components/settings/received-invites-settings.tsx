@@ -1,28 +1,36 @@
 import { useAnswerInvite } from "@/hooks/useAnswerInvite";
 import { ConnectedAccounts } from "@/hooks/useConnectedAccounts";
+import { Answer } from "@/stores/answered-invite";
+import { showToast } from "@/stores/toast";
 import { View } from "react-native";
 import { Button } from "../ui/button";
 import { Text } from "../ui/text";
-import SkippedShowingNotification from "../notifications/skipped-showings-notification";
 
 export default function ReceivedInvitesSettings({
   accounts,
 }: {
   accounts: ConnectedAccounts;
 }) {
-  const { receivedInvites, isSubmitting, skippedShowings } = accounts;
-  const { answeredInvite, onAnswer } = useAnswerInvite(accounts);
+  const { receivedInvites, isSubmitting } = accounts;
+  const { onAnswer } = useAnswerInvite(accounts);
+
+  // The full confirmation is on the notifications page, here a toast is enough
+  async function handleAnswer(inviteId: number, answer: Answer) {
+    const ok = await onAnswer(inviteId, answer);
+    if (ok) {
+      showToast(
+        answer === "accepted" ? "Inbjudan godkänd!" : "Inbjudan nekad.",
+        "success",
+      );
+    }
+  }
 
   return (
     <View className="gap-4">
       <Text variant="h2">Mottagna inbjudningar</Text>
-      {receivedInvites.length === 0 && answeredInvite == null && (
+      {receivedInvites.length === 0 && (
         <Text>Du har inga obesvarade inbjudningar.</Text>
       )}
-
-      {answeredInvite === "accepted" && <Text>Inbjudan godkänd!</Text>}
-      {answeredInvite === "declined" && <Text>Inbjudan nekad.</Text>}
-      <SkippedShowingNotification showings={skippedShowings} />
 
       {receivedInvites.map((i) => (
         <View key={i.id} className="gap-4">
@@ -34,7 +42,7 @@ export default function ReceivedInvitesSettings({
           </View>
           <View className="flex-row gap-2">
             <Button
-              onPress={() => onAnswer(i.id, "accepted")}
+              onPress={() => handleAnswer(i.id, "accepted")}
               disabled={isSubmitting}
               variant="secondary"
               className="w-40"
@@ -42,7 +50,7 @@ export default function ReceivedInvitesSettings({
               <Text>Acceptera</Text>
             </Button>
             <Button
-              onPress={() => onAnswer(i.id, "declined")}
+              onPress={() => handleAnswer(i.id, "declined")}
               disabled={isSubmitting}
               variant="destructive"
               className="w-40"

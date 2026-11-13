@@ -111,7 +111,7 @@ The `EMAILS` and `GOOGLE MAPS` sections in `.env` can be left empty for the demo
 The app itself is in Swedish. Labels from the app are quoted in Swedish below, with a translation.
 
 - **You (`SEED_USER`)**: a new account that has not gone through onboarding yet. You choose a name and a profile picture, connect with Robin and create your search.
-- **Robin (`SEED_FRIEND`)**: already has a search (apartments, terraced houses and villas in Mölndal and Partille, max 6.5 million SEK). Robin has liked a few listings. Two of them have been removed by the agency and are shown as "Hittas inte" (not found). Robin also has two tags (categories), three showings (one already held, with a note about how it went), and has sent you a group invite. You will find the invite under notifications.
+- **Robin (`SEED_FRIEND`)**: already has a search (apartments, terraced houses and villas in Mölndal and Partille, max 6.5 million SEK). Robin has liked a few listings. Two of them have been removed by the agency and are shown as "Hittas inte" (not found). Robin also has two tags, three showings (one already held, with a note about how it went), and has sent you a group invite. You will find the invite under notifications.
 - **50 listings** in Mölndal, Partille and Göteborg, with different property types, prices and sizes, and some new construction. They have no images, so the app shows its fallback image. Choose one of those municipalities in your search to get matches right away.
 
 What you can try: onboarding, profile picture, accepting or declining the invite, search results, filters and sorting, likes (like something Robin has already liked and it ends up in your shared list), tags, showings, changing your search, leaving the group and deleting your account.

@@ -4,9 +4,9 @@ import { MAX_TAGS_PER_USER, TAG_NAME_MAX_LENGTH } from "@/constants/limits";
 import { UserTag } from "@/types/tags";
 import { capitalize } from "@/utils/capitalize-string";
 import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import FormError from "../form-error";
-import CategoryTag from "../tags/category-tag";
+import Tag from "../tags/tag";
 import {
   Dialog,
   DialogContent,
@@ -26,12 +26,12 @@ import {
   SelectValue,
 } from "../ui/select";
 
-type CategoriesDialogProps = {
+type TagsDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  categories: UserTag[];
+  tags: UserTag[];
   selectedIds: number[];
-  // newNames = taggar som ska skapas först när användaren sparar
+  // newNames = tags that are created first when the user saves
   onSave: (
     selectedIds: number[],
     initialIds: number[],
@@ -42,24 +42,26 @@ type CategoriesDialogProps = {
   onClearError: () => void;
 };
 
-export function CategoriesDialog({
+export function TagsDialog({
   open,
   onOpenChange,
-  categories,
+  tags,
   selectedIds,
   onSave,
   isSaving,
   error,
   onClearError,
-}: CategoriesDialogProps) {
+}: TagsDialogProps) {
   // What the dialog was opened with. Sent back on save so only the user's own changes are diffed
   const [initialIds] = useState<number[]>(selectedIds);
   const [draftIds, setDraftIds] = useState<number[]>(initialIds);
   // Names typed in the dialog. They are NOT created until the user presses save
   const [pendingNames, setPendingNames] = useState<string[]>([]);
   const [newName, setNewName] = useState("");
-  // Feedback from the dialog itself, e.g. when the category is already chosen
+  // Feedback from the dialog itself, e.g. when the tag is already chosen
   const [message, setMessage] = useState<string | null>(null);
+  // True when the chosen tags are taller than the scroll area (max-h-44 = 176px)
+  const [tagsOverflow, setTagsOverflow] = useState(false);
 
   // The dialog's own message goes first, then errors from saving
   const shownMessage = message ?? error;
@@ -67,40 +69,37 @@ export function CategoriesDialog({
   // After a save that failed halfway, a pending name can exist in the database already.
   // Those are not "new" any more, so they are not counted or shown as new
   const newNames = pendingNames.filter(
-    (n) =>
-      !categories.some((c) => c.tag_name.toLowerCase() === n.toLowerCase()),
+    (n) => !tags.some((c) => c.tag_name.toLowerCase() === n.toLowerCase()),
   );
 
   // A pending name that now exists in the database (created by a save that failed later)
   // is moved over to the selected ids, so a retry still applies it to the listing
-  const createdCategories = categories.filter((c) =>
+  const createdTags = tags.filter((c) =>
     pendingNames.some((n) => n.toLowerCase() === c.tag_name.toLowerCase()),
   );
-  if (createdCategories.length > 0) {
+  if (createdTags.length > 0) {
     setDraftIds((ids) => [
       ...ids,
-      ...createdCategories.map((c) => c.id).filter((id) => !ids.includes(id)),
+      ...createdTags.map((c) => c.id).filter((id) => !ids.includes(id)),
     ]);
     setPendingNames((names) =>
       names.filter(
         (n) =>
-          !createdCategories.some(
+          !createdTags.some(
             (c) => c.tag_name.toLowerCase() === n.toLowerCase(),
           ),
       ),
     );
   }
 
-  // The database allows MAX_TAGS_PER_USER categories per user, counting the ones not saved yet
-  const totalCount = categories.length + newNames.length;
+  // The database allows MAX_TAGS_PER_USER tags per user, counting the ones not saved yet
+  const totalCount = tags.length + newNames.length;
   const isFull = totalCount >= MAX_TAGS_PER_USER;
 
-  // Categories currently chosen in the dialog (shown as removable tags)
-  const draftCategories = categories.filter((c) => draftIds.includes(c.id));
-  // Categories that can still be added (shown in the select)
-  const availableCategories = categories.filter(
-    (c) => !draftIds.includes(c.id),
-  );
+  // Tags currently chosen in the dialog (shown as removable tags)
+  const draftTags = tags.filter((c) => draftIds.includes(c.id));
+  // Tags that can still be added (shown in the select)
+  const availableTags = tags.filter((c) => !draftIds.includes(c.id));
 
   // Only changes the draft. Nothing is saved until the user presses save
   function addToDraft(id: number) {
@@ -120,9 +119,9 @@ export function CategoriesDialog({
     const name = capitalize(newName.trim());
     if (!name) return;
 
-    // "Villa" and "villa" are the same category. If it exists, select it instead of
+    // "Villa" and "villa" are the same tag. If it exists, select it instead of
     // creating a duplicate (the database only treats identical spelling as equal)
-    const existing = categories.find(
+    const existing = tags.find(
       (c) => c.tag_name.toLowerCase() === name.toLowerCase(),
     );
     if (existing) {
@@ -136,8 +135,8 @@ export function CategoriesDialog({
       return;
     }
 
-    // Alredady typed in this dialog but not saved yet
-    if (newNames.some((n) => n.toLowerCase() === name.toLocaleLowerCase())) {
+    // Already typed in this dialog but not saved yet
+    if (newNames.some((n) => n.toLowerCase() === name.toLowerCase())) {
       setMessage(`Taggen ${name} är redan tillagd.`);
       return;
     }
@@ -148,27 +147,44 @@ export function CategoriesDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="gap-8">
+      <DialogContent className="gap-6">
         <DialogHeader>
           <DialogTitle>Tagga objekt</DialogTitle>
+          <Text variant="small">
+            Dina taggar är personliga och används för att lättare kunna filtrera
+            bland dina objekt.
+          </Text>
         </DialogHeader>
 
         <View className="gap-6">
-          {/* --- CHOOSE FROM EXISTING CATEGORIES --- */}
+          {/* --- CHOOSE FROM EXISTING TAGS --- */}
           <View className="gap-2">
             <Label>Dina taggar</Label>
             <Select
+              // New key after every change remounts the select, so it shows the placeholder again
+              key={draftIds.length}
               onValueChange={(option) => {
                 if (option) addToDraft(Number(option.value));
               }}
             >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Välj tagg" />
+              <SelectTrigger
+                className="w-full"
+                disabled={availableTags.length === 0}
+              >
+                <SelectValue
+                  placeholder={
+                    availableTags.length > 0
+                      ? "Välj tagg"
+                      : tags.length === 0
+                        ? "Inga taggar än"
+                        : "Alla taggar är valda"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
                   <SelectLabel>Dina taggar</SelectLabel>
-                  {availableCategories.map((c) => (
+                  {availableTags.map((c) => (
                     <SelectItem
                       key={c.id}
                       label={capitalize(c.tag_name)}
@@ -180,7 +196,7 @@ export function CategoriesDialog({
             </Select>
           </View>
 
-          {/* --- CREATE A NEW CATEGORY (creates on save) --- */}
+          {/* --- CREATE A NEW TAG (creates on save) --- */}
           <View className="gap-2">
             <View className="flex-row gap-2">
               <Label>Lägg till tagg</Label>
@@ -215,24 +231,34 @@ export function CategoriesDialog({
             )}
           </View>
 
-          {/* --- CHOSEN TAG --- */}
-          <View>
-            <Label>Valda taggar</Label>
-            <View className="flex-row gap-2 flex-wrap">
-              {draftCategories.length === 0 && newNames.length === 0 && (
-                <Text>Inga valda taggar.</Text>
+          {/* --- CHOSEN TAGS --- */}
+          <View className="gap-3">
+            <View>
+              <Label>Valda taggar</Label>
+              {tagsOverflow && (
+                <Text variant="small">Scrolla för att se alla</Text>
               )}
-              {draftCategories.map((c) => (
-                <Pressable key={c.id} onPress={() => removeFromDraft(c.id)}>
-                  <CategoryTag text={c.tag_name} removable />
-                </Pressable>
-              ))}
-              {newNames.map((n) => (
-                <Pressable key={n} onPress={() => removePendingName(n)}>
-                  <CategoryTag text={`${n} (ny)`} removable />
-                </Pressable>
-              ))}
             </View>
+            <ScrollView
+              className="max-h-44"
+              onContentSizeChange={(_, height) => setTagsOverflow(height > 176)}
+            >
+              <View className="flex-row gap-2 flex-wrap">
+                {draftTags.length === 0 && newNames.length === 0 && (
+                  <Text>Inga valda taggar.</Text>
+                )}
+                {draftTags.map((c) => (
+                  <Pressable key={c.id} onPress={() => removeFromDraft(c.id)}>
+                    <Tag text={c.tag_name} removable />
+                  </Pressable>
+                ))}
+                {newNames.map((n) => (
+                  <Pressable key={n} onPress={() => removePendingName(n)}>
+                    <Tag text={`${n} (ny)`} removable />
+                  </Pressable>
+                ))}
+              </View>
+            </ScrollView>
           </View>
 
           {shownMessage && <FormError>{shownMessage}</FormError>}
