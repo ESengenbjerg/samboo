@@ -32,7 +32,6 @@ import ObjectDescription from "./object-description";
 type ObjectPageProps = {
   listing: Listing | null;
   isLoading: boolean;
-  isRemoved: boolean;
 };
 
 const fallbackImage = require("@/assets/images/no-image.jpg");
@@ -55,7 +54,6 @@ function ListingImage({ imageUrl }: { imageUrl: string | null }) {
 export default function ObjectPageScreen({
   listing,
   isLoading,
-  isRemoved = true,
 }: ObjectPageProps) {
   const [tagsDialogOpen, setTagsDialogOpen] = useState(false);
   const [tagToDelete, setTagToDelete] = useState<number | null>(null);
@@ -248,6 +246,7 @@ export default function ObjectPageScreen({
               <Separator />
             </>
           )}
+
           {/* --- TAGS --- */}
           <View className="gap-2">
             {/* Only possible if I have my own user_listings row and the tags are loaded */}

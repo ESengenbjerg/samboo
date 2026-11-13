@@ -85,7 +85,7 @@ export function ObjectCard({
           {isRemoved && (
             <View className="absolute z-10 items-center justify-center">
               <Text variant="large" className="text-primary drop-shadow-sm">
-                Hittas ej
+                Hittas inte
               </Text>
               <View className="flex-row items-center gap-1 px-4">
                 <Text variant="small" className="text-center text-primary">
@@ -98,16 +98,16 @@ export function ObjectCard({
               </View>
             </View>
           )}
-          <View
-            className={`${imageWrapperVariants({ size })} ${!isRemoved ? "" : ""}`}
-          >
+          <View className={imageWrapperVariants({ size })}>
             <Image
               source={showFallback ? fallbackImage : { uri: imageUrl }}
               onError={() => setFailedUrl(imageUrl ?? null)}
               style={{
                 width: "100%",
                 height: "100%",
-                filter: isRemoved ? "grayscale(0.2) brightness(40%)" : "",
+                filter: isRemoved
+                  ? "grayscale(0.2) brightness(40%)"
+                  : undefined,
               }}
               contentFit="cover"
             />
