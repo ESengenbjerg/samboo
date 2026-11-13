@@ -31,9 +31,11 @@ The repo includes files that configure Claude Code, the AI coding assistant used
 | File                                                     | What it does                                                                |
 | -------------------------------------------------------- | --------------------------------------------------------------------------- |
 | `AGENTS.md`, `CLAUDE.md`                                 | Instructions the assistant follows in this repo                             |
-| `.claude/settings.json`                                  | Enables the Expo plugin                                                     |
+| `.claude/settings.json`                                  | Enables the Expo plugin and blocks reading `.env` and editing `.claude/`    |
 | `.claude/agents/ux-tester.md`, `.claude/skills/ux-test/` | An agent that clicks through the web app in a browser and writes UX reports |
 | `.mcp.json`                                              | Starts the Playwright MCP server (an isolated Chromium) that ux-tester uses |
+
+ux-tester reads real scraped listings, so it is set up on the assumption that a listing text could try to give it instructions. It has no shell access, it reads the test accounts from `.env.uxtest` instead of `.env`, and the deny rules in `.claude/settings.json` stop the file tools from reading `.env` or changing the Claude Code files. It can still navigate the browser to any address and act in the app as the test user, so the worst case is that the test accounts leak. Run it with manual approval, not in auto mode.
 
 Read these files before you use them, especially in a fork you did not create yourself: the assistant follows what they say, and anyone who has changed the fork could have added instructions of their own. Claude Code asks before it starts the servers in `.mcp.json`, but not before it follows the instruction files.
 
