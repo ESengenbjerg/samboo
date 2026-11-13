@@ -26,7 +26,6 @@ type ConnectAccountFormProps = {
 export default function ConnectAccountForm({
   onInviteSent,
 }: ConnectAccountFormProps) {
-  // TODO: setError will be used once Supabase implementation is complete
   const [isLoading, setIsLoading] = useState(false);
   const inFlight = useRef(false);
   const saved = useRef(false);
