@@ -45,8 +45,9 @@ Expo app built with:
 - **Row Level Security on every table.** The `anon` role has no grants at all. All access to group, listing, showing and invite data checks `is_active_user()` against the database on each request, so a deleted or deactivated account is blocked at once, even while its JWT (valid for an hour) has not yet expired. Public reference data (e.g. municipalities) is readable by any signed-in user.
 - **Explicit grants only.** Supabase's default privileges are revoked. Direct writes are limited to a few columns; everything else changes through database functions.
 - **Rate limits and abuse guards in the database**: write requests per user (HTTP 429), search changes, invites, group size, uploads, and statement timeouts per role. Limits lock before counting, so simultaneous requests cannot slip past them.
+- **AI-free scraper.** Listings are collected with Playwright, not an AI agent, so scraped text is never read by an AI in the pipeline. The repo also contains configuration for Claude Code: read it before you use it, especially in a fork.
 
-See [docs/database-design.md](docs/database-design.md) for the reasoning behind some decision, and [docs/security.md](docs/security.md) for security outside the database (sign-up and sign-in).
+See [docs/database-design.md](docs/database-design.md) for the reasoning behind some decision, and [docs/security.md](docs/security.md) for security outside the database (sign-up and sign-in, AI tools and prompt injection).
 
 ## Getting started
 
@@ -175,7 +176,7 @@ npm run gen:types     # regenerate shared/database.types.ts after a database cha
 
 - [docs/database-design.md](docs/database-design.md): why the database is built the way it is (security model, rate limits, scheduled jobs, design decisions)
 - [docs/production-setup.md](docs/production-setup.md): running your own Samboo beyond the demo (Supabase, GitHub token in Vault, e-mail, GitHub Actions, Google Maps, Vercel, all keys at a glance)
-- [docs/security.md](docs/security.md): security outside the database (what protects sign-up and sign-in, possible improvements)
+- [docs/security.md](docs/security.md): security outside the database (what protects sign-up and sign-in, AI tools and prompt injection, possible improvements)
 - [docs/openapi.yml](docs/openapi.yml): the API the app uses (tables, RPC functions and who may call them)
 - [docs/email-setup.md](docs/email-setup.md): how sign-up and notification e-mails are set up (Resend, Supabase Auth, DNS at Loopia)
 - [docs/removed_listings.md](docs/removed_listings.md): how the scraper detects and marks listings that have been removed by the agency
