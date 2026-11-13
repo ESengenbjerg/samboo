@@ -1,4 +1,4 @@
-import { ConnectedAccounts } from "@/hooks/useConnectedAccounts";
+import { ConnectedAccounts } from "@/hooks/groups/useConnectedAccounts";
 import { GroupMember } from "@/types/connected-accounts";
 import { Image } from "expo-image";
 import { LogOut, Trash, User } from "lucide-react-native";

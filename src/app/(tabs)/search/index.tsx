@@ -1,6 +1,6 @@
 import ListingsFeed from "@/components/listings-feed";
 import { useSession } from "@/hooks/auth/useSession";
-import { useListings } from "@/hooks/useListings";
+import { useListings } from "@/hooks/listings/useListings";
 
 export default function SearchScreen() {
   const { session } = useSession();

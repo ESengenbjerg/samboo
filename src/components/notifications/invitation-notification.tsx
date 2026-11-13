@@ -1,5 +1,5 @@
-import { useAnswerInvite } from "@/hooks/useAnswerInvite";
-import { ConnectedAccounts } from "@/hooks/useConnectedAccounts";
+import { useAnswerInvite } from "@/hooks/groups/useAnswerInvite";
+import { ConnectedAccounts } from "@/hooks/groups/useConnectedAccounts";
 import { router } from "expo-router";
 import { Check, X } from "lucide-react-native";
 import { View } from "react-native";

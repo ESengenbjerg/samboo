@@ -1,6 +1,6 @@
 import { Text } from "@/components/ui/text";
 import { useSession } from "@/hooks/auth/useSession";
-import { useProfile } from "@/hooks/useProfile";
+import { useProfile } from "@/hooks/profile/useProfile";
 import { updateNotificationFrequency } from "@/services/profiles";
 import { InformationInterval } from "@/stores/onboarding";
 import { showToast } from "@/stores/toast";

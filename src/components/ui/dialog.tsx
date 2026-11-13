@@ -1,6 +1,6 @@
 import { Icon } from "@/components/ui/icon";
 import { NativeOnlyAnimatedView } from "@/components/ui/native-only-animated-view";
-import { useKeyboardHeight } from "@/hooks/useKeyboardHeight";
+import { useKeyboardHeight } from "@/hooks/ui/useKeyboardHeight";
 import { cn } from "@/lib/utils";
 import * as DialogPrimitive from "@rn-primitives/dialog";
 import { X } from "lucide-react-native";

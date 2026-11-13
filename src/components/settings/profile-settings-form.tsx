@@ -1,13 +1,13 @@
 import { NAME_MAX_LENGTH } from "@/constants/limits";
 import { useSession } from "@/hooks/auth/useSession";
-import { useProfile } from "@/hooks/useProfile";
-import { useUpdateProfileAvatar } from "@/hooks/useUpdateProfileAvatar";
+import { useProfile } from "@/hooks/profile/useProfile";
+import { useUpdateProfileAvatar } from "@/hooks/profile/useUpdateProfileAvatar";
 import { getAvatarUrl, updateProfileName } from "@/services/profiles";
 import { showToast } from "@/stores/toast";
 import { commonErrorMessage } from "@/utils/error-message/common-messages";
 import { pickImage } from "@/utils/pick-image";
-import { Trash } from "lucide-react-native";
 import { useFocusEffect } from "expo-router";
+import { Trash } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import { View } from "react-native";
 import AvatarPublicInfo from "../avatar-public-info";

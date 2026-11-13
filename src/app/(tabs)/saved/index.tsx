@@ -2,8 +2,8 @@ import BackToTopButton from "@/components/back-to-top-button";
 import SavedListSection from "@/components/saved/list-section";
 import ScheduledShowingsSection from "@/components/saved/scheduled-showings-section";
 import { useSession } from "@/hooks/auth/useSession";
-import { useBackToTop } from "@/hooks/useBackToTop";
-import { useTabBarInset } from "@/hooks/useTabBarInset";
+import { useBackToTop } from "@/hooks/ui/useBackToTop";
+import { useTabBarInset } from "@/hooks/ui/useTabBarInset";
 import { useRef } from "react";
 import { ScrollView, View } from "react-native";
 

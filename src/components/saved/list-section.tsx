@@ -1,11 +1,11 @@
 import ListButton from "@/components/saved/list-button";
 import { Text } from "@/components/ui/text";
 import { MY_LIST_ID, SHARED_LIST_ID } from "@/constants/saved-lists";
-import { useGroupLikedListings } from "@/hooks/useGroupLikedListings";
-import { useLikedListings } from "@/hooks/useLikedListings";
-import { useNewListingIds } from "@/hooks/useNewListingIds";
+import { useGroupLikedListings } from "@/hooks/likes/useGroupLikedListings";
+import { useLikedListings } from "@/hooks/likes/useLikedListings";
+import { useSharedLikedListings } from "@/hooks/likes/useSharedLikedListings";
+import { useNewListingIds } from "@/hooks/listings/useNewListingIds";
 import { useSeenListingsStore } from "@/stores/seen-listings";
-import { useSharedLikedListings } from "@/hooks/useSharedLikedListings";
 import { Listing } from "@/types/listing";
 import { nameEndsWithS } from "@/utils/name-ends-with-s";
 import { View } from "react-native";

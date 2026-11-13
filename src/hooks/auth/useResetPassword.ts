@@ -1,5 +1,5 @@
 import { RESEND_CODE_INTERVAL_SECONDS } from "@/constants/limits";
-import { useCountdown } from "@/hooks/useCountdown";
+import { useCountdown } from "@/hooks/ui/useCountdown";
 import {
   requestPasswordReset,
   signOutLocal,
