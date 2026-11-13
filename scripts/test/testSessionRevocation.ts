@@ -3,14 +3,16 @@
 // USAGE: node scripts/test/testSessionRevocation.ts
 
 // Signs in as the test user twice with the PUBLISHABLE key, like two browsers ("Safari" and "Chrome"), and checks:
-//   1. Both sessions can read and write (control).
+//   1. Both sessions can read and write (control). "Chrome" creates a test category, so there is own data to read.
 //   2. "Safari" signs out the other sessions, like the app does after a password change.
-//   3. "Chrome" still has an unexpired access token, but is blocked at once: no data, no writes, no Storage upload.
+//   3. "Chrome" still has an unexpired access token, but is blocked at once: the test category is no longer visible,
+//      no writes, no Storage upload.
 //      getUser() reports the session as gone, and supabase-js removes the local session (what the app relies on to sign out).
 //   4. "Safari" keeps working (control).
 
 // Signs out every other session of the test user, so do not run it while signed in with that account elsewhere.
-// Writes only the user's own name (same value), and removes the test file it tries to upload if it got through.
+// Writes the user's own name (same value) and a test category, and removes the category and the test file it tries
+// to upload (if it got through) afterwards.
 // Dev database only.
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
@@ -61,13 +63,16 @@ function check(label: string, ok: boolean, detail: string) {
   console.log(`${ok ? "OK  " : "FAIL"} ${label}: ${detail}`);
 }
 
+const TEST_TAG = "rlstest-revoked";
+
 // What the session may do right now
 async function probe(client: Client, userId: string) {
   const active = await client.rpc("is_active_user", undefined, { get: true });
-  const search = await client
-    .from("search_params")
-    .select("user_id")
-    .eq("user_id", userId);
+  const tag = await client
+    .from("user_tags")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("tag_name", TEST_TAG);
   const profile = await client
     .from("profiles")
     .select("name")
@@ -80,7 +85,7 @@ async function probe(client: Client, userId: string) {
     .select("id");
   return {
     active: active.data === true,
-    searchRows: search.data?.length ?? 0,
+    tagRows: tag.data?.length ?? 0,
     writeRows: write.data?.length ?? 0,
     writeError: write.error?.message ?? null,
   };
@@ -93,17 +98,32 @@ console.log(`Signed in twice as ${email}\n`);
 
 const testFile = `${userId}/samboo-test-revoked.png`;
 
+// Left over from an aborted run
+await supabaseAdmin
+  .from("user_tags")
+  .delete()
+  .eq("user_id", userId)
+  .eq("tag_name", TEST_TAG);
+
 try {
-  // 1. Control: both sessions work
+  // 1. Control: both sessions work, and Chrome has own data to read
   console.log("— Before —");
+  const { error: tagError } = await chrome.client
+    .from("user_tags")
+    .insert({ user_id: userId, tag_name: TEST_TAG });
+  check(
+    "Chrome creates a test category",
+    !tagError,
+    tagError ? tagError.message : "ok",
+  );
   const s0 = await probe(safari.client, userId);
   const c0 = await probe(chrome.client, userId);
   check("Safari is active", s0.active, `is_active_user() = ${s0.active}`);
   check("Chrome is active", c0.active, `is_active_user() = ${c0.active}`);
   check(
-    "Chrome can read own search profile",
-    c0.searchRows > 0,
-    `${c0.searchRows} row(s)`,
+    "Chrome can read the test category",
+    c0.tagRows === 1,
+    `${c0.tagRows} row(s)`,
   );
   check(
     "Chrome can write",
@@ -126,9 +146,19 @@ try {
   const c1 = await probe(chrome.client, userId);
   check("is_active_user()", !c1.active, `${c1.active}`);
   check(
-    "Read own search profile",
-    c1.searchRows === 0,
-    `${c1.searchRows} row(s)`,
+    "Read the test category",
+    c1.tagRows === 0,
+    `${c1.tagRows} row(s)`,
+  );
+  const { count: tagsInDb } = await supabaseAdmin
+    .from("user_tags")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("tag_name", TEST_TAG);
+  check(
+    "The test category still exists (hidden, not deleted)",
+    tagsInDb === 1,
+    `${tagsInDb ?? 0} row(s) with the service role`,
   );
   check(
     "Write own profile",
@@ -174,6 +204,11 @@ try {
   failed++;
 } finally {
   await supabaseAdmin.storage.from("avatars").remove([testFile]);
+  await supabaseAdmin
+    .from("user_tags")
+    .delete()
+    .eq("user_id", userId)
+    .eq("tag_name", TEST_TAG);
   await safari.client.auth.signOut({ scope: "local" });
 }
 
