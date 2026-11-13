@@ -19,6 +19,8 @@ Reports from the UX agent (`.claude/agents/ux-tester.md`) end up here. The agent
    TEST_USER2_PASSWORD=
    ```
 
+   If you recreate the test users or change their passwords in `.env`, update `.env.uxtest` too, otherwise the agent's logins will fail.
+
    The agent reads only this file. It has no shell access and cannot read `.env`, since the app shows real scraped listing texts that could contain instructions aimed at an AI.
 
 3. Start the app on the web:
