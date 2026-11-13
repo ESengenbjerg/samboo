@@ -186,7 +186,11 @@ export default function ObjectPageScreen({
 
   return (
     <View className="flex-1 bg-background">
-      <Button className="justify-start pl-6" variant="link" onPress={handleBack}>
+      <Button
+        className="justify-start pl-6"
+        variant="link"
+        onPress={handleBack}
+      >
         <Text>Tillbaka</Text>
       </Button>
       <ScrollView
@@ -249,7 +253,7 @@ export default function ObjectPageScreen({
                   </Pressable>
                 ))}
             </View>
-
+            {/* Confirm dialog before deleteing tag */}
             {tagToDelete !== null && (
               <ConfirmDialog
                 open={true}
@@ -308,7 +312,6 @@ export default function ObjectPageScreen({
             latitude={listing.latitude}
             longitude={listing.longitude}
           />
-          <Separator />
 
           {/* --- SCHEDULE SHOWING --- */}
           <ScheduleShowingSection listingId={listing.id} />
