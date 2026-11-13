@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const VISIBLE_MS = 4000;
+const VISIBLE_MS = 5000;
 
 const styles = {
   info: { container: "bg-muted", text: "text-foreground" },

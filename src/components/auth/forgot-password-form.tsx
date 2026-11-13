@@ -38,12 +38,12 @@ export function ForgotPasswordForm() {
         Glömt lösenord?
       </Text>
       <Text className="text-background text-center">
-        Fyll i din e-postadress så skickar vi en återställningskod.
+        Fyll i din mejladress så skickar vi en återställningskod.
       </Text>
 
       <View className="gap-1.5">
         <Label htmlFor="forgot-email" className="text-background">
-          E-post
+          Mejl
         </Label>
         <Input
           id="forgot-email"

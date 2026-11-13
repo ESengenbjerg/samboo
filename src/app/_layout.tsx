@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { useIsAdmin } from "@/hooks/admin/useIsAdmin";
 import { useSession } from "@/hooks/auth/useSession";
+import { useVerifySession } from "@/hooks/auth/useVerifySession";
 import { useLikesSync } from "@/hooks/useLikes";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { signOut } from "@/services/auth";
@@ -43,6 +44,7 @@ export default function RootLayout() {
   // const { colorScheme } = useColorScheme();
 
   const { session, isSessionLoaded } = useSession();
+  useVerifySession();
   const userId = session?.user.id;
   useLikesSync(userId);
 

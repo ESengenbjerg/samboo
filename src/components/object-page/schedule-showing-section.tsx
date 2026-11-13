@@ -6,6 +6,7 @@ import { useSaveShowing } from "@/hooks/showings/useSaveShowing";
 import { useShowingForListing } from "@/hooks/showings/useShowingForListing";
 import { showToast } from "@/stores/toast";
 import { ShowingValues } from "@/types/showings";
+import { formatDateLabel } from "@/utils/date-format";
 import { Plus } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
@@ -88,8 +89,9 @@ export default function ScheduleShowingSection({
       </View>
 
       {showing ? (
-        <>
-          <Separator />
+        <View className="gap-2">
+          <Text variant="bold">{formatDateLabel(showing.startsAt)}</Text>
+          <Separator className="mb-4" />
           <ScheduledShowingInfo
             {...showing}
             onStartAction={() => setMessage(null)}
@@ -106,7 +108,7 @@ export default function ScheduleShowingSection({
               showToast("Kunde inte radera visningen, försök igen")
             }
           />
-        </>
+        </View>
       ) : (
         <Button variant="outline" onPress={openDialog} className="w-52">
           <Text>Spara visning i lista</Text>

@@ -20,6 +20,7 @@ type FilterSelectProps = {
   fieldColor?: "bg-white" | "bg-input";
   placeholder?: string;
   dropdownLabel?: string;
+  fullWidth?: boolean;
 };
 
 export default function FilterSelect({
@@ -30,12 +31,15 @@ export default function FilterSelect({
   fieldColor = "bg-input",
   placeholder,
   dropdownLabel,
+  fullWidth,
 }: FilterSelectProps) {
   return (
     <View className="gap-1.5">
       {label && <Label>{label}</Label>}
       <Select value={value} onValueChange={onValueChange}>
-        <SelectTrigger className={`${fieldColor} justify-between`}>
+        <SelectTrigger
+          className={`${fieldColor} justify-between ${fullWidth ? "w-full" : ""}`}
+        >
           <SelectValue placeholder={placeholder ? placeholder : "Välj"} />
         </SelectTrigger>
         <SelectContent className="min-w-48">

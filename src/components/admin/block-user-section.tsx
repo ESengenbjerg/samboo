@@ -31,12 +31,15 @@ function UserCard({ user, onToggle, isSubmitting }: UserCardProps) {
         </Badge>
       </CardHeader>
       <CardContent className="gap-2 px-4">
-        <StatusRow label="E-post" value={user.email} />
+        <StatusRow label="Mejl" value={user.email} />
         <StatusRow
-          label="E-post bekräftad"
+          label="Mejl bekräftad"
           value={user.email_confirmed ? "Ja" : "Nej"}
         />
-        <StatusRow label="Registrerad" value={formatDateTime(user.created_at)} />
+        <StatusRow
+          label="Registrerad"
+          value={formatDateTime(user.created_at)}
+        />
         <StatusRow
           label="Senaste inloggning"
           value={formatDateTime(user.last_sign_in_at)}
@@ -86,14 +89,13 @@ export default function BlockUserSection() {
       <View>
         <Text variant="h2">Spärra användare</Text>
         <Text>
-          Sök på användarens e-postadress. Ett spärrat konto kommer inte åt
-          något i appen, och adressen kan inte användas för att registrera sig
-          igen.
+          Sök på användarens mejladress. Ett spärrat konto kommer inte åt något
+          i appen, och adressen kan inte användas för att registrera sig igen.
         </Text>
       </View>
 
       <View className="gap-2">
-        <Label htmlFor="block-user-email">E-postadress</Label>
+        <Label htmlFor="block-user-email">Mejladress</Label>
         <View className="flex-row gap-2">
           <Input
             id="block-user-email"
@@ -122,7 +124,7 @@ export default function BlockUserSection() {
       </View>
 
       {error && <FormError>{error}</FormError>}
-      {user === null && <Text>Ingen användare med den e-postadressen.</Text>}
+      {user === null && <Text>Ingen användare med den mejladressen.</Text>}
       {user && (
         <UserCard
           user={user}

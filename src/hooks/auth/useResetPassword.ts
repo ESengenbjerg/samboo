@@ -77,7 +77,7 @@ export function useResetPassword(email: string) {
       // Pasted codes may include a space
       const trimmedCode = code.trim();
       if (!trimmedCode) {
-        setError("Fyll i koden från e-postmeddelandet.");
+        setError("Fyll i koden från mejlet.");
         return false;
       }
 
