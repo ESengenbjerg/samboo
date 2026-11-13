@@ -43,7 +43,8 @@ export default function ShowingDateTimeFields({
   const [openPicker, setOpenPicker] = useState<PickerMode | null>(null);
 
   function onPickerChange(mode: PickerMode, value: Date) {
-    if (mode === "date") onDateChange(value);
+    // The native picker does not always keep to maximumDate, so clamp here as well
+    if (mode === "date") onDateChange(value > LAST_DATE ? LAST_DATE : value);
     else onTimeChange(value);
   }
 

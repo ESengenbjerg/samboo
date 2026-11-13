@@ -934,6 +934,12 @@ CREATE OR REPLACE FUNCTION "public"."is_active_user"() RETURNS boolean
       where p.id = (select auth.uid())
     ),
     false
+  )
+  and exists (
+    select 1
+    from auth.sessions s
+    where s.id = nullif((select auth.jwt()) ->> 'session_id', '')::uuid
+      and s.user_id = (select auth.uid())
   );
 $$;
 
@@ -2071,7 +2077,8 @@ CREATE TABLE IF NOT EXISTS "public"."profiles" (
     "last_emailed_at" timestamp with time zone,
     "notifications_seen_at" timestamp with time zone,
     CONSTRAINT "profiles_avatar_path_check" CHECK ((("avatar_path" IS NULL) OR (("char_length"("avatar_path") <= 200) AND ("avatar_path" ~ (('^'::"text" || ("id")::"text") || '/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$'::"text"))))),
-    CONSTRAINT "profiles_name_length" CHECK ((("char_length"("name") >= 1) AND ("char_length"("name") <= 100)))
+    CONSTRAINT "profiles_name_length" CHECK ((("char_length"("name") >= 1) AND ("char_length"("name") <= 100))),
+    CONSTRAINT "profiles_name_not_blank" CHECK (("name" ~ '\S'::"text"))
 );
 
 
@@ -2677,7 +2684,7 @@ CREATE POLICY "counties_select" ON "public"."counties" FOR SELECT TO "authentica
 ALTER TABLE "public"."groups" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "groups_select" ON "public"."groups" FOR SELECT TO "authenticated" USING (("public"."is_active_user"() AND ("id" = ( SELECT "profiles"."group_id"
+CREATE POLICY "groups_select" ON "public"."groups" FOR SELECT TO "authenticated" USING ((( SELECT "public"."is_active_user"() AS "is_active_user") AND ("id" = ( SELECT "profiles"."group_id"
    FROM "public"."profiles"
   WHERE ("profiles"."id" = ( SELECT "auth"."uid"() AS "uid"))))));
 
@@ -2686,24 +2693,24 @@ CREATE POLICY "groups_select" ON "public"."groups" FOR SELECT TO "authenticated"
 ALTER TABLE "public"."invites" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "invites_insert" ON "public"."invites" FOR INSERT TO "authenticated" WITH CHECK (("public"."is_active_user"() AND ("from_user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("lower"("to_email") <> "lower"(COALESCE((( SELECT "auth"."jwt"() AS "jwt") ->> 'email'::"text"), ''::"text")))));
+CREATE POLICY "invites_insert" ON "public"."invites" FOR INSERT TO "authenticated" WITH CHECK ((( SELECT "public"."is_active_user"() AS "is_active_user") AND ("from_user_id" = ( SELECT "auth"."uid"() AS "uid")) AND ("lower"("to_email") <> "lower"(COALESCE((( SELECT "auth"."jwt"() AS "jwt") ->> 'email'::"text"), ''::"text")))));
 
 
 
-CREATE POLICY "invites_select" ON "public"."invites" FOR SELECT TO "authenticated" USING (("public"."is_active_user"() AND (("from_user_id" = ( SELECT "auth"."uid"() AS "uid")) OR (("lower"("to_email") = "lower"((( SELECT "auth"."jwt"() AS "jwt") ->> 'email'::"text"))) AND ("status" <> 'cancelled'::"public"."invite_status")))));
+CREATE POLICY "invites_select" ON "public"."invites" FOR SELECT TO "authenticated" USING ((( SELECT "public"."is_active_user"() AS "is_active_user") AND (("from_user_id" = ( SELECT "auth"."uid"() AS "uid")) OR (("lower"("to_email") = "lower"((( SELECT "auth"."jwt"() AS "jwt") ->> 'email'::"text"))) AND ("status" <> 'cancelled'::"public"."invite_status")))));
 
 
 
 ALTER TABLE "public"."listing_tags" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "listing_tags_delete" ON "public"."listing_tags" FOR DELETE TO "authenticated" USING (("public"."is_active_user"() AND (EXISTS ( SELECT 1
+CREATE POLICY "listing_tags_delete" ON "public"."listing_tags" FOR DELETE TO "authenticated" USING ((( SELECT "public"."is_active_user"() AS "is_active_user") AND (EXISTS ( SELECT 1
    FROM "public"."user_listings" "ul"
   WHERE (("ul"."id" = "listing_tags"."user_listing_id") AND ("ul"."user_id" = ( SELECT "auth"."uid"() AS "uid")))))));
 
 
 
-CREATE POLICY "listing_tags_insert" ON "public"."listing_tags" FOR INSERT TO "authenticated" WITH CHECK (("public"."is_active_user"() AND (EXISTS ( SELECT 1
+CREATE POLICY "listing_tags_insert" ON "public"."listing_tags" FOR INSERT TO "authenticated" WITH CHECK ((( SELECT "public"."is_active_user"() AS "is_active_user") AND (EXISTS ( SELECT 1
    FROM "public"."user_listings" "ul"
   WHERE (("ul"."id" = "listing_tags"."user_listing_id") AND ("ul"."user_id" = ( SELECT "auth"."uid"() AS "uid"))))) AND (EXISTS ( SELECT 1
    FROM "public"."user_tags" "ut"
@@ -2711,7 +2718,7 @@ CREATE POLICY "listing_tags_insert" ON "public"."listing_tags" FOR INSERT TO "au
 
 
 
-CREATE POLICY "listing_tags_select" ON "public"."listing_tags" FOR SELECT TO "authenticated" USING (("public"."is_active_user"() AND (EXISTS ( SELECT 1
+CREATE POLICY "listing_tags_select" ON "public"."listing_tags" FOR SELECT TO "authenticated" USING ((( SELECT "public"."is_active_user"() AS "is_active_user") AND (EXISTS ( SELECT 1
    FROM "public"."user_listings" "ul"
   WHERE (("ul"."id" = "listing_tags"."user_listing_id") AND ("ul"."user_id" = ( SELECT "auth"."uid"() AS "uid")))))));
 
@@ -2720,13 +2727,13 @@ CREATE POLICY "listing_tags_select" ON "public"."listing_tags" FOR SELECT TO "au
 ALTER TABLE "public"."listings" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "listings_select_matched" ON "public"."listings" FOR SELECT TO "authenticated" USING (("public"."is_active_user"() AND (EXISTS ( SELECT 1
+CREATE POLICY "listings_select_matched" ON "public"."listings" FOR SELECT TO "authenticated" USING ((( SELECT "public"."is_active_user"() AS "is_active_user") AND (EXISTS ( SELECT 1
    FROM "public"."user_listings" "ul"
   WHERE (("ul"."listing_id" = "listings"."id") AND "public"."shares_group_with"("ul"."user_id"))))));
 
 
 
-CREATE POLICY "listings_select_showings" ON "public"."listings" FOR SELECT TO "authenticated" USING (("public"."is_active_user"() AND (EXISTS ( SELECT 1
+CREATE POLICY "listings_select_showings" ON "public"."listings" FOR SELECT TO "authenticated" USING ((( SELECT "public"."is_active_user"() AS "is_active_user") AND (EXISTS ( SELECT 1
    FROM "public"."showings" "s"
   WHERE (("s"."listing_id" = "listings"."id") AND (("s"."group_id" = ( SELECT "public"."my_group_id"() AS "my_group_id")) OR ("s"."user_id" = ( SELECT "auth"."uid"() AS "uid"))))))));
 
@@ -2742,11 +2749,11 @@ CREATE POLICY "municipalities_select" ON "public"."municipalities" FOR SELECT TO
 ALTER TABLE "public"."profiles" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "profiles_select" ON "public"."profiles" FOR SELECT TO "authenticated" USING ((("id" = ( SELECT "auth"."uid"() AS "uid")) OR ("public"."is_active_user"() AND "public"."shares_group_with"("id"))));
+CREATE POLICY "profiles_select" ON "public"."profiles" FOR SELECT TO "authenticated" USING ((("id" = ( SELECT "auth"."uid"() AS "uid")) OR (( SELECT "public"."is_active_user"() AS "is_active_user") AND "public"."shares_group_with"("id"))));
 
 
 
-CREATE POLICY "profiles_update_own" ON "public"."profiles" FOR UPDATE TO "authenticated" USING ((("id" = ( SELECT "auth"."uid"() AS "uid")) AND "public"."is_active_user"())) WITH CHECK (("id" = ( SELECT "auth"."uid"() AS "uid")));
+CREATE POLICY "profiles_update_own" ON "public"."profiles" FOR UPDATE TO "authenticated" USING ((("id" = ( SELECT "auth"."uid"() AS "uid")) AND ( SELECT "public"."is_active_user"() AS "is_active_user"))) WITH CHECK (("id" = ( SELECT "auth"."uid"() AS "uid")));
 
 
 
@@ -2759,22 +2766,22 @@ ALTER TABLE "public"."scrape_runs" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."search_params" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "search_params_delete" ON "public"."search_params" FOR DELETE TO "authenticated" USING (("public"."is_active_user"() AND ("user_id" = ( SELECT "auth"."uid"() AS "uid"))));
+CREATE POLICY "search_params_delete" ON "public"."search_params" FOR DELETE TO "authenticated" USING ((( SELECT "public"."is_active_user"() AS "is_active_user") AND ("user_id" = ( SELECT "auth"."uid"() AS "uid"))));
 
 
 
-CREATE POLICY "search_params_insert" ON "public"."search_params" FOR INSERT TO "authenticated" WITH CHECK (("public"."is_active_user"() AND ("user_id" = ( SELECT "auth"."uid"() AS "uid"))));
+CREATE POLICY "search_params_insert" ON "public"."search_params" FOR INSERT TO "authenticated" WITH CHECK ((( SELECT "public"."is_active_user"() AS "is_active_user") AND ("user_id" = ( SELECT "auth"."uid"() AS "uid"))));
 
 
 
 ALTER TABLE "public"."search_params_log" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "search_params_select" ON "public"."search_params" FOR SELECT TO "authenticated" USING (("public"."is_active_user"() AND ("user_id" = ( SELECT "auth"."uid"() AS "uid"))));
+CREATE POLICY "search_params_select" ON "public"."search_params" FOR SELECT TO "authenticated" USING ((( SELECT "public"."is_active_user"() AS "is_active_user") AND ("user_id" = ( SELECT "auth"."uid"() AS "uid"))));
 
 
 
-CREATE POLICY "search_params_update" ON "public"."search_params" FOR UPDATE TO "authenticated" USING (("public"."is_active_user"() AND ("user_id" = ( SELECT "auth"."uid"() AS "uid")))) WITH CHECK (("user_id" = ( SELECT "auth"."uid"() AS "uid")));
+CREATE POLICY "search_params_update" ON "public"."search_params" FOR UPDATE TO "authenticated" USING ((( SELECT "public"."is_active_user"() AS "is_active_user") AND ("user_id" = ( SELECT "auth"."uid"() AS "uid")))) WITH CHECK (("user_id" = ( SELECT "auth"."uid"() AS "uid")));
 
 
 
@@ -2787,49 +2794,49 @@ ALTER TABLE "public"."showing_events" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."showings" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "showings_delete" ON "public"."showings" FOR DELETE TO "authenticated" USING (("public"."is_active_user"() AND (("group_id" = ( SELECT "public"."my_group_id"() AS "my_group_id")) OR ("user_id" = ( SELECT "auth"."uid"() AS "uid")))));
+CREATE POLICY "showings_delete" ON "public"."showings" FOR DELETE TO "authenticated" USING ((( SELECT "public"."is_active_user"() AS "is_active_user") AND (("group_id" = ( SELECT "public"."my_group_id"() AS "my_group_id")) OR ("user_id" = ( SELECT "auth"."uid"() AS "uid")))));
 
 
 
-CREATE POLICY "showings_insert" ON "public"."showings" FOR INSERT TO "authenticated" WITH CHECK (("public"."is_active_user"() AND (("group_id" = ( SELECT "public"."my_group_id"() AS "my_group_id")) OR ("user_id" = ( SELECT "auth"."uid"() AS "uid"))) AND "public"."can_see_listing"("listing_id")));
+CREATE POLICY "showings_insert" ON "public"."showings" FOR INSERT TO "authenticated" WITH CHECK ((( SELECT "public"."is_active_user"() AS "is_active_user") AND (("group_id" = ( SELECT "public"."my_group_id"() AS "my_group_id")) OR ("user_id" = ( SELECT "auth"."uid"() AS "uid"))) AND "public"."can_see_listing"("listing_id")));
 
 
 
-CREATE POLICY "showings_select" ON "public"."showings" FOR SELECT TO "authenticated" USING (("public"."is_active_user"() AND (("group_id" = ( SELECT "public"."my_group_id"() AS "my_group_id")) OR ("user_id" = ( SELECT "auth"."uid"() AS "uid")))));
+CREATE POLICY "showings_select" ON "public"."showings" FOR SELECT TO "authenticated" USING ((( SELECT "public"."is_active_user"() AS "is_active_user") AND (("group_id" = ( SELECT "public"."my_group_id"() AS "my_group_id")) OR ("user_id" = ( SELECT "auth"."uid"() AS "uid")))));
 
 
 
-CREATE POLICY "showings_update" ON "public"."showings" FOR UPDATE TO "authenticated" USING (("public"."is_active_user"() AND (("group_id" = ( SELECT "public"."my_group_id"() AS "my_group_id")) OR ("user_id" = ( SELECT "auth"."uid"() AS "uid"))))) WITH CHECK (("public"."is_active_user"() AND (("group_id" = ( SELECT "public"."my_group_id"() AS "my_group_id")) OR ("user_id" = ( SELECT "auth"."uid"() AS "uid")))));
+CREATE POLICY "showings_update" ON "public"."showings" FOR UPDATE TO "authenticated" USING ((( SELECT "public"."is_active_user"() AS "is_active_user") AND (("group_id" = ( SELECT "public"."my_group_id"() AS "my_group_id")) OR ("user_id" = ( SELECT "auth"."uid"() AS "uid"))))) WITH CHECK ((( SELECT "public"."is_active_user"() AS "is_active_user") AND (("group_id" = ( SELECT "public"."my_group_id"() AS "my_group_id")) OR ("user_id" = ( SELECT "auth"."uid"() AS "uid")))));
 
 
 
 ALTER TABLE "public"."user_listings" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "user_listings_select" ON "public"."user_listings" FOR SELECT TO "authenticated" USING (("public"."is_active_user"() AND "public"."shares_group_with"("user_id")));
+CREATE POLICY "user_listings_select" ON "public"."user_listings" FOR SELECT TO "authenticated" USING ((( SELECT "public"."is_active_user"() AS "is_active_user") AND "public"."shares_group_with"("user_id")));
 
 
 
-CREATE POLICY "user_listings_update" ON "public"."user_listings" FOR UPDATE TO "authenticated" USING (("public"."is_active_user"() AND ("user_id" = ( SELECT "auth"."uid"() AS "uid")))) WITH CHECK (("user_id" = ( SELECT "auth"."uid"() AS "uid")));
+CREATE POLICY "user_listings_update" ON "public"."user_listings" FOR UPDATE TO "authenticated" USING ((( SELECT "public"."is_active_user"() AS "is_active_user") AND ("user_id" = ( SELECT "auth"."uid"() AS "uid")))) WITH CHECK (("user_id" = ( SELECT "auth"."uid"() AS "uid")));
 
 
 
 ALTER TABLE "public"."user_tags" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "user_tags_delete" ON "public"."user_tags" FOR DELETE TO "authenticated" USING (("public"."is_active_user"() AND ("user_id" = ( SELECT "auth"."uid"() AS "uid"))));
+CREATE POLICY "user_tags_delete" ON "public"."user_tags" FOR DELETE TO "authenticated" USING ((( SELECT "public"."is_active_user"() AS "is_active_user") AND ("user_id" = ( SELECT "auth"."uid"() AS "uid"))));
 
 
 
-CREATE POLICY "user_tags_insert" ON "public"."user_tags" FOR INSERT TO "authenticated" WITH CHECK (("public"."is_active_user"() AND ("user_id" = ( SELECT "auth"."uid"() AS "uid"))));
+CREATE POLICY "user_tags_insert" ON "public"."user_tags" FOR INSERT TO "authenticated" WITH CHECK ((( SELECT "public"."is_active_user"() AS "is_active_user") AND ("user_id" = ( SELECT "auth"."uid"() AS "uid"))));
 
 
 
-CREATE POLICY "user_tags_select" ON "public"."user_tags" FOR SELECT TO "authenticated" USING (("public"."is_active_user"() AND ("user_id" = ( SELECT "auth"."uid"() AS "uid"))));
+CREATE POLICY "user_tags_select" ON "public"."user_tags" FOR SELECT TO "authenticated" USING ((( SELECT "public"."is_active_user"() AS "is_active_user") AND ("user_id" = ( SELECT "auth"."uid"() AS "uid"))));
 
 
 
-CREATE POLICY "user_tags_update" ON "public"."user_tags" FOR UPDATE TO "authenticated" USING (("public"."is_active_user"() AND ("user_id" = ( SELECT "auth"."uid"() AS "uid")))) WITH CHECK (("user_id" = ( SELECT "auth"."uid"() AS "uid")));
+CREATE POLICY "user_tags_update" ON "public"."user_tags" FOR UPDATE TO "authenticated" USING ((( SELECT "public"."is_active_user"() AS "is_active_user") AND ("user_id" = ( SELECT "auth"."uid"() AS "uid")))) WITH CHECK (("user_id" = ( SELECT "auth"."uid"() AS "uid")));
 
 
 
