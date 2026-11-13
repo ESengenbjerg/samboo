@@ -22,18 +22,18 @@ The scraper (`scripts/scraper`) uses Playwright with one mapper per agency, not 
 
 This also means that listing text is only stored and displayed, never read by an AI in the pipeline. Playwright starts its own headless Chromium with an empty profile: no cookies, no sign-ins and no extensions. The scraper is deliberately AI-free; adding an LLM to the pipeline makes listing text an attack vector, and it would run in GitHub Actions next to the service role key.
 
-Listing texts are written by third parties. Treat them as untrusted input for any AI that reads them later, such as an AI browser agent used on the site, or a coding assistant reading scraped pages or database rows. Styling that hides text on the agency's site does not carry over, since the app shows the description as plain text, but visible text at the end of a long description and invisible Unicode characters do. In production we would strip invisible Unicode characters (zero-width characters and the tag block) when listings are saved.
+Listing texts are written by third parties. Treat them as untrusted input for any AI that reads them later, such as an AI browser agent used on the site, or a coding assistant reading scraped pages or database rows. Styling that hides text on the agency's site does not carry over, since the app shows the description as plain text, but visible text at the end of a long description and invisible Unicode characters do. In a real production we would strip invisible Unicode characters (zero-width characters and the tag block) when listings are saved.
 
 ### Claude Code files in the repo
 
 The repo includes files that configure Claude Code, the AI coding assistant used during development. They do not affect the app or the scraper. If you use Claude Code, it loads them automatically when you open the repo:
 
-| File                                                       | What it does                                                                  |
-| ---------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `AGENTS.md`, `CLAUDE.md`                                   | Instructions the assistant follows in this repo                               |
-| `.claude/settings.json`                                    | Enables the Expo plugin                                                       |
-| `.claude/agents/ux-tester.md`, `.claude/skills/ux-test/`   | An agent that clicks through the web app in a browser and writes UX reports   |
-| `.mcp.json`                                                | Starts the Playwright MCP server (an isolated Chromium) that ux-tester uses   |
+| File                                                     | What it does                                                                |
+| -------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `AGENTS.md`, `CLAUDE.md`                                 | Instructions the assistant follows in this repo                             |
+| `.claude/settings.json`                                  | Enables the Expo plugin                                                     |
+| `.claude/agents/ux-tester.md`, `.claude/skills/ux-test/` | An agent that clicks through the web app in a browser and writes UX reports |
+| `.mcp.json`                                              | Starts the Playwright MCP server (an isolated Chromium) that ux-tester uses |
 
 Read these files before you use them, especially in a fork you did not create yourself: the assistant follows what they say, and anyone who has changed the fork could have added instructions of their own. Claude Code asks before it starts the servers in `.mcp.json`, but not before it follows the instruction files.
 
