@@ -10,13 +10,26 @@ Reports from the UX agent (`.claude/agents/ux-tester.md`) end up here. The agent
    npx playwright install chromium
    ```
 
-2. Start the app on the web:
+2. Create `.env.uxtest` in the project root (git ignores it) with the two test accounts, copied from `.env`:
+
+   ```
+   TEST_USER_EMAIL=
+   TEST_USER_PASSWORD=
+   TEST_USER2_EMAIL=
+   TEST_USER2_PASSWORD=
+   ```
+
+   If you recreate the test users or change their passwords in `.env`, update `.env.uxtest` too, otherwise the agent's logins will fail.
+
+   The agent reads only this file. It has no shell access and cannot read `.env`, since the app shows real scraped listing texts that could contain instructions aimed at an AI.
+
+3. Start the app on the web:
 
    ```bash
    npx expo start --web
    ```
 
-3. Run a test in Claude Code:
+4. Run a test in Claude Code:
 
    ```
    /ux-test onboarding

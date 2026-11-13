@@ -11,7 +11,7 @@ const testUsers = [
   {
     email: process.env.TEST_USER_EMAIL,
     password: process.env.TEST_USER_PASSWORD,
-    name: "Admin",
+    name: "User1",
   },
   {
     email: process.env.TEST_USER2_EMAIL,
