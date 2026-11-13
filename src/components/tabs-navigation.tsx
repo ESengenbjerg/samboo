@@ -5,6 +5,9 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "./ui/text";
 
+const ACTIVE_COLOR = "hsl(27, 39%, 95%)";
+const INACTIVE_COLOR = "#293907";
+
 export default function TabsNavigation({
   state,
   descriptors,
@@ -14,8 +17,19 @@ export default function TabsNavigation({
   const insets = useSafeAreaInsets();
 
   return (
-    <BlurView style={{ paddingBottom: insets.bottom }}>
+    <BlurView
+      intensity={90}
+      tint="systemChromeMaterial"
+      style={{
+        position: "absolute",
+        bottom: Math.max(insets.bottom, 10),
+        left: 10,
+        right: 10,
+        borderRadius: 100,
+      }}
+    >
       <View
+        role="tablist"
         style={{ height: TAB_BAR_HEIGHT }}
         className="flex-row items-center"
       >
@@ -28,7 +42,7 @@ export default function TabsNavigation({
           if (itemStyle?.display === "none") return null;
 
           const label = options.title ?? route.name;
-          const color = "#293907";
+          const color = isFocused ? ACTIVE_COLOR : INACTIVE_COLOR;
 
           const onPress = () => {
             const event = emitter.emit({
@@ -41,17 +55,26 @@ export default function TabsNavigation({
             }
           };
 
+          const onLongPress = () => {
+            emitter.emit({
+              type: "tabLongPress",
+              target: route.key,
+            });
+          };
+
           return (
             <Pressable
               key={route.key}
               onPress={onPress}
+              onLongPress={onLongPress}
               role="tab"
               aria-selected={isFocused}
-              aria-label={label}
-              className={`flex-1 h-[90%] m-1 rounded-sm items-center justify-center gap-1 ${isFocused ? "bg-sand" : ""}`}
+              aria-label={options.tabBarAccessibilityLabel ?? label}
+              testID={options.tabBarButtonTestID}
+              className={`flex-1 h-[90%] m-1 items-center justify-center gap-1 rounded-full ${isFocused ? "bg-secondary/80" : ""}`}
             >
               {options.tabBarIcon?.({ focused: isFocused, color, size: 24 })}
-              <Text style={{ color }} className="text-xs">
+              <Text style={{ color }} className={`text-xs`}>
                 {label}
               </Text>
             </Pressable>
