@@ -4,6 +4,7 @@ import { MY_LIST_ID, SHARED_LIST_ID } from "@/constants/saved-lists";
 import { useGroupLikedListings } from "@/hooks/useGroupLikedListings";
 import { useLikedListings } from "@/hooks/useLikedListings";
 import { useNewListingIds } from "@/hooks/useNewListingIds";
+import { useSeenListingsStore } from "@/stores/seen-listings";
 import { useSharedLikedListings } from "@/hooks/useSharedLikedListings";
 import { Listing } from "@/types/listing";
 import { nameEndsWithS } from "@/utils/name-ends-with-s";
@@ -25,10 +26,12 @@ export default function SavedListSection({ userId }: { userId: string }) {
 
   // The listings I have not opened yet, matched on listings.id in every list
   const { newListingIds } = useNewListingIds(userId);
+  const seenIds = useSeenListingsStore((s) => s.seenIds);
 
   // How many listings in a list are new to me
   function countNew(list: Listing[]) {
-    return list.filter((l) => newListingIds.has(l.id)).length;
+    return list.filter((l) => newListingIds.has(l.id) && !seenIds.has(l.id))
+      .length;
   }
 
   return (
