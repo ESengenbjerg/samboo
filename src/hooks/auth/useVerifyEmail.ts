@@ -29,14 +29,14 @@ export function useVerifyEmail(email: string, source?: "login" | "register") {
       const { error } = await resendSignUpCode(email);
 
       if (isRateLimitError(error)) {
-        console.log("%s error:", error);
+        console.log("Resend sign up code error:", error);
         setError(authErrorMessage(error, RESEND_FALLBACK));
         restartCountdown();
         return false;
       }
 
       if (error) {
-        console.log("%s error:", error);
+        console.log("Resend sign up code error:", error);
         setError(authErrorMessage(error, RESEND_FALLBACK));
         return false;
       }

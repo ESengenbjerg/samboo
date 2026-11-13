@@ -48,14 +48,14 @@ export function useResetPassword(email: string) {
       const { error } = await requestPasswordReset(email);
 
       if (isRateLimitError(error)) {
-        console.log("%s error:", error);
+        console.log("Resend reset code error:", error);
         setError(authErrorMessage(error, RESEND_FALLBACK));
         restartCountdown();
         return;
       }
 
       if (error) {
-        console.log("%s error:", error);
+        console.log("Resend reset code error:", error);
         setError(authErrorMessage(error, RESEND_FALLBACK));
         return;
       }
