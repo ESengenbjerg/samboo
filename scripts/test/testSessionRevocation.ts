@@ -6,7 +6,7 @@
 //   1. Both sessions can read and write (control).
 //   2. "Safari" signs out the other sessions, like the app does after a password change.
 //   3. "Chrome" still has an unexpired access token, but is blocked at once: no data, no writes, no Storage upload.
-//      getUser() reports the session as gone, which is what the app uses to sign out locally.
+//      getUser() reports the session as gone, and supabase-js removes the local session (what the app relies on to sign out).
 //   4. "Safari" keeps working (control).
 
 // Signs out every other session of the test user, so do not run it while signed in with that account elsewhere.
@@ -101,6 +101,11 @@ try {
   check("Safari is active", s0.active, `is_active_user() = ${s0.active}`);
   check("Chrome is active", c0.active, `is_active_user() = ${c0.active}`);
   check(
+    "Chrome can read own search profile",
+    c0.searchRows > 0,
+    `${c0.searchRows} row(s)`,
+  );
+  check(
     "Chrome can write",
     c0.writeRows === 1,
     `${c0.writeRows} row(s) updated`,
@@ -147,6 +152,12 @@ try {
     user.error
       ? `error ${user.error.status ?? ""} ${user.error.code ?? ""}: ${user.error.message}`
       : "still a valid user",
+  );
+  const local = await chrome.client.auth.getSession();
+  check(
+    "supabase-js removed the local session",
+    local.data.session === null,
+    local.data.session ? "session still stored" : "no session",
   );
 
   // 4. Control: Safari still works
