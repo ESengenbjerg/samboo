@@ -29,7 +29,7 @@ export default function InvitationNotification({
       {answeredInvite != null && (
         <>
           <Separator />
-          <View className="flex-row justify-between items-center">
+          <View className="flex-row gap-2 justify-between items-center">
             <View className="flex-1">
               <Text variant="bold">
                 {answeredInvite === "accepted"
