@@ -4,5 +4,10 @@ import { ActivityIndicator, ActivityIndicatorProps, useColorScheme } from "react
 export function Spinner(props: ActivityIndicatorProps) {
   const scheme = useColorScheme() ?? "light";
 
-  return <ActivityIndicator color={THEME[scheme].foreground} {...props} />;
+  return <ActivityIndicator
+      color={THEME[scheme].foreground}
+      // Screen readers announce this instead of an unlabeled spinner
+      aria-label="Laddar"
+      {...props}
+    />;
 }

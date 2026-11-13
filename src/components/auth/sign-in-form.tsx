@@ -32,6 +32,7 @@ export function SignInForm() {
         </Label>
         <Input
           id="signin-email"
+          aria-label="Mejl"
           placeholder="namn@example.com"
           keyboardType="email-address"
           autoComplete="email"
@@ -53,6 +54,7 @@ export function SignInForm() {
         <Input
           ref={passwordInputRef}
           id="signin-password"
+          aria-label="Lösenord"
           placeholder="*****"
           secureTextEntry
           returnKeyType="send"

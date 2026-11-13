@@ -40,13 +40,20 @@ type ObjectPageProps = {
 const fallbackImage = require("@/assets/images/no-image.jpg");
 
 // Shows the fallback image when the listing has no image, or the image fails to load
-function ListingImage({ imageUrl }: { imageUrl: string | null }) {
+function ListingImage({
+  imageUrl,
+  alt,
+}: {
+  imageUrl: string | null;
+  alt: string;
+}) {
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const showFallback = !imageUrl || failedUrl === imageUrl;
 
   return (
     <Image
       source={showFallback ? fallbackImage : { uri: imageUrl }}
+      alt={showFallback ? "Bild saknas" : alt}
       onError={() => setFailedUrl(imageUrl)}
       style={{ width: "100%", height: 320 }}
       contentFit="cover"
@@ -204,7 +211,10 @@ export default function ObjectPageScreen({
         contentContainerStyle={{ paddingBottom: tabBarInset + 16 }}
       >
         {/* --- IMAGE --- */}
-        <ListingImage imageUrl={listing.image_url} />
+        <ListingImage
+          imageUrl={listing.image_url}
+          alt={`Bild på ${listing.address}`}
+        />
         <View className="px-6 py-6 gap-6">
           {/* --- ADDRESS AND AREA --- */}
           <View className="gap-4">
@@ -214,7 +224,11 @@ export default function ObjectPageScreen({
                   {listing.address ?? "Adress saknas"}
                 </Text>
                 <View className="shrink-0">
-                  <LikeButton listingId={listing.id} size={24} />
+                  <LikeButton
+                    listingId={listing.id}
+                    address={listing.address ?? undefined}
+                    size={24}
+                  />
                 </View>
               </View>
               <Text>
@@ -267,6 +281,8 @@ export default function ObjectPageScreen({
             {canEditTags && (
               <Pressable
                 onPress={openTagsDialog}
+                role="button"
+                aria-label="Lägg till taggar"
                 className="flex-row justify-start items-center gap-1 w-[50%]"
               >
                 <Text variant="bold">Lägg till taggar</Text>
@@ -279,7 +295,12 @@ export default function ObjectPageScreen({
               {tags
                 .filter((t) => appliedTagIds.includes(t.id))
                 .map((t) => (
-                  <Pressable key={t.id} onPress={() => setTagToDelete(t.id)}>
+                  <Pressable
+                    key={t.id}
+                    onPress={() => setTagToDelete(t.id)}
+                    role="button"
+                    aria-label={`Ta bort taggen ${t.tag_name}`}
+                  >
                     <Tag text={t.tag_name} removable />
                   </Pressable>
                 ))}

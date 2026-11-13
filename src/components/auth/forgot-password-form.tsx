@@ -47,6 +47,7 @@ export function ForgotPasswordForm() {
         </Label>
         <Input
           id="forgot-email"
+          aria-label="Mejl"
           placeholder="namn@example.com"
           keyboardType="email-address"
           autoComplete="email"

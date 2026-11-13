@@ -94,11 +94,12 @@ export default function ListingsFeed({
             </View>
 
             {showUpdateFilter && (
-              <Button variant="link" className="px-0 pt-0 self-start">
-                <Link href="/(tabs)/update-filter">
+              // The Link is the button itself, so there is one focusable element, not a link inside a button
+              <Link href="/(tabs)/update-filter" asChild>
+                <Button variant="link" className="px-0 pt-0 self-start">
                   <Text>Uppdatera bevakning</Text>
-                </Link>
-              </Button>
+                </Button>
+              </Link>
             )}
           </View>
 

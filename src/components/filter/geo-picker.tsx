@@ -112,6 +112,7 @@ export default function GeoPicker({
       <View className="relative z-10">
         <Input
           id={`create-${config.id}`}
+          aria-label={config.label.replace("*", "")}
           placeholder={isFull ? config.fullPlaceholder : config.placeholder}
           value={query}
           onChangeText={setQuery}

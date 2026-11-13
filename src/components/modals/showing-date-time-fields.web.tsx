@@ -35,6 +35,7 @@ export default function ShowingDateTimeFields({
         <Label>Datum</Label>
         <input
           type="date"
+          aria-label="Datum"
           className={INPUT_CLASS}
           value={toIsoDate(date)}
           min={toIsoDate(new Date())}
@@ -57,6 +58,7 @@ export default function ShowingDateTimeFields({
         <Label>Starttid</Label>
         <input
           type="time"
+          aria-label="Starttid"
           className={INPUT_CLASS}
           value={toTimeString(time)}
           required

@@ -101,6 +101,9 @@ export function ObjectCard({
           <View className={imageWrapperVariants({ size })}>
             <Image
               source={showFallback ? fallbackImage : { uri: imageUrl }}
+              // Decorative: the card link already names the listing
+              alt=""
+              accessible={false}
               onError={() => setFailedUrl(imageUrl ?? null)}
               style={{
                 width: "100%",
@@ -191,6 +194,7 @@ export function ObjectCard({
 
       <LikeButton
         listingId={listingId}
+        address={address}
         size={20}
         className={
           isSmall ? "absolute right-1 bottom-2" : "absolute right-4 bottom-20"

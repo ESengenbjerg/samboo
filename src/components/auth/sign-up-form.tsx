@@ -41,6 +41,7 @@ export function SignUpForm() {
           </Label>
           <Input
             id="signup-email"
+            aria-label="Mejl"
             placeholder="namn@example.com"
             keyboardType="email-address"
             autoComplete="email"
@@ -62,6 +63,7 @@ export function SignUpForm() {
           <Input
             ref={passwordInputRef}
             id="signup-password"
+            aria-label="Lösenord"
             placeholder="*****"
             secureTextEntry
             returnKeyType="next"
@@ -83,6 +85,7 @@ export function SignUpForm() {
           <Input
             ref={repeatPasswordInputRef}
             id="signup-repeat-password"
+            aria-label="Upprepa lösenord"
             placeholder="*****"
             secureTextEntry
             returnKeyType="send"

@@ -8,9 +8,11 @@ type LikeButtonProps = {
   listingId: number;
   className?: string;
   size?: number;
+  // Which listing the heart belongs to, so a screen reader can tell the hearts apart
+  address?: string;
 };
 
-export function LikeButton({ listingId, className, size }: LikeButtonProps) {
+export function LikeButton({ listingId, className, size, address }: LikeButtonProps) {
   // Selects a bool, so only this heart re-renders when its related like changes
   const isLiked = useLikesStore((s) => s.likedIds.has(listingId));
   const toggleLike = useLikesStore((s) => s.toggleLike);
@@ -20,7 +22,8 @@ export function LikeButton({ listingId, className, size }: LikeButtonProps) {
       onPress={() => toggleLike(listingId)}
       hitSlop={8}
       role="button"
-      aria-label={isLiked ? "Ta bort från sparade" : "Spara objekt"}
+      aria-label={address ? `Spara objekt, ${address}` : "Spara objekt"}
+      aria-pressed={isLiked}
       className={cn("size-9 items-center justify-center", className)}
     >
       <Icon

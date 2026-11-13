@@ -144,6 +144,7 @@ export default function ProfileSettingsForm() {
           <Label htmlFor="profile-name">Visningsnamn</Label>
           <Input
             id="profile-name"
+            aria-label="Visningsnamn"
             placeholder="Namn"
             returnKeyType="next"
             submitBehavior="submit"

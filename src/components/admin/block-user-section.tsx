@@ -99,6 +99,7 @@ export default function BlockUserSection() {
         <View className="flex-row gap-2">
           <Input
             id="block-user-email"
+            aria-label="Mejladress"
             className="flex-1"
             placeholder="namn@example.com"
             value={email}

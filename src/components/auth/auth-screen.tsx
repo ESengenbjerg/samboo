@@ -21,6 +21,9 @@ export function AuthScreen({ children }: AuthScreenProps) {
         source={require("@/assets/images/img.jpg")}
         style={[StyleSheet.absoluteFill, { opacity: 0.15 }]}
         contentFit="cover"
+        // Decorative background
+        alt=""
+        accessible={false}
       />
 
       {/* Avoid keyboard from hiding input fields */}

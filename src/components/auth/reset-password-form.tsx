@@ -72,6 +72,7 @@ export function ResetPasswordForm() {
             <Input
               ref={passwordInputRef}
               id="reset-password"
+              aria-label="Nytt lösenord"
               placeholder="*****"
               secureTextEntry
               returnKeyType="next"
@@ -91,6 +92,7 @@ export function ResetPasswordForm() {
             <Input
               ref={repeatPasswordInputRef}
               id="reset-repeat-password"
+              aria-label="Upprepa lösenord"
               placeholder="*****"
               secureTextEntry
               returnKeyType="send"
