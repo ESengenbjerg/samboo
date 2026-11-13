@@ -3,15 +3,15 @@
 // USAGE: node scripts/test/testSessionRevocation.ts
 
 // Signs in as the test user twice with the PUBLISHABLE key, like two browsers ("Safari" and "Chrome"), and checks:
-//   1. Both sessions can read and write (control). "Chrome" creates a test category, so there is own data to read.
+//   1. Both sessions can read and write (control). "Chrome" creates a test tag, so there is own data to read.
 //   2. "Safari" signs out the other sessions, like the app does after a password change.
-//   3. "Chrome" still has an unexpired access token, but is blocked at once: the test category is no longer visible,
+//   3. "Chrome" still has an unexpired access token, but is blocked at once: the test tag is no longer visible,
 //      no writes, no Storage upload.
 //      getUser() reports the session as gone, and supabase-js removes the local session (what the app relies on to sign out).
 //   4. "Safari" keeps working (control).
 
 // Signs out every other session of the test user, so do not run it while signed in with that account elsewhere.
-// Writes the user's own name (same value) and a test category, and removes the category and the test file it tries
+// Writes the user's own name (same value) and a test tag, and removes the tag and the test file it tries
 // to upload (if it got through) afterwards.
 // Dev database only.
 
@@ -112,7 +112,7 @@ try {
     .from("user_tags")
     .insert({ user_id: userId, tag_name: TEST_TAG });
   check(
-    "Chrome creates a test category",
+    "Chrome creates a test tag",
     !tagError,
     tagError ? tagError.message : "ok",
   );
@@ -121,7 +121,7 @@ try {
   check("Safari is active", s0.active, `is_active_user() = ${s0.active}`);
   check("Chrome is active", c0.active, `is_active_user() = ${c0.active}`);
   check(
-    "Chrome can read the test category",
+    "Chrome can read the test tag",
     c0.tagRows === 1,
     `${c0.tagRows} row(s)`,
   );
@@ -146,7 +146,7 @@ try {
   const c1 = await probe(chrome.client, userId);
   check("is_active_user()", !c1.active, `${c1.active}`);
   check(
-    "Read the test category",
+    "Read the test tag",
     c1.tagRows === 0,
     `${c1.tagRows} row(s)`,
   );
@@ -156,7 +156,7 @@ try {
     .eq("user_id", userId)
     .eq("tag_name", TEST_TAG);
   check(
-    "The test category still exists (hidden, not deleted)",
+    "The test tag still exists (hidden, not deleted)",
     tagsInDb === 1,
     `${tagsInDb ?? 0} row(s) with the service role`,
   );
