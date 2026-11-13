@@ -40,7 +40,7 @@ export default function ConnectAccountForm({
   const { session } = useSession();
   const accounts = useConnectedAccounts(session?.user.id);
   const { receivedInvites, isSubmitting, actionError } = accounts;
-  const { answeredInvite, answeredFromName, onAnswer } =
+  const { answeredInvite, answeredFromName, onAnswer, clearAnswer } =
     useAnswerInvite(accounts);
 
   async function finish() {
@@ -166,8 +166,15 @@ export default function ConnectAccountForm({
   function onSkip() {
     return withLock(undefined, async () => {
       const finished = await finish();
-      if (finished) completeOnboarding();
+      if (finished) finishOnboarding();
     });
+  }
+
+  // The answer belongs to onboarding. Clear it, otherwise it shows up under "Idag"
+  // on the notifications page the first time it is opened, maybe days later
+  function finishOnboarding() {
+    completeOnboarding();
+    clearAnswer();
   }
 
   // Shown after accepting an invite. Fortsätt saves onboarding like Hoppa över
@@ -209,7 +216,7 @@ export default function ConnectAccountForm({
 
         <Button
           variant="secondary"
-          onPress={() => completeOnboarding()}
+          onPress={finishOnboarding}
           className="px-10 self-start"
         >
           <Text>Fortsätt</Text>

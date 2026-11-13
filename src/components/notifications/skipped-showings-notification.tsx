@@ -43,7 +43,7 @@ export default function SkippedShowingNotification({
               size="sm"
               variant="destructive"
               onPress={() => router.push("/(tabs)/saved")}
-              className="mt-4 ml-4"
+              className="mt-4 ml-4 max-h-11"
             >
               <Text>Till visningar</Text>
             </Button>

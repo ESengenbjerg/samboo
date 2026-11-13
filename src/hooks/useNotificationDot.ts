@@ -1,5 +1,6 @@
 import { useSession } from "@/hooks/auth/useSession";
 import { useNotificationsStore } from "@/stores/notifications";
+import { useSkippedShowingsStore } from "@/stores/skipped-showings";
 import { usePathname } from "expo-router";
 import { useEffect } from "react";
 
@@ -16,16 +17,18 @@ export function useNotificationDot() {
 
   const hasNew = useNotificationsStore((s) => s.hasNew);
   const refresh = useNotificationsStore((s) => s.refresh);
-  const reset = useNotificationsStore((s) => s.reset);
+  // Lost showings after accepting an invite are not in the database, so the dot
+  // cannot know about them. Lit until the notifications page has shown them.
+  // The confirmation of an answer does not light it: the user just did that themselves
+  const hasSkipped = useSkippedShowingsStore((s) => s.showings.length > 0);
 
   useEffect(() => {
-    // Logged out: never keep the previous user's dot
-    if (!userId) {
-      reset();
-      return;
-    }
+    // Logged out: the stores are cleared in useSession
+    if (!userId) return;
     if (!isOnNotificationsPage) refresh();
-  }, [userId, pathname, isOnNotificationsPage, refresh, reset]);
+  }, [userId, pathname, isOnNotificationsPage, refresh]);
 
-  return { showDot: hasNew && !isOnNotificationsPage };
+  return {
+    showDot: (hasNew || hasSkipped) && !isOnNotificationsPage,
+  };
 }
