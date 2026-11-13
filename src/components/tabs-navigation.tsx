@@ -42,7 +42,8 @@ export default function TabsNavigation({
   });
   const focusedKey = state.routes[state.index]?.key;
   const activeIndex = visibleRoutes.findIndex((r) => r.key === focusedKey);
-  const tabWidth = visibleRoutes.length > 0 ? barWidth / visibleRoutes.length : 0;
+  const tabWidth =
+    visibleRoutes.length > 0 ? barWidth / visibleRoutes.length : 0;
 
   useEffect(() => {
     if (tabWidth === 0) return;
@@ -56,7 +57,11 @@ export default function TabsNavigation({
       indicatorX.value = target;
       hasPlacedIndicator.current = true;
     } else {
-      indicatorX.value = withSpring(target, { damping: 40, stiffness: 300, mass: 0.8 });
+      indicatorX.value = withSpring(target, {
+        damping: 40,
+        stiffness: 300,
+        mass: 0.8,
+      });
     }
   }, [activeIndex, tabWidth, indicatorX, indicatorOpacity]);
 

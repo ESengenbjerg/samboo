@@ -255,7 +255,7 @@ export default function ObjectPageScreen({
                   </Pressable>
                 ))}
             </View>
-            {/* Confirm dialog before deleteing tag */}
+            {/* Confirm dialog before deleting tag */}
             {tagToDelete !== null && (
               <ConfirmDialog
                 open={true}

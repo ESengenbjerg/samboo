@@ -14,7 +14,12 @@ export default function BackToTopButton({ onPress }: BackToTopButtonProps) {
       exiting={FadeOut.duration(350)}
       // Positioned with style, not className: NativeWind classes are not reliably
       // applied to Reanimated's Animated.View (on web the button ended up in the flow)
-      style={{ position: "absolute", right: 4, bottom: tabBarInset + 16, zIndex: 10 }}
+      style={{
+        position: "absolute",
+        right: 4,
+        bottom: tabBarInset + 16,
+        zIndex: 10,
+      }}
     >
       <Pressable
         onPress={onPress}
