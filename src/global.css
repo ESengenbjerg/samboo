@@ -18,6 +18,13 @@
 }
 
 @layer base {
+  /* WCAG 2.4.7: visible keyboard focus on web for every focusable element.
+     In the base layer so components with their own focus ring (Button, Input) override it */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
   :root {
     --background: var(--off-white);
     --foreground: var(--dark-green);
