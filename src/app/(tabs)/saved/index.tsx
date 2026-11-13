@@ -1,14 +1,17 @@
+import BackToTopButton from "@/components/back-to-top-button";
 import SavedListSection from "@/components/saved/list-section";
 import ScheduledShowingsSection from "@/components/saved/scheduled-showings-section";
 import { useSession } from "@/hooks/auth/useSession";
+import { useBackToTop } from "@/hooks/useBackToTop";
 import { useRef } from "react";
-import { ScrollView, type ScrollViewInstance, View } from "react-native";
+import { ScrollView, View } from "react-native";
 
 export default function SavedScreen() {
   const { session } = useSession();
   const userId = session?.user.id;
-  const scrollRef = useRef<ScrollViewInstance>(null);
   const showingsY = useRef(0);
+  const { scrollRef, showBackToTop, handleScroll, scrollToTop } =
+    useBackToTop();
 
   if (!userId) return null;
 
@@ -18,22 +21,27 @@ export default function SavedScreen() {
   }
 
   return (
-    <ScrollView
-      ref={scrollRef}
-      className="bg-background"
-      contentContainerClassName="px-6 pb-8 gap-8"
-    >
-      <SavedListSection userId={userId} />
-      <View
-        onLayout={(e) => {
-          showingsY.current = e.nativeEvent.layout.y;
-        }}
+    <View className="flex-1">
+      <ScrollView
+        ref={scrollRef}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        className="bg-background"
+        contentContainerClassName="px-6 pb-8 gap-8"
       >
-        <ScheduledShowingsSection
-          userId={userId}
-          onScrollToFeedback={scrollToShowings}
-        />
-      </View>
-    </ScrollView>
+        <SavedListSection userId={userId} />
+        <View
+          onLayout={(e) => {
+            showingsY.current = e.nativeEvent.layout.y;
+          }}
+        >
+          <ScheduledShowingsSection
+            userId={userId}
+            onScrollToFeedback={scrollToShowings}
+          />
+        </View>
+      </ScrollView>
+      {showBackToTop && <BackToTopButton onPress={scrollToTop} />}
+    </View>
   );
 }

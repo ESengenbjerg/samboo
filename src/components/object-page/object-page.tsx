@@ -8,6 +8,7 @@ import { Text } from "@/components/ui/text";
 import { useSession } from "@/hooks/auth/useSession";
 import { useSaveTag } from "@/hooks/tags/useSaveTag";
 import { useUserTags } from "@/hooks/tags/useUserTags";
+import { useBackToTop } from "@/hooks/useBackToTop";
 import { useListing } from "@/hooks/useListing";
 import { useListingTags } from "@/hooks/useListingTags";
 import { useMarkListingSeen } from "@/hooks/useMarkListingSeen";
@@ -19,6 +20,7 @@ import { Image } from "expo-image";
 import { PlusSquare } from "lucide-react-native";
 import { useState } from "react";
 import { Linking, Pressable, ScrollView, View } from "react-native";
+import BackToTopButton from "../back-to-top-button";
 import FormError from "../form-error";
 import { LikeButton } from "../like-button";
 import { ConfirmDialog } from "../modals/confirm-dialog";
@@ -162,6 +164,9 @@ export default function ObjectPageScreen({
     setTagsDialogOpen(false);
   }
 
+  const { scrollRef, showBackToTop, handleScroll, scrollToTop } =
+    useBackToTop();
+
   if (isLoading)
     return (
       <View className="flex-1 px-8 py-6 gap-6 bg-background">
@@ -185,6 +190,9 @@ export default function ObjectPageScreen({
         <Text>Tillbaka</Text>
       </Button>
       <ScrollView
+        ref={scrollRef}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         className="flex-1 bg-background"
         contentContainerClassName="pb-8"
       >
@@ -306,6 +314,7 @@ export default function ObjectPageScreen({
           <ScheduleShowingSection listingId={listing.id} />
         </View>
       </ScrollView>
+      {showBackToTop && <BackToTopButton onPress={scrollToTop} />}
     </View>
   );
 }

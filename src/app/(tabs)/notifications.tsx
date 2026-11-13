@@ -1,3 +1,4 @@
+import BackToTopButton from "@/components/back-to-top-button";
 import FormError from "@/components/form-error";
 import AnsweredInviteNotification from "@/components/notifications/answered-invitation-notification";
 import { default as FeedUpdateNotification } from "@/components/notifications/feed-update-notification";
@@ -10,6 +11,7 @@ import { useSession } from "@/hooks/auth/useSession";
 import { useShowingEvents } from "@/hooks/showings/useShowingEvents";
 import { useAnsweredInvites } from "@/hooks/useAnsweredInvites";
 import { useAnswerInvite } from "@/hooks/useAnswerInvite";
+import { useBackToTop } from "@/hooks/useBackToTop";
 import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
 import { useGroupUpdates } from "@/hooks/useGroupUpdates";
 import { useMarkNotificationsSeen } from "@/hooks/useMarkNotificationsSeen";
@@ -194,6 +196,9 @@ export default function NotificationsScreen() {
     return items;
   }
 
+  const { scrollRef, showBackToTop, handleScroll, scrollToTop } =
+    useBackToTop();
+
   return (
     <View className="flex-1 px-6 bg-background gap-2">
       <Text variant="h1" className="pb-4">
@@ -203,6 +208,9 @@ export default function NotificationsScreen() {
       {displayError && <FormError>{displayError}</FormError>}
 
       <ScrollView
+        ref={scrollRef}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         className="bg-background"
         contentContainerClassName="pb-8"
         showsVerticalScrollIndicator={false}
@@ -246,6 +254,7 @@ export default function NotificationsScreen() {
           </View>
         )}
       </ScrollView>
+      {showBackToTop && <BackToTopButton onPress={scrollToTop} />}
     </View>
   );
 }
