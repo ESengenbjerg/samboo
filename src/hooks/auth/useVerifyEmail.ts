@@ -2,10 +2,13 @@ import { RESEND_CODE_INTERVAL_SECONDS } from "@/constants/limits";
 import { useCountdown } from "@/hooks/useCountdown";
 import { resendSignUpCode, verifyEmailOtp } from "@/services/auth";
 import {
+  authCatchMessage,
   authErrorMessage,
   isRateLimitError,
 } from "@/utils/error-message/auth-error-message";
 import { useCallback, useEffect, useRef, useState } from "react";
+
+const RESEND_FALLBACK = "Kunde inte skicka koden. Försök igen.";
 
 // email and source are sent as params from /register or /login
 export function useVerifyEmail(email: string, source?: "login" | "register") {
@@ -27,14 +30,14 @@ export function useVerifyEmail(email: string, source?: "login" | "register") {
 
       if (isRateLimitError(error)) {
         console.log("Resend sign up code error:", error);
-        setError(authErrorMessage(error));
+        setError(authErrorMessage(error, RESEND_FALLBACK));
         restartCountdown();
         return false;
       }
 
       if (error) {
         console.log("Resend sign up code error:", error);
-        setError("Kunde inte skicka koden, försök igen.");
+        setError(authErrorMessage(error, RESEND_FALLBACK));
         return false;
       }
 
@@ -42,7 +45,7 @@ export function useVerifyEmail(email: string, source?: "login" | "register") {
       return true;
     } catch (e) {
       console.log("Resend sign up code error:", e);
-      setError("Kunde inte skicka koden, försök igen.");
+      setError(authCatchMessage(e, RESEND_FALLBACK));
       return false;
     }
   }, [email, restartCountdown]);
@@ -98,7 +101,9 @@ export function useVerifyEmail(email: string, source?: "login" | "register") {
       } catch (e) {
         // Unexpected errors, e.g. the network request failing completely
         console.log("Verify email code error:", e);
-        setError("Något gick fel, försök igen.");
+        setError(
+          authCatchMessage(e, "Kunde inte verifiera koden. Försök igen."),
+        );
       } finally {
         setIsLoading(false);
       }

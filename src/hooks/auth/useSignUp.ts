@@ -1,6 +1,9 @@
 import { PASSWORD_MIN_LENGTH } from "@/constants/limits";
 import { signUp } from "@/services/auth";
-import { authErrorMessage } from "@/utils/error-message/auth-error-message";
+import {
+  authCatchMessage,
+  authErrorMessage,
+} from "@/utils/error-message/auth-error-message";
 import { isValidEmail } from "@shared/email";
 import { router } from "expo-router";
 import { useCallback, useState } from "react";
@@ -67,7 +70,7 @@ export function useSignUp() {
       } catch (e) {
         // Unexpected errors, e.g. the network request failing completely
         console.log("Sign up error:", e);
-        setError("Något gick fel, försök igen.");
+        setError(authCatchMessage(e, "Kunde inte skapa kontot. Försök igen."));
       } finally {
         setIsLoading(false);
       }

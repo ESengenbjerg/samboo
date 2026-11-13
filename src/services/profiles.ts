@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { InformationInterval } from "@/stores/onboarding";
+import { commonErrorMessage } from "@/utils/error-message/common-messages";
 import { AVATAR_BUCKET } from "@shared/storage";
 import { StorageApiError } from "@supabase/supabase-js";
 
@@ -109,5 +110,8 @@ export function avatarErrorMessage(error: unknown) {
       return "Du kan inte ladda upp fler bilder just nu. Försök igen senare.";
     }
   }
-  return "Kunde inte spara profilbilden. Försök igen.";
+  return commonErrorMessage(
+    error,
+    "Kunde inte spara profilbilden. Försök igen.",
+  );
 }

@@ -11,9 +11,9 @@ import { signOut } from "@/services/auth";
 import { getAvatarUrl } from "@/services/profiles";
 import { useOnboardingStore } from "@/stores/onboarding";
 import { pickImage } from "@/utils/pick-image";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { Trash } from "lucide-react-native";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { View } from "react-native";
 import AvatarPublicInfo from "../avatar-public-info";
 import ProfileImage from "../profile-image";
@@ -57,6 +57,16 @@ function ProfileFields() {
     clearError: clearAvatarError,
   } = useUpdateProfileAvatar();
 
+  // The screen stays mounted when the user goes forward, so clear old errors on leave
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        setError(null);
+        clearAvatarError();
+      };
+    }, [clearAvatarError]),
+  );
+
   const isBusy = isLoading || isUpdating;
   const displayError = error ?? avatarError;
   // Show the newly picked image, otherwise the one already uploaded
@@ -92,7 +102,9 @@ function ProfileFields() {
     }
 
     if (!userId) {
-      setError("Något gick fel, försök igen.");
+      setError(
+        "Din session har inte laddats än. Vänta ett ögonblick och försök igen.",
+      );
       return;
     }
 

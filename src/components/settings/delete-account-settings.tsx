@@ -1,5 +1,6 @@
 import { useDeleteAccount } from "@/hooks/auth/useDeleteAccount";
-import { useState } from "react";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import { View } from "react-native";
 import FormError from "../form-error";
 import { ConfirmDialog } from "../modals/confirm-dialog";
@@ -7,8 +8,15 @@ import { Button } from "../ui/button";
 import { Text } from "../ui/text";
 
 export default function DeleteAccount() {
-  const { deleteAccount, isDeleting, error } = useDeleteAccount();
+  const { deleteAccount, isDeleting, error, clearError } = useDeleteAccount();
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  // The tab never unmounts, so clear old errors when the user leaves it
+  useFocusEffect(
+    useCallback(() => {
+      return () => clearError();
+    }, [clearError]),
+  );
 
   return (
     <>

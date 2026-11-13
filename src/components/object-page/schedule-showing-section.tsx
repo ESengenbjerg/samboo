@@ -60,7 +60,7 @@ export default function ScheduleShowingSection({
 
     if (ok) {
       setDialogOpen(false);
-      setMessage("Visningen är sparad.");
+      showToast("Visningen är sparad.", "success");
       refetch();
     }
   }
@@ -96,17 +96,15 @@ export default function ScheduleShowingSection({
             {...showing}
             onStartAction={() => setMessage(null)}
             onUpdated={() => {
-              setMessage("Visningen är uppdaterad.");
+              showToast("Visningen är uppdaterad.", "success");
               refetch();
             }}
             onDeleted={() => {
               deletedByMe.current = true;
-              setMessage("Visningen är raderad.");
+              showToast("Visningen är raderad.", "success");
               refetch();
             }}
-            onDeleteFailed={() =>
-              showToast("Kunde inte radera visningen, försök igen")
-            }
+            onDeleteFailed={(message) => showToast(message)}
           />
         </View>
       ) : (

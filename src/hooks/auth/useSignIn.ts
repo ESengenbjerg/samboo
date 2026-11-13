@@ -1,5 +1,8 @@
 import { signIn } from "@/services/auth";
-import { authErrorMessage } from "@/utils/error-message/auth-error-message";
+import {
+  authCatchMessage,
+  authErrorMessage,
+} from "@/utils/error-message/auth-error-message";
 import { isValidEmail } from "@shared/email";
 import { router } from "expo-router";
 import { useCallback, useState } from "react";
@@ -60,7 +63,7 @@ export function useSignIn() {
       } catch (e) {
         // Unexpected errors, e.g. the network request failing completely
         console.log("Sign in error:", e);
-        setError("Något gick fel, försök igen.");
+        setError(authCatchMessage(e, "Kunde inte logga in. Försök igen."));
       } finally {
         setIsLoading(false);
       }

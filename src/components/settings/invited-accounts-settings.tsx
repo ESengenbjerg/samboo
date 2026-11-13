@@ -20,15 +20,15 @@ export default function ConnectAccountsSettings({
     sendInvite,
     cancelInvite,
     isSubmitting,
-    actionError,
-    clearActionError,
+    inviteError,
+    clearInviteError,
   } = accounts;
   // The invite to cancel, null = dialog closed
   const [inviteToCancel, setInviteToCancel] = useState<SentInvite | null>(null);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
 
   function openInviteDialog() {
-    clearActionError();
+    clearInviteError();
     setInviteDialogOpen(true);
   }
 
@@ -65,12 +65,12 @@ export default function ConnectAccountsSettings({
           open={inviteDialogOpen}
           onOpenChange={(open) => {
             setInviteDialogOpen(open);
-            if (!open) clearActionError();
+            if (!open) clearInviteError();
           }}
           onAction={onInvite}
           memberCount={members.length}
           isLoading={isSubmitting}
-          error={inviteDialogOpen ? actionError : null}
+          error={inviteError}
         />
       )}
 

@@ -32,7 +32,7 @@ export default function ScheduledShowingInfo({
 }: ScheduledShowing & {
   onDeleted: () => void;
   onUpdated: () => void;
-  onDeleteFailed: () => void;
+  onDeleteFailed: (message: string) => void;
   onStartAction: () => void;
 }) {
   const timeText = showing.startsAt.toLocaleTimeString("sv-SE", {
@@ -98,14 +98,14 @@ export default function ScheduledShowingInfo({
   }
 
   async function onDelete() {
-    const ok = await deleteShowing(showing.id);
+    const errorMessage = await deleteShowing(showing.id);
 
-    if (ok) {
+    if (!errorMessage) {
       // Tells the parent to remove showing from the list
       onDeleted();
     } else {
-      // Tells the parent to show an error
-      onDeleteFailed();
+      // Tells the parent to show the error
+      onDeleteFailed(errorMessage);
     }
   }
 

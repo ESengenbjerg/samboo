@@ -4,6 +4,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { updateNotificationFrequency } from "@/services/profiles";
 import { InformationInterval } from "@/stores/onboarding";
 import { showToast } from "@/stores/toast";
+import { commonErrorMessage } from "@/utils/error-message/common-messages";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { View } from "react-native";
@@ -53,7 +54,12 @@ export default function EmailFrequencySettings() {
     if (updateError) {
       console.log("Update frequency error:", updateError);
       setSelected(previous);
-      setSaveError("Kunde inte spara hur ofta du vill få mejl. Försök igen.");
+      setSaveError(
+        commonErrorMessage(
+          updateError,
+          "Kunde inte spara hur ofta du vill få mejl. Försök igen.",
+        ),
+      );
       return;
     }
 

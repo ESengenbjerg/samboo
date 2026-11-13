@@ -4,6 +4,7 @@ import {
   unlikeListing,
 } from "@/services/listings";
 import { showToast } from "@/stores/toast";
+import { commonErrorMessage } from "@/utils/error-message/common-messages";
 import { create } from "zustand";
 
 type LikesState = {
@@ -13,6 +14,16 @@ type LikesState = {
   reset: () => void;
   toggleLike: (listingId: number) => Promise<void>;
 };
+
+// wasLiked = the listing was saved before the tap, so the failed request was an unsave
+function likeErrorMessage(error: unknown, wasLiked: boolean) {
+  return commonErrorMessage(
+    error,
+    wasLiked
+      ? "Kunde inte ta bort objektet från sparade. Försök igen."
+      : "Kunde inte spara objektet. Försök igen.",
+  );
+}
 
 // Listings with a save/unsave request in flight. Taps on these are ignored,
 // so a double tap can never send like + unlike at the same time.
@@ -70,12 +81,12 @@ export const useLikesStore = create<LikesState>((set, get) => ({
       if (error) {
         console.error("Failed to update like: ", error);
         setLiked(wasLiked); // revert the heart
-        showToast("Kunde inte spara, försök igen");
+        showToast(likeErrorMessage(error, wasLiked));
       }
     } catch (e) {
       console.error("Failed to update like: ", e);
       setLiked(wasLiked);
-      showToast("Kunde inte spara, försök igen");
+      showToast(likeErrorMessage(e, wasLiked));
     } finally {
       inFlight.delete(listingId);
     }

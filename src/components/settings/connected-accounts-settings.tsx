@@ -24,10 +24,8 @@ export default function ConnectedAccountsSettings({
     isLoading,
     error,
     isSubmitting,
-    actionError,
     groupNotice,
     dismissGroupNotice,
-    clearActionError,
     removeMember,
     leaveGroup,
   } = accounts;
@@ -37,7 +35,6 @@ export default function ConnectedAccountsSettings({
   );
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
 
-  const displayError = error || actionError;
   const isBusy = isLoading || isSubmitting;
 
   async function onRemoveMember() {
@@ -55,7 +52,7 @@ export default function ConnectedAccountsSettings({
     <View className="gap-4">
       <Text variant="h2">Kopplade konton</Text>
 
-      {displayError && <FormError>{displayError}</FormError>}
+      {error && <FormError>{error}</FormError>}
       {groupNotice && (
         <InfoMessage onDismiss={dismissGroupNotice}>{groupNotice}</InfoMessage>
       )}
@@ -99,7 +96,6 @@ export default function ConnectedAccountsSettings({
                 variant="destructive"
                 aria-label={`Ta bort ${m.name}`}
                 onPress={() => {
-                  clearActionError();
                   dismissGroupNotice();
                   setMemberToRemove(m);
                 }}
@@ -115,7 +111,6 @@ export default function ConnectedAccountsSettings({
           <Button
             variant="outline"
             onPress={() => {
-              clearActionError();
               dismissGroupNotice();
               setLeaveDialogOpen(true);
             }}

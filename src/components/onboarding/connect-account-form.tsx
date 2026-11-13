@@ -1,16 +1,23 @@
 import { useSession } from "@/hooks/auth/useSession";
 import { useAnswerInvite } from "@/hooks/useAnswerInvite";
 import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
-import { getCurrentUser } from "@/services/auth";
 import {
   createInvite,
+  InviteFailure,
   inviteErrorMessage,
+  inviteFailureSummary,
+  SEND_INVITE_FALLBACK,
   validateInviteEmails,
 } from "@/services/invites";
-import { saveOnboarding } from "@/services/onboarding";
+import {
+  NotSignedInError,
+  onboardingErrorMessage,
+  saveOnboarding,
+} from "@/services/onboarding";
 import { useOnboardingStore } from "@/stores/onboarding";
-import { router } from "expo-router";
-import { useRef, useState } from "react";
+import { showToast } from "@/stores/toast";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 import FormError from "../form-error";
 import { SendInviteDialog } from "../modals/send-invite-dialog";
@@ -37,10 +44,28 @@ export default function ConnectAccountForm({
   // Invites to me, so an invited partner can accept instead of inviting back.
   // The database allows answering before onboarding is completed
   const { session } = useSession();
-  const accounts = useConnectedAccounts(session?.user.id);
-  const { receivedInvites, isSubmitting, actionError } = accounts;
+  const accounts = useConnectedAccounts(session?.user.id, session?.user.email);
+  const { receivedInvites, isSubmitting, actionError, clearActionError } =
+    accounts;
   const { answeredInvite, answeredFromName, onAnswer, clearAnswer } =
     useAnswerInvite(accounts);
+
+  // Errors from accepting/declining are shown as a toast, so they go away on their own
+  useEffect(() => {
+    if (!actionError) return;
+    showToast(actionError);
+    clearActionError();
+  }, [actionError, clearActionError]);
+
+  // The screen stays mounted when the user goes back, so clear old errors on leave
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        setError(null);
+        clearActionError();
+      };
+    }, [clearActionError]),
+  );
 
   async function finish() {
     setError(null);
@@ -50,9 +75,10 @@ export default function ConnectAccountForm({
     setIsLoading(true);
 
     try {
-      // Fetch correct user
-      const user = await getCurrentUser();
-      if (!user) throw new Error("Not signed in");
+      // The session is stored on the device. getCurrentUser() would return null
+      // when offline, which looks like a signed out user
+      const user = session?.user;
+      if (!user) throw new NotSignedInError();
 
       // Fetch user input from previous onboarding steps
       // The profile image is already uploaded in the profile step
@@ -63,6 +89,7 @@ export default function ConnectAccountForm({
       // If a step is missing, redirect to /profile to start from beginning
       // The profile image is optional, so avatarPath is not checked
       if (!profileName || !scraperFilter || !clientFilter) {
+        showToast("Något saknades från tidigare steg. Fyll i dem igen.");
         router.replace("/profile");
         return false;
       }
@@ -81,7 +108,7 @@ export default function ConnectAccountForm({
       return true;
     } catch (e) {
       console.log("Onboarding error: ", e);
-      setError("Något gick fel, försök igen.");
+      setError(onboardingErrorMessage(e));
       return false;
     } finally {
       setIsLoading(false);
@@ -107,7 +134,7 @@ export default function ConnectAccountForm({
   // Save onboarding, then send invites to other users
   async function sendInvites(emails: string[]) {
     // Check all before saving or sending anything
-    const validationError = validateInviteEmails(emails);
+    const validationError = validateInviteEmails(emails, session?.user.email);
 
     if (validationError) {
       setError(validationError);
@@ -122,12 +149,11 @@ export default function ConnectAccountForm({
     // Declared outside try, so catch knows which were not tried yet
     const failed: string[] = [];
     let tried = 0;
-    let lastError: string | null = null;
+    const failures: InviteFailure[] = [];
 
     try {
-      // Get user from Supabase
-      const user = await getCurrentUser();
-      if (!user) throw new Error("Not signed in.");
+      const user = session?.user;
+      if (!user) throw new NotSignedInError();
 
       // Keep going on errors, so one rejected address does not stop the rest
       for (const email of emails) {
@@ -137,21 +163,31 @@ export default function ConnectAccountForm({
         if (inviteError) {
           console.log("Invite error:", inviteError);
           failed.push(email);
-          lastError = inviteErrorMessage(inviteError);
+          failures.push({
+            email,
+            message: inviteErrorMessage(inviteError, SEND_INVITE_FALLBACK),
+          });
         }
       }
     } catch (e) {
       console.log("Invite error", e);
       // The ones not tried yet were not sent either
-      failed.push(...emails.slice(tried));
-      lastError = "Något gick fel, försök igen.";
+      const notTried = emails.slice(tried);
+      failed.push(...notTried);
+      const message =
+        e instanceof NotSignedInError
+          ? "Din session har gått ut. Logga in igen."
+          : SEND_INVITE_FALLBACK;
+      failures.push(...notTried.map((email) => ({ email, message })));
     } finally {
       setIsLoading(false);
     }
 
-    if (lastError) {
+    if (failures.length > 0) {
       // Only reached after finish() succeeded, so the profile is saved
-      setError(`${lastError} Din profil och bevakning är sparade.`);
+      setError(
+        `${inviteFailureSummary(failures, emails.length)} Din profil och bevakning är sparade.`,
+      );
       return failed;
     }
 
@@ -273,7 +309,6 @@ export default function ConnectAccountForm({
       ))}
 
       {answeredInvite === "declined" && <Text>Inbjudan nekad.</Text>}
-      {actionError && <FormError>{actionError}</FormError>}
 
       {error && !invitationDialogOpen && <FormError>{error}</FormError>}
 

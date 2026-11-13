@@ -75,11 +75,8 @@ export default function ScheduledShowingsSection({
     setFeedback({ type: "success", text: "Visningen är raderad." });
   }
 
-  function onShowingDeleteFailed() {
-    setFeedback({
-      type: "error",
-      text: "Kunde inte radera visningen. Försök igen.",
-    });
+  function onShowingDeleteFailed(message: string) {
+    setFeedback({ type: "error", text: message });
     // The message is at the top of the section, the user may have scrolled past it
     onScrollToFeedback?.();
   }

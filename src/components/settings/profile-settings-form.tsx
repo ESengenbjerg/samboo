@@ -3,13 +3,15 @@ import { useSession } from "@/hooks/auth/useSession";
 import { useProfile } from "@/hooks/useProfile";
 import { useUpdateProfileAvatar } from "@/hooks/useUpdateProfileAvatar";
 import { getAvatarUrl, updateProfileName } from "@/services/profiles";
+import { showToast } from "@/stores/toast";
+import { commonErrorMessage } from "@/utils/error-message/common-messages";
 import { pickImage } from "@/utils/pick-image";
 import { Trash } from "lucide-react-native";
-import { useState } from "react";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import { View } from "react-native";
 import AvatarPublicInfo from "../avatar-public-info";
 import FormError from "../form-error";
-import FormMessage from "../form-message";
 import ProfileImage from "../profile-image";
 import { Button } from "../ui/button";
 import { Icon } from "../ui/icon";
@@ -51,7 +53,16 @@ export default function ProfileSettingsForm() {
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // The tab never unmounts, so clear old errors when the user leaves it
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        setSaveError(null);
+        clearAvatarError();
+      };
+    }, [clearAvatarError]),
+  );
 
   // Returns true if new name is typed in input
   const nameIsChanged: boolean = newName.trim() !== savedName;
@@ -63,7 +74,6 @@ export default function ProfileSettingsForm() {
 
     setSaveError(null);
     clearAvatarError();
-    setSuccessMessage(null);
 
     if (!newName.trim()) {
       setSaveError("Du måste skriva in ett nytt namn för att spara.");
@@ -76,20 +86,22 @@ export default function ProfileSettingsForm() {
 
     if (error) {
       console.log("Update profile error:", error);
-      setSaveError("Kunde inte uppdatera namn. Försök igen.");
+      setSaveError(
+        commonErrorMessage(error, "Kunde inte uppdatera namn. Försök igen."),
+      );
       return;
     }
 
     setUpdatedName(newName.trim());
     setTypedName(null);
-    setSuccessMessage("Ditt visningsnamn har uppdaterats!");
+    showToast("Ditt visningsnamn har uppdaterats!", "success");
   }
 
   async function onChangeImage() {
     if (!userId) return;
 
     setSaveError(null);
-    setSuccessMessage(null);
+    clearAvatarError();
 
     let uri: string | null;
     try {
@@ -107,7 +119,7 @@ export default function ProfileSettingsForm() {
 
     setAvatarRemoved(false);
     setNewAvatarPath(path);
-    setSuccessMessage("Din profilbild har uppdaterats!");
+    showToast("Din profilbild har uppdaterats!", "success");
   }
 
   async function onRemove() {
@@ -115,14 +127,13 @@ export default function ProfileSettingsForm() {
 
     setSaveError(null);
     clearAvatarError();
-    setSuccessMessage(null);
 
     const removed = await removeAvatar(userId, currentAvatarPath);
     if (!removed) return;
 
     setNewAvatarPath(null);
     setAvatarRemoved(true);
-    setSuccessMessage("Din profilbild har tagits bort.");
+    showToast("Din profilbild har tagits bort.", "success");
   }
 
   return (
@@ -182,7 +193,6 @@ export default function ProfileSettingsForm() {
         </View>
 
         {!!errorMessage && <FormError>{errorMessage}</FormError>}
-        {!!successMessage && <FormMessage>{successMessage}</FormMessage>}
 
         <Button
           onPress={onSubmit}
