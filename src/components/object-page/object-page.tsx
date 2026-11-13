@@ -146,12 +146,8 @@ export default function ObjectPageScreen({
   async function handleRemoveTag(tagId: number) {
     if (!userListing) return;
 
-    try {
-      const removed = await unapplyTag(tagId, userListing.id);
-      if (removed) reloadListingTags();
-    } finally {
-      setIsSaving(false);
-    }
+    const removed = await unapplyTag(tagId, userListing.id);
+    if (removed) reloadListingTags();
   }
 
   // Clears an old error from a previous attempt before the dialog opens
