@@ -44,10 +44,7 @@ export default function InvitationNotification({
             </View>
 
             {answeredInvite === "accepted" ? (
-              <Button
-                size="sm"
-                onPress={() => router.push("/saved")}
-              >
+              <Button size="sm" onPress={() => router.push("/saved")}>
                 <Text>Visa</Text>
               </Button>
             ) : (
