@@ -12,6 +12,7 @@ import { useBackToTop } from "@/hooks/useBackToTop";
 import { useListing } from "@/hooks/useListing";
 import { useListingTags } from "@/hooks/useListingTags";
 import { useMarkListingSeen } from "@/hooks/useMarkListingSeen";
+import { useTabBarInset } from "@/hooks/useTabBarInset";
 import { Listing } from "@/types/listing";
 import handleBack from "@/utils/handle-back";
 import { isNewConstruction } from "@/utils/is-new-construction";
@@ -166,6 +167,7 @@ export default function ObjectPageScreen({
 
   const { scrollRef, showBackToTop, handleScroll, scrollToTop } =
     useBackToTop();
+  const tabBarInset = useTabBarInset();
 
   if (isLoading)
     return (
@@ -198,7 +200,7 @@ export default function ObjectPageScreen({
         onScroll={handleScroll}
         scrollEventThrottle={16}
         className="flex-1 bg-background"
-        contentContainerClassName="pb-8"
+        contentContainerStyle={{ paddingBottom: tabBarInset + 16 }}
       >
         {/* --- IMAGE --- */}
         <ListingImage imageUrl={listing.image_url} />

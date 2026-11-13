@@ -3,6 +3,7 @@ import SavedListSection from "@/components/saved/list-section";
 import ScheduledShowingsSection from "@/components/saved/scheduled-showings-section";
 import { useSession } from "@/hooks/auth/useSession";
 import { useBackToTop } from "@/hooks/useBackToTop";
+import { useTabBarInset } from "@/hooks/useTabBarInset";
 import { useRef } from "react";
 import { ScrollView, View } from "react-native";
 
@@ -12,6 +13,7 @@ export default function SavedScreen() {
   const showingsY = useRef(0);
   const { scrollRef, showBackToTop, handleScroll, scrollToTop } =
     useBackToTop();
+  const tabBarInset = useTabBarInset();
 
   if (!userId) return null;
 
@@ -27,7 +29,8 @@ export default function SavedScreen() {
         onScroll={handleScroll}
         scrollEventThrottle={16}
         className="bg-background"
-        contentContainerClassName="px-6 pb-8 gap-8"
+        contentContainerClassName="px-6 gap-8"
+        contentContainerStyle={{ paddingBottom: tabBarInset + 16 }}
       >
         <SavedListSection userId={userId} />
         <View

@@ -17,6 +17,7 @@ import { useGroupUpdates } from "@/hooks/useGroupUpdates";
 import { useMarkNotificationsSeen } from "@/hooks/useMarkNotificationsSeen";
 import { useNewListingIds } from "@/hooks/useNewListingIds";
 import { useNewMatchesCount } from "@/hooks/useNewMatchesCount";
+import { useTabBarInset } from "@/hooks/useTabBarInset";
 import { NotificationDay } from "@/types/notifications";
 import { useFocusEffect } from "expo-router";
 import { Fragment, ReactNode, useCallback } from "react";
@@ -41,6 +42,7 @@ export default function NotificationsScreen() {
   const { session } = useSession();
   const userId = session?.user.id;
   const accounts = useConnectedAccounts(userId);
+  const tabBarInset = useTabBarInset();
 
   // Refetches by itself every time the page is opened
   const {
@@ -212,7 +214,7 @@ export default function NotificationsScreen() {
         onScroll={handleScroll}
         scrollEventThrottle={16}
         className="bg-background"
-        contentContainerClassName="pb-8"
+        contentContainerStyle={{ paddingBottom: tabBarInset + 16 }}
         showsVerticalScrollIndicator={false}
       >
         {isBusy && <Text>Laddar...</Text>}

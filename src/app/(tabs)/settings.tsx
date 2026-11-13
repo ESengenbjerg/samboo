@@ -14,6 +14,7 @@ import { SETTING_OPTIONS } from "@/constants/setting-options";
 import { useSession } from "@/hooks/auth/useSession";
 import { useBackToTop } from "@/hooks/useBackToTop";
 import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
+import { useTabBarInset } from "@/hooks/useTabBarInset";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useRef } from "react";
 import { LayoutChangeEvent, ScrollView, View } from "react-native";
@@ -33,6 +34,7 @@ export default function SettingsScreen() {
 
   const { scrollRef, showBackToTop, handleScroll, scrollToTop } =
     useBackToTop();
+  const tabBarInset = useTabBarInset();
 
   // Y-position for each section, saved without triggering rerender
   const sectionY = useRef<Record<string, number>>({});
@@ -57,7 +59,7 @@ export default function SettingsScreen() {
         onScroll={handleScroll}
         scrollEventThrottle={16}
         className="bg-background"
-        contentContainerClassName="pb-8"
+        contentContainerStyle={{ paddingBottom: tabBarInset + 16 }}
       >
         <View className="flex-1 px-2 bg-background gap-8">
           <View className="gap-3">
