@@ -186,7 +186,7 @@ export default function ObjectPageScreen({
 
   return (
     <View className="flex-1 bg-background">
-      <Button className="justify-start" variant="link" onPress={handleBack}>
+      <Button className="justify-start pl-6" variant="link" onPress={handleBack}>
         <Text>Tillbaka</Text>
       </Button>
       <ScrollView
@@ -198,7 +198,7 @@ export default function ObjectPageScreen({
       >
         {/* --- IMAGE --- */}
         <ListingImage imageUrl={listing.image_url} />
-        <View className="px-8 py-6 gap-6">
+        <View className="px-6 py-6 gap-6">
           {/* --- ADDRESS AND AREA --- */}
           <View className="gap-4">
             <View>
