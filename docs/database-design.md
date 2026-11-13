@@ -112,7 +112,7 @@ A user leaves a group in three ways, and all of them end in the same rule, `diss
 
 - **No roles.** Any member can remove any other member. This handles an invite to the wrong person who will not leave. A malicious member can do no lasting damage: the others can leave and form a new group.
 - **Dissolving:** if at most 1 member remains, the group is deleted and the last member gets `group_id = null`. A group of 2 therefore ends when one removes the other.
-- **The shared list** (`shared_likes()`, "Gemensam-listan") is computed from the current members' likes and is never stored. It recalculates by itself when someone joins or leaves.
+- **The shared list** (`shared_likes()`, "Gemensam lista") is computed from the current members' likes and is never stored. It recalculates by itself when someone joins or leaves.
 - **Simultaneous changes:** `accept_invite()`, `leave_group()` and `remove_group_member()` lock the group row (`accept_invite()` also both profile rows, in id order) and check their conditions again after the lock. A double tap or two crossing accepts cannot create two groups. In rare cases two operations on crossing rows deadlock. Postgres then aborts one of them and the data stays consistent.
 - **Removed users are not notified.** The app shows the missing group the next time it reads the profile.
 

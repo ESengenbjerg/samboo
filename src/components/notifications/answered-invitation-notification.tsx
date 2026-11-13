@@ -14,7 +14,7 @@ export default function AnsweredInviteNotification({
   invite,
 }: AnsweredInviteNotificationProps) {
   const isAccepted = invite.status === "accepted";
-  // The name is only known if tthe recipient is in my group
+  // The name is only known if the recipient is in my group
   const who = invite.name ?? invite.to_email;
 
   return (

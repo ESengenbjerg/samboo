@@ -100,7 +100,7 @@ export default function BlockUserSection() {
           <Input
             id="block-user-email"
             className="flex-1"
-            placeholder="m@example.com"
+            placeholder="namn@example.com"
             value={email}
             onChangeText={(text) => {
               setEmail(text);

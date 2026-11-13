@@ -47,7 +47,7 @@ export function ForgotPasswordForm() {
         </Label>
         <Input
           id="forgot-email"
-          placeholder="m@example.com"
+          placeholder="namn@example.com"
           keyboardType="email-address"
           autoComplete="email"
           autoCapitalize="none"

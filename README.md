@@ -47,7 +47,7 @@ Expo app built with:
 - **Rate limits and abuse guards in the database**: write requests per user (HTTP 429), search changes, invites, group size, uploads, and statement timeouts per role. Limits lock before counting, so simultaneous requests cannot slip past them.
 - **AI-free scraper.** Listings are collected with Playwright, not an AI agent, so scraped text is never read by an AI in the pipeline. The repo also contains configuration for Claude Code: read it before you use it, especially in a fork.
 
-See [docs/database-design.md](docs/database-design.md) for the reasoning behind some decision, and [docs/security.md](docs/security.md) for security outside the database (sign-up and sign-in, AI tools and prompt injection).
+See [docs/database-design.md](docs/database-design.md) for the reasoning behind some decisions, and [docs/security.md](docs/security.md) for security outside the database (sign-up and sign-in, AI tools and prompt injection).
 
 ## Getting started
 
@@ -94,12 +94,12 @@ The `EMAILS` and `GOOGLE MAPS` sections in `.env` can be left empty for the demo
    - select jobid, jobname, schedule from cron.job order by jobid;
      You'll find 8 jobs
    - select id, public from storage.buckets;
-     You'll find 1 bucket named avatar
+     You'll find 1 bucket named avatars
 
-   Go to Authentication -> Policies, check that RLS is active and policies exists. This is important when using publishable key i clients
+   Go to Authentication -> Policies, check that RLS is active and policies exist. This is important when using publishable key in clients
 
 6. Fill in `.env` (created under [Installation](#installation)):
-   - `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_KEY` (publishable/anon key) and `SUPABASE_SERVICE_ROLE_KEY` TIP: Look in "Connect" in topbar, choose Expo React Native as framwork, under "Add files" and ".env.local" you'll find the public keys. Then from Project Settings → API. The service role key is found. This is only used by the scripts and must never end up in the app!
+   - `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_KEY` (publishable/anon key) and `SUPABASE_SERVICE_ROLE_KEY` TIP: Look in "Connect" in topbar, choose Expo React Native as framework, under "Add files" and ".env.local" you'll find the public keys. Then from Project Settings → API. The service role key is found. This is only used by the scripts and must never end up in the app!
    - `SEED_USER`, `SEED_FRIEND` and their passwords are prefilled. Change them if you like (passwords need at least 6 characters). No mail is sent to these addresses.
 7. Run `nvm use 24`, then fill in Sweden's counties and municipalities, and the areas of Göteborg, Mölndal and Partille, from the project root: `node scripts/seed/places/seedPlaces.ts`
 8. Create the demo data, from the project root: `node scripts/seed/demo/seedDemo.ts`

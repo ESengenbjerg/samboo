@@ -4,8 +4,10 @@ import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { useSession } from "@/hooks/auth/useSession";
 import { useBackToTop } from "@/hooks/useBackToTop";
+import { useTabBarInset } from "@/hooks/useTabBarInset";
 import { FeedListing, useFilteredListings } from "@/hooks/useFilteredListings";
 import { BasePath, goToObject } from "@/utils/go-to-object";
+import { isListingRemoved } from "@/utils/is-listing-removed";
 import { isNewConstruction } from "@/utils/is-new-construction";
 import { Link } from "expo-router";
 import { useState } from "react";
@@ -47,6 +49,7 @@ export default function ListingsFeed({
 
   const { scrollRef, showBackToTop, handleScroll, scrollToTop } =
     useBackToTop();
+  const tabBarInset = useTabBarInset();
 
   return (
     <>
@@ -56,7 +59,7 @@ export default function ListingsFeed({
           onScroll={handleScroll}
           scrollEventThrottle={16}
           className="bg-background"
-          contentContainerClassName="pb-8"
+          contentContainerStyle={{ paddingBottom: tabBarInset + 16 }}
           showsVerticalScrollIndicator={false}
         >
           <View>
@@ -126,6 +129,7 @@ export default function ListingsFeed({
                 imageUrl={listing.image_url ?? ""}
                 onPress={() => goToObject(listing.id, path)}
                 listingId={listing.id}
+                isRemoved={isListingRemoved(listing)}
                 isNew={listing.is_new}
                 isNewConstruction={isNewConstruction(listing)}
                 size={view === "grid" ? "small" : "default"}
