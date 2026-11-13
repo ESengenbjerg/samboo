@@ -328,7 +328,7 @@ paths:
   /rpc/shared_likes:
     get:
       tags: [Listings]
-      summary: The shared list ("Gemensam-listan")
+      summary: The shared list ("Gemensam lista")
       description: |
         Listings that every member of my group has liked. Recalculated on every call.
         Removed listings are included: filter on `removed_at=is.null` to hide them.

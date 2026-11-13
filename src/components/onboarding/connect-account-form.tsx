@@ -77,7 +77,7 @@ export default function ConnectAccountForm({
       // A retry after a failed invite must not save everything again
       saved.current = true;
 
-      // Everything is sabed. Tge caller decides when the user is moved to /search
+      // Everything is saved. The caller decides when the user is moved to /search
       return true;
     } catch (e) {
       console.log("Onboarding error: ", e);
