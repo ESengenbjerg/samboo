@@ -3,7 +3,13 @@ import { BlurView } from "expo-blur";
 import * as Haptics from "expo-haptics";
 import { BottomTabBarProps } from "expo-router/build/react-navigation/bottom-tabs/index";
 import { useEffect, useRef, useState } from "react";
-import { LayoutChangeEvent, Pressable, StyleSheet, View } from "react-native";
+import {
+  LayoutChangeEvent,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+} from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -16,6 +22,9 @@ import { Text } from "./ui/text";
 const ACTIVE_COLOR = "hsl(27, 39%, 95%)";
 const INACTIVE_COLOR = "#293907";
 const BORDER_COLOR = "rgba(41, 57, 7, 0.12)";
+// Android: BlurView only blurs with extra setup and otherwise is nearly transparent,
+// so the bar gets a solid background there to keep the labels readable
+const ANDROID_BACKGROUND = "hsl(27, 39%, 95%)";
 
 // Must match the pill geometry on the Pressable: h-[90%] + m-1 (4px)
 const PILL_HEIGHT = TAB_BAR_HEIGHT * 0.9;
@@ -86,6 +95,10 @@ export default function TabsNavigation({
         overflow: "hidden",
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: BORDER_COLOR,
+        ...(Platform.OS === "android" && {
+          backgroundColor: ANDROID_BACKGROUND,
+          elevation: 8,
+        }),
       }}
     >
       <View

@@ -2,7 +2,7 @@ import { MAX_AREAS, MAX_MUNICIPALITIES } from "@/constants/limits";
 import { Area, Municipality } from "@/services/places";
 import { X } from "lucide-react-native";
 import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { Platform, Pressable, View } from "react-native";
 import { Icon } from "../ui/icon";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -10,6 +10,14 @@ import { Text } from "../ui/text";
 
 // Number of suggestions shown while typing
 const MAX_SUGGESTIONS = 6;
+
+// Android does not deliver touches to views outside their parent's bounds, so a
+// dropdown placed with "absolute top-full" can't be tapped there. On native the list
+// is therefore placed in the layout flow instead
+const DROPDOWN_POSITION = Platform.select({
+  web: "absolute top-full left-0 right-0 shadow-md z-10",
+  default: "mt-1",
+});
 
 // Texts and limits per type. The limits mirror search_params_place_limit, see constants/limits.ts
 const CONFIG = {
@@ -119,7 +127,7 @@ export default function GeoPicker({
 
         {/* Suggestions */}
         {suggestions.length > 0 && (
-          <View className="absolute top-full left-0 right-0 mt-1 rounded-sm border border-input bg-background shadow-md z-10">
+          <View className={`${DROPDOWN_POSITION} mt-1 rounded-sm border border-input bg-background`}>
             {suggestions.map((l) => (
               <Pressable
                 key={l.id}
@@ -135,7 +143,7 @@ export default function GeoPicker({
 
         {/* If 0 suggestions */}
         {search && suggestions.length === 0 ? (
-          <View className="absolute top-full left-0 right-0 mt-1 p-2 gap-2 rounded-sm border border-input bg-background shadow-md z-10">
+          <View className={`${DROPDOWN_POSITION} mt-1 p-2 gap-2 rounded-sm border border-input bg-background`}>
             <Text variant="bold">{`Inga träffar för "${query.trim()}".`}</Text>
             {locationType === "area" ? (
               <Text>
