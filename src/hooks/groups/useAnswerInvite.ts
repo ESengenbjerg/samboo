@@ -1,4 +1,4 @@
-import { ConnectedAccounts } from "@/hooks/useConnectedAccounts";
+import { ConnectedAccounts } from "@/hooks/groups/useConnectedAccounts";
 import { Answer, useAnsweredInviteStore } from "@/stores/answered-invite";
 
 // Answers a received invite and remembers the answer so the UI can confirm it.

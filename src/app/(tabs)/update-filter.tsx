@@ -1,7 +1,7 @@
 import BackToTopButton from "@/components/back-to-top-button";
 import UpdateFilterForm from "@/components/filter/update-filter-form";
-import { useBackToTop } from "@/hooks/useBackToTop";
-import { useTabBarInset } from "@/hooks/useTabBarInset";
+import { useBackToTop } from "@/hooks/ui/useBackToTop";
+import { useTabBarInset } from "@/hooks/ui/useTabBarInset";
 import { ScrollView } from "react-native";
 
 export default function EditFilterScreen() {

@@ -3,9 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { useSession } from "@/hooks/auth/useSession";
-import { useBackToTop } from "@/hooks/useBackToTop";
-import { useTabBarInset } from "@/hooks/useTabBarInset";
-import { FeedListing, useFilteredListings } from "@/hooks/useFilteredListings";
+import {
+  FeedListing,
+  useFilteredListings,
+} from "@/hooks/listings/useFilteredListings";
+import { useBackToTop } from "@/hooks/ui/useBackToTop";
+import { useTabBarInset } from "@/hooks/ui/useTabBarInset";
 import { useSeenListingsStore } from "@/stores/seen-listings";
 import { BasePath, goToObject } from "@/utils/go-to-object";
 import { isListingRemoved } from "@/utils/is-listing-removed";

@@ -1,4 +1,4 @@
-import { ConnectedAccounts } from "@/hooks/useConnectedAccounts";
+import { ConnectedAccounts } from "@/hooks/groups/useConnectedAccounts";
 import { SentInvite } from "@/types/connected-accounts";
 import { X } from "lucide-react-native";
 import { useState } from "react";

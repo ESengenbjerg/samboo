@@ -1,10 +1,10 @@
 import { useSession } from "@/hooks/auth/useSession";
-import { useAnswerInvite } from "@/hooks/useAnswerInvite";
-import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
+import { useAnswerInvite } from "@/hooks/groups/useAnswerInvite";
+import { useConnectedAccounts } from "@/hooks/groups/useConnectedAccounts";
 import {
   createInvite,
-  InviteFailure,
   inviteErrorMessage,
+  InviteFailure,
   inviteFailureSummary,
   SEND_INVITE_FALLBACK,
   validateInviteEmails,

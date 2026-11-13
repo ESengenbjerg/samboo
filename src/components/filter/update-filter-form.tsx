@@ -1,8 +1,8 @@
 import FilterForm from "@/components/filter/filter-form";
 import FormError from "@/components/form-error";
 import { useSession } from "@/hooks/auth/useSession";
-import { useSearchParams } from "@/hooks/useSearchParams";
-import { useUpdateSearchParams } from "@/hooks/useUpdateSearchParams";
+import { useSearchParams } from "@/hooks/search/useSearchParams";
+import { useUpdateSearchParams } from "@/hooks/search/useUpdateSearchParams";
 import { ClientFilter, ScraperFilter } from "@/stores/onboarding";
 import { showToast } from "@/stores/toast";
 import { useFocusEffect } from "expo-router";

@@ -1,5 +1,5 @@
 import FilterForm from "@/components/filter/filter-form";
-import { useOnboardingHydrated } from "@/hooks/useOnboardingHydrated";
+import { useOnboardingHydrated } from "@/hooks/profile/useOnboardingHydrated";
 import {
   ClientFilter,
   InformationInterval,

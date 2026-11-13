@@ -1,5 +1,5 @@
 import { ALL_OPTION, SORT_OPTIONS } from "@/constants/filter-options";
-import { ListingFilters } from "@/hooks/useFilteredListings";
+import { ListingFilters } from "@/hooks/listings/useFilteredListings";
 import { ScrollView } from "react-native";
 import FilterSelect from "./filter-select";
 

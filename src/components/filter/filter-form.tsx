@@ -12,7 +12,7 @@ import {
   PropertyType,
   ROOM_OPTIONS,
 } from "@/constants/filter-options";
-import { usePlaces } from "@/hooks/usePlaces";
+import { usePlaces } from "@/hooks/search/usePlaces";
 import { ClientFilter, ScraperFilter } from "@/stores/onboarding";
 import { SelectOption } from "@/types/select-option";
 import { capitalize } from "@/utils/capitalize-string";

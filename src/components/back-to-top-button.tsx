@@ -1,8 +1,8 @@
+import { useTabBarInset } from "@/hooks/ui/useTabBarInset";
 import { ArrowUp } from "lucide-react-native";
 import { Pressable } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { Icon } from "./ui/icon";
-import { useTabBarInset } from "@/hooks/useTabBarInset";
 
 type BackToTopButtonProps = { onPress: () => void };
 
