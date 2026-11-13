@@ -32,7 +32,12 @@ export function SignUpForm() {
   return (
     <>
       <View className="gap-4 w-full max-w-sm px-14">
-        <Text variant="bold" className="text-center text-xl text-background">
+        <Text
+          variant="bold"
+          role="heading"
+          aria-level={1}
+          className="text-center text-xl text-background"
+        >
           Skapa konto
         </Text>
         <View className="gap-1.5">
