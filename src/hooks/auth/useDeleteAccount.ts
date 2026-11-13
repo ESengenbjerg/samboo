@@ -1,4 +1,5 @@
 import { deleteMyAccount, signOutLocal } from "@/services/auth";
+import { commonErrorMessage } from "@/utils/error-message/common-messages";
 import { useCallback, useState } from "react";
 
 export function useDeleteAccount() {
@@ -13,7 +14,12 @@ export function useDeleteAccount() {
     const { error } = await deleteMyAccount();
     if (error) {
       console.log("Delete account error:", error);
-      setError("Kunde inte radera ditt konto. Försök igen om en stund.");
+      setError(
+        commonErrorMessage(
+          error,
+          "Kunde inte radera ditt konto. Försök igen om en stund.",
+        ),
+      );
       setIsDeleting(false);
       return false;
     }

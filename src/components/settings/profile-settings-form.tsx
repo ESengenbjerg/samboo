@@ -4,6 +4,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useUpdateProfileAvatar } from "@/hooks/useUpdateProfileAvatar";
 import { getAvatarUrl, updateProfileName } from "@/services/profiles";
 import { showToast } from "@/stores/toast";
+import { commonErrorMessage } from "@/utils/error-message/common-messages";
 import { pickImage } from "@/utils/pick-image";
 import { Trash } from "lucide-react-native";
 import { useFocusEffect } from "expo-router";
@@ -85,7 +86,9 @@ export default function ProfileSettingsForm() {
 
     if (error) {
       console.log("Update profile error:", error);
-      setSaveError("Kunde inte uppdatera namn. Försök igen.");
+      setSaveError(
+        commonErrorMessage(error, "Kunde inte uppdatera namn. Försök igen."),
+      );
       return;
     }
 

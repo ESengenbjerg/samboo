@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { SkippedShowing } from "@/types/showings";
 import { isValidEmail, normalizeEmail } from "@shared/email";
+import { commonErrorMessage } from "@/utils/error-message/common-messages";
 import type { PostgrestError } from "@supabase/supabase-js";
 
 // ownEmail is optional. If given, inviting yourself is stopped before anything is saved
@@ -20,8 +21,7 @@ export function validateInviteEmails(
   return null;
 }
 
-export const SEND_INVITE_FALLBACK =
-  "Kunde inte skicka inbjudan. Kontrollera din uppkoppling och försök igen.";
+export const SEND_INVITE_FALLBACK = "Kunde inte skicka inbjudan. Försök igen.";
 
 export type InviteFailure = { email: string; message: string };
 
@@ -106,9 +106,8 @@ export function inviteErrorMessage(
     case "23514":
       return "Mejladressen är för lång.";
     // check_request() rate limit
-    case "rate_limited":
-      return "Du har gjort för många ändringar. Vänta en stund och försök igen.";
     default:
-      return fallback;
+      // Offline and rate limit (rate_limited) get their own text
+      return commonErrorMessage(error, fallback);
   }
 }

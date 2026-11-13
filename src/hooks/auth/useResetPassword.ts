@@ -9,6 +9,7 @@ import {
 } from "@/services/auth";
 import { usePasswordRecoveryStore } from "@/stores/password-recovery";
 import {
+  authCatchMessage,
   authErrorMessage,
   isRateLimitError,
 } from "@/utils/error-message/auth-error-message";
@@ -53,7 +54,7 @@ export function useResetPassword(email: string) {
 
       if (error) {
         console.log("Resend reset code error:", error);
-        setError("Kunde inte skicka koden, försök igen.");
+        setError(authErrorMessage(error));
         return;
       }
 
@@ -61,7 +62,7 @@ export function useResetPassword(email: string) {
       setMessage("Ny kod skickad.");
     } catch (e) {
       console.log("Resend reset code error:", e);
-      setError("Kunde inte skicka koden, försök igen.");
+      setError(authCatchMessage(e, "Kunde inte skicka koden. Försök igen."));
     } finally {
       setIsLoading(false);
     }
@@ -98,7 +99,9 @@ export function useResetPassword(email: string) {
         return true;
       } catch (e) {
         console.log("Verify recovery code error:", e);
-        setError("Något gick fel, försök igen.");
+        setError(
+          authCatchMessage(e, "Kunde inte verifiera koden. Försök igen."),
+        );
         return false;
       } finally {
         setIsLoading(false);
@@ -142,7 +145,9 @@ export function useResetPassword(email: string) {
         usePasswordRecoveryStore.getState().setIsRecovering(false);
       } catch (e) {
         console.log("Update password error:", e);
-        setError("Något gick fel, försök igen.");
+        setError(
+          authCatchMessage(e, "Kunde inte spara lösenordet. Försök igen."),
+        );
       } finally {
         setIsLoading(false);
       }

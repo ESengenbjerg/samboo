@@ -1,4 +1,5 @@
 import { completeProfile } from "@/services/profiles";
+import { commonErrorMessage } from "@/utils/error-message/common-messages";
 import { saveSearchParams } from "@/services/search-params";
 import {
   ClientFilter,
@@ -43,10 +44,11 @@ export function onboardingErrorMessage(error: unknown) {
   if (error instanceof NotSignedInError) {
     return "Din session har gått ut. Logga in igen.";
   }
-  const code = (error as { code?: string } | null)?.code;
-  if (code === "rate_limited") {
-    return "Du har gjort för många ändringar. Vänta en stund och försök igen.";
+  if ((error as { code?: string } | null)?.code === "P0001") {
+    return (error as { message: string }).message;
   }
-  if (code === "P0001") return (error as { message: string }).message;
-  return "Kunde inte spara din profil och bevakning. Kontrollera din uppkoppling och försök igen.";
+  return commonErrorMessage(
+    error,
+    "Kunde inte spara din profil och bevakning. Försök igen.",
+  );
 }
