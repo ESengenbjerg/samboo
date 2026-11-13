@@ -3,11 +3,39 @@ import { SkippedShowing } from "@/types/showings";
 import { isValidEmail, normalizeEmail } from "@shared/email";
 import type { PostgrestError } from "@supabase/supabase-js";
 
-export function validateInviteEmails(emails: string[]): string | null {
+// ownEmail is optional. If given, inviting yourself is stopped before anything is saved
+export function validateInviteEmails(
+  emails: string[],
+  ownEmail?: string | null,
+): string | null {
   if (emails.length === 0) return "Ange minst en mejladress.";
   const invalid = emails.find((e) => !isValidEmail(e));
   if (invalid) return `Ogiltig mejladress: ${invalid}`;
+  if (ownEmail) {
+    const own = normalizeEmail(ownEmail);
+    if (emails.some((e) => normalizeEmail(e) === own)) {
+      return "Du kan inte bjuda in dig själv.";
+    }
+  }
   return null;
+}
+
+export const SEND_INVITE_FALLBACK =
+  "Kunde inte skicka inbjudan. Kontrollera din uppkoppling och försök igen.";
+
+export type InviteFailure = { email: string; message: string };
+
+// One message for the invites that failed, so the user knows which address caused what.
+// Used when some or all invites in a batch were rejected
+export function inviteFailureSummary(failures: InviteFailure[], total: number) {
+  if (failures.length === 1 && total === 1) {
+    return `${failures[0].email}: ${failures[0].message}`;
+  }
+  const details = failures.map((f) => `${f.email}: ${f.message}`).join(" ");
+  const sent = total - failures.length;
+  return sent > 0
+    ? `${sent} av ${total} inbjudningar skickades. ${details}`
+    : details;
 }
 
 export function createInvite(fromUserId: string, toEmail: string) {
@@ -59,7 +87,11 @@ export function cancelInvite(inviteId: number) {
 }
 
 // Turns a database error from the invite/group flow into a message for the user
-export function inviteErrorMessage(error: PostgrestError) {
+// fallback is for errors without a known code, and should say what the user tried to do
+export function inviteErrorMessage(
+  error: PostgrestError,
+  fallback = "Något gick fel, försök igen.",
+) {
   switch (error.code) {
     // raise exception in the database functions/triggers. The messages are already written in Swedish
     case "P0001":
@@ -77,6 +109,6 @@ export function inviteErrorMessage(error: PostgrestError) {
     case "rate_limited":
       return "Du har gjort för många ändringar. Vänta en stund och försök igen.";
     default:
-      return "Något gick fel, försök igen.";
+      return fallback;
   }
 }

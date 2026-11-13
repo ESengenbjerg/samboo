@@ -12,7 +12,10 @@ import {
   declineInvite as declineInviteRpc,
   getReceivedInvites,
   getSentInvites,
+  InviteFailure,
   inviteErrorMessage,
+  inviteFailureSummary,
+  SEND_INVITE_FALLBACK,
   validateInviteEmails,
 } from "@/services/invites";
 import {
@@ -161,6 +164,8 @@ export function useConnectedAccounts(userId: string | undefined) {
     async (
       action: () => PromiseLike<{ error: PostgrestError | null }>,
       logLabel: string,
+      // Shown when the error has no known cause
+      fallback: string,
       isHandled?: (error: PostgrestError) => boolean,
     ) => {
       setActionError(null);
@@ -176,7 +181,7 @@ export function useConnectedAccounts(userId: string | undefined) {
 
       if (error) {
         console.log(`${logLabel} error:`, error);
-        setActionError(inviteErrorMessage(error));
+        setActionError(inviteErrorMessage(error, fallback));
         return false;
       }
       return true;
@@ -220,7 +225,7 @@ export function useConnectedAccounts(userId: string | undefined) {
       setIsSubmitting(true);
 
       const failed: string[] = [];
-      let lastError: string | null = null;
+      const failures: InviteFailure[] = [];
 
       try {
         // Keep going on errors, so one rejected address does not stop the rest
@@ -229,7 +234,10 @@ export function useConnectedAccounts(userId: string | undefined) {
           if (error) {
             console.log("Send invite error:", error);
             failed.push(email);
-            lastError = inviteErrorMessage(error);
+            failures.push({
+              email,
+              message: inviteErrorMessage(error, SEND_INVITE_FALLBACK),
+            });
           }
         }
       } finally {
@@ -238,7 +246,9 @@ export function useConnectedAccounts(userId: string | undefined) {
         refresh();
       }
 
-      if (lastError) setInviteError(lastError);
+      if (failures.length > 0) {
+        setInviteError(inviteFailureSummary(failures, emails.length));
+      }
       return failed;
     },
     [userId, members, refresh],
@@ -264,6 +274,7 @@ export function useConnectedAccounts(userId: string | undefined) {
           return { error };
         },
         "Accept invite",
+        "Kunde inte acceptera inbjudan. Försök igen.",
         isInviteAlreadyHandled,
       );
     },
@@ -272,12 +283,21 @@ export function useConnectedAccounts(userId: string | undefined) {
 
   const declineInvite = useCallback(
     (inviteId: number) =>
-      run(() => declineInviteRpc(inviteId), "Decline invite"),
+      run(
+        () => declineInviteRpc(inviteId),
+        "Decline invite",
+        "Kunde inte avböja inbjudan. Försök igen.",
+      ),
     [run],
   );
 
   const cancelInvite = useCallback(
-    (inviteId: number) => run(() => cancelInviteRpc(inviteId), "Cancel invite"),
+    (inviteId: number) =>
+      run(
+        () => cancelInviteRpc(inviteId),
+        "Cancel invite",
+        "Kunde inte dra tillbaka inbjudan. Försök igen.",
+      ),
     [run],
   );
 
@@ -285,7 +305,11 @@ export function useConnectedAccounts(userId: string | undefined) {
   const removeMember = useCallback(
     (memberId: string) => {
       removedByMe.current.add(memberId);
-      return run(() => removeGroupMemberRpc(memberId), "Remove member");
+      return run(
+        () => removeGroupMemberRpc(memberId),
+        "Remove member",
+        "Kunde inte ta bort kontot från gruppen. Försök igen.",
+      );
     },
     [run],
   );
@@ -293,7 +317,11 @@ export function useConnectedAccounts(userId: string | undefined) {
   // I leave the group. The others stay connected if at least two of them remain
   const leaveGroup = useCallback(() => {
     leftByMe.current = true;
-    return run(() => leaveGroupRpc(), "Leave group");
+    return run(
+      () => leaveGroupRpc(),
+      "Leave group",
+      "Kunde inte lämna gruppen. Försök igen.",
+    );
   }, [run]);
 
   const clearActionError = useCallback(() => setActionError(null), []);
