@@ -1,8 +1,10 @@
 import {
   getLikedListingIds,
   likeListing,
+  markListingSeen,
   unlikeListing,
 } from "@/services/listings";
+import { useSeenListingsStore } from "@/stores/seen-listings";
 import { showToast } from "@/stores/toast";
 import { commonErrorMessage } from "@/utils/error-message/common-messages";
 import { create } from "zustand";
@@ -72,6 +74,15 @@ export const useLikesStore = create<LikesState>((set, get) => ({
       });
 
     setLiked(!wasLiked);
+
+    // Liking counts as seen: remove the "Ny" tag at once, and remember it in the database
+    // so it does not come back on the next refetch. Fire and forget
+    if (!wasLiked) {
+      useSeenListingsStore.getState().markSeen(listingId);
+      markListingSeen(listingId).then(({ error }) => {
+        if (error) console.error("Failed to mark listing as seen: ", error);
+      });
+    }
 
     try {
       const { error } = wasLiked

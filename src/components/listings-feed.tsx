@@ -6,6 +6,7 @@ import { useSession } from "@/hooks/auth/useSession";
 import { useBackToTop } from "@/hooks/useBackToTop";
 import { useTabBarInset } from "@/hooks/useTabBarInset";
 import { FeedListing, useFilteredListings } from "@/hooks/useFilteredListings";
+import { useSeenListingsStore } from "@/stores/seen-listings";
 import { BasePath, goToObject } from "@/utils/go-to-object";
 import { isListingRemoved } from "@/utils/is-listing-removed";
 import { isNewConstruction } from "@/utils/is-new-construction";
@@ -40,6 +41,9 @@ export default function ListingsFeed({
   const userId = session?.user.id;
 
   const [view, setView] = useState<"column" | "grid">("column");
+
+  // Listings I opened this session: their "Ny" tag goes away before the refetch
+  const seenIds = useSeenListingsStore((s) => s.seenIds);
 
   const {
     visibleListings,
@@ -130,7 +134,7 @@ export default function ListingsFeed({
                 onPress={() => goToObject(listing.id, path)}
                 listingId={listing.id}
                 isRemoved={isListingRemoved(listing)}
-                isNew={listing.is_new}
+                isNew={listing.is_new && !seenIds.has(listing.id)}
                 isNewConstruction={isNewConstruction(listing)}
                 size={view === "grid" ? "small" : "default"}
               />
