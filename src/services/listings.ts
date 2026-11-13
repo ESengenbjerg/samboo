@@ -1,8 +1,10 @@
 import { supabase } from "@/lib/supabase";
 
-// The listings columns the app reads, the same as the Listing type. Never "*": that would also download ld_json, up to 300 kB per listing, which the app does not use
+// The listings columns the app reads, the same as the Listing type. removed_at is not null when
+// the scraper did not find the listing in its latest run: shown as "Hittas inte" (docs/removed_listings.md).
+// Removed listings are returned on purpose, the database deletes them after 10 days. Never "*": that would also download ld_json, up to 300 kB per listing, which the app does not use
 const LISTING_COLUMNS =
-  "id, agency, external_id, url, property_type, municipality, area, price, rooms, living_area, monthly_fee, address, image_url, is_new_construction, latitude, longitude, build_year, plot_area, floor_level, description";
+  "id, agency, external_id, url, property_type, municipality, area, price, rooms, living_area, monthly_fee, address, image_url, is_new_construction, latitude, longitude, build_year, plot_area, floor_level, description, removed_at";
 
 // TODO: Remove policy from listings table that give anon permission to read
 export function getActiveListings(userId: string) {
@@ -16,7 +18,6 @@ export function getActiveListings(userId: string) {
       // Only what matches my current search. Kept rows (liked or tagged under an earlier search)
       // have in_search = false and belong in the liked lists, not in the search feed
       .eq("in_search", true)
-      .is("listings.removed_at", null)
       // TODO: Update order to last_seen_at by editing in hook
       .order("created_at", { ascending: false })
   );
@@ -31,7 +32,6 @@ export function getLikedListings(userId: string) {
       .select(`id, is_new, liked, listings!inner(${LISTING_COLUMNS})`)
       .eq("user_id", userId)
       .eq("liked", true)
-      .is("listings.removed_at", null)
       // TODO: Update order to last_seen_at by editing in hook
       .order("created_at", { ascending: false })
   );
@@ -110,7 +110,6 @@ export function getLikedListingsForUsers(userIds: string[]) {
       )
       .in("user_id", userIds)
       .eq("liked", true)
-      .is("listings.removed_at", null)
       .order("created_at", { ascending: false })
   );
 }
@@ -121,11 +120,7 @@ export async function getSharedLikedListings() {
   const { data, error } = await supabase
     // GET: the function is read-only (STABLE), see getGroupMembers() in groups.ts
     .rpc("shared_likes", undefined, { get: true })
-    .select(`${LISTING_COLUMNS}, removed_at, created_at`)
-
-    // .select(LISTING_COLUMNS)
-    // shared_likes() does not skip listings that have disappeared from the agency's site
-    .is("removed_at", null)
+    .select(`${LISTING_COLUMNS}, created_at`)
     .order("created_at", { ascending: false });
   return { data, error };
 }
@@ -138,7 +133,6 @@ export function getListingById(listingId: string) {
     .from("listings")
     .select(LISTING_COLUMNS)
     .eq("id", Number(listingId))
-    .is("removed_at", null)
     .maybeSingle();
 }
 
@@ -151,6 +145,5 @@ export function getListing(userId: string, listingId: string) {
     .select(`id, is_new, liked, listings!inner(${LISTING_COLUMNS})`)
     .eq("user_id", userId)
     .eq("listing_id", Number(listingId))
-    .is("listings.removed_at", null)
     .maybeSingle();
 }
