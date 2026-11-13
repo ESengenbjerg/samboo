@@ -50,7 +50,7 @@ export default function UpdateFilterForm() {
   }
 
   return (
-    <View className="flex-1">
+    <View className="flex-1 mb-10">
       <FilterForm
         title="Uppdatera bevakning"
         description="Ändra dina sökfilter för att uppdatera bostäderna i ditt resultat."

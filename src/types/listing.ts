@@ -24,6 +24,7 @@ export type Listing = Pick<
   | "plot_area"
   | "floor_level"
   | "description"
+  | "removed_at"
 >;
 
 export type UserListing = Pick<
