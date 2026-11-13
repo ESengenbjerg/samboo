@@ -1,6 +1,9 @@
 import { getSession, onAuthStateChange } from "@/services/auth";
+import { useAnsweredInviteStore } from "@/stores/answered-invite";
+import { useNotificationsStore } from "@/stores/notifications";
 import { useOnboardingStore } from "@/stores/onboarding";
 import { usePasswordRecoveryStore } from "@/stores/password-recovery";
+import { useSkippedShowingsStore } from "@/stores/skipped-showings";
 import { Session } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 
@@ -27,6 +30,11 @@ export function useSession() {
         // Resets onboarding to not affect next user.
         // Will be read from Supabase next time
         useOnboardingStore.getState().reset();
+        // Also clear user-specific stores, so nothing leaks to the next user
+        // regardless of which screen was shown at logout
+        useAnsweredInviteStore.getState().clear();
+        useSkippedShowingsStore.getState().clear();
+        useNotificationsStore.getState().reset();
         usePasswordRecoveryStore.getState().setIsRecovering(false);
       }
     });
