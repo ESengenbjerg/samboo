@@ -72,7 +72,7 @@ export function SendInviteDialog({
             {emails.map((email, i) => (
               <View key={i} className="mt-4">
                 <Label htmlFor={`invite-email-${i}`}>
-                  {i > 0 ? `E-post ${i + 1}` : `E-post`}
+                  {i > 0 ? `Mejl ${i + 1}` : `Mejl`}
                 </Label>
                 <View className="relative">
                   <Input

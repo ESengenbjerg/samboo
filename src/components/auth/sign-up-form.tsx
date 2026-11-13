@@ -37,7 +37,7 @@ export function SignUpForm() {
         </Text>
         <View className="gap-1.5">
           <Label htmlFor="signup-email" className="text-background">
-            E-post
+            Mejl
           </Label>
           <Input
             id="signup-email"

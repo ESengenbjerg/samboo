@@ -17,7 +17,7 @@ export function VerifyEmailForm() {
   return (
     <View className="gap-6 w-full max-w-sm px-14">
       <Text variant="bold" className="text-center text-xl text-background">
-        Verifiera e-post
+        Verifiera mejl
       </Text>
       <Text className="text-center text-background">
         Vi har skickat en kod till{" "}

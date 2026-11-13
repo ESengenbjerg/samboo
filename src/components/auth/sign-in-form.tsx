@@ -28,7 +28,7 @@ export function SignInForm() {
       </Text>
       <View className="gap-1.5">
         <Label htmlFor="signin-email" className="text-background">
-          E-post
+          Mejl
         </Label>
         <Input
           id="signin-email"

@@ -4,9 +4,9 @@ import { isValidEmail, normalizeEmail } from "@shared/email";
 import type { PostgrestError } from "@supabase/supabase-js";
 
 export function validateInviteEmails(emails: string[]): string | null {
-  if (emails.length === 0) return "Ange minst en e-postadress.";
+  if (emails.length === 0) return "Ange minst en mejladress.";
   const invalid = emails.find((e) => !isValidEmail(e));
-  if (invalid) return `Ogiltig e-postadress: ${invalid}`;
+  if (invalid) return `Ogiltig mejladress: ${invalid}`;
   return null;
 }
 
@@ -49,7 +49,6 @@ export async function acceptInvite(inviteId: number) {
   return { data: skipped, error };
 }
 
-
 export function declineInvite(inviteId: number) {
   return supabase.rpc("decline_invite", { invite_id: inviteId });
 }
@@ -67,13 +66,13 @@ export function inviteErrorMessage(error: PostgrestError) {
       return error.message;
     // invites_one_pending: a pending invite to this e-mail already exists
     case "23505":
-      return "Du har redan en väntande inbjudan till den här e-postadressen.";
+      return "Du har redan en väntande inbjudan till den här mejladressen.";
     // invites_insert policy: most likely my own e-mail
     case "42501":
       return "Du kan inte bjuda in dig själv.";
     // invites_email_length
     case "23514":
-      return "E-postadressen är för lång.";
+      return "Mejladressen är för lång.";
     // check_request() rate limit
     case "rate_limited":
       return "Du har gjort för många ändringar. Vänta en stund och försök igen.";

@@ -5,12 +5,12 @@ import type { AuthError } from "@supabase/supabase-js";
 export function authErrorMessage(error: AuthError) {
   // Sign-up returns 500 unexpected_failure when the confirmation e-mail can't be sent, e.g. to a domain that doesn't accept mail. The code alone is too broad, so the message is checked
   if (error.message.toLowerCase().includes("sending confirmation email")) {
-    return "Vi kunde inte skicka verifieringsmejlet. Kontrollera e-postadressen eller försök igen om en stund.";
+    return "Vi kunde inte skicka verifieringsmejlet. Kontrollera mejladressen eller försök igen om en stund.";
   }
 
   switch (error.code) {
     case "email_address_invalid":
-      return "Fyll i en giltig e-postadress.";
+      return "Fyll i en giltig mejladress.";
     case "weak_password":
       return `För svagt lösenord. Lösenordet måste vara minst ${PASSWORD_MIN_LENGTH} tecken.`;
     case "same_password":
