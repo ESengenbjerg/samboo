@@ -23,7 +23,7 @@ import { useFocusEffect } from "expo-router";
 import { Fragment, ReactNode, useCallback } from "react";
 import { ScrollView, View } from "react-native";
 
-// One notification in a day section, with the time it happend so the section can be sorted
+// One notification in a day section, with the time it happened so the section can be sorted
 type Item = { key: string; time: number; node: ReactNode };
 
 // Null (no timestamp) counts as oldest
@@ -98,7 +98,7 @@ export default function NotificationsScreen() {
     updatesByDayIsReady &&
     eventsByDayIsReady;
 
-  // Turns off the dot on the bell, that indicate new notifications,
+  // Turns off the dot on the bell, that indicates new notifications,
   // when the user leaves the page
   useMarkNotificationsSeen(allReady);
 

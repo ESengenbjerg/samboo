@@ -6,7 +6,6 @@ import { supabase } from "@/lib/supabase";
 const LISTING_COLUMNS =
   "id, agency, external_id, url, property_type, municipality, area, price, rooms, living_area, monthly_fee, address, image_url, is_new_construction, latitude, longitude, build_year, plot_area, floor_level, description, removed_at";
 
-// TODO: Remove policy from listings table that give anon permission to read
 export function getActiveListings(userId: string) {
   return (
     supabase
@@ -18,7 +17,6 @@ export function getActiveListings(userId: string) {
       // Only what matches my current search. Kept rows (liked or tagged under an earlier search)
       // have in_search = false and belong in the liked lists, not in the search feed
       .eq("in_search", true)
-      // TODO: Update order to last_seen_at by editing in hook
       .order("created_at", { ascending: false })
   );
 }
@@ -32,7 +30,6 @@ export function getLikedListings(userId: string) {
       .select(`id, is_new, liked, listings!inner(${LISTING_COLUMNS})`)
       .eq("user_id", userId)
       .eq("liked", true)
-      // TODO: Update order to last_seen_at by editing in hook
       .order("created_at", { ascending: false })
   );
 }

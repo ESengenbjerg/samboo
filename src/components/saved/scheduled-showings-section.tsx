@@ -34,7 +34,7 @@ export default function ScheduledShowingsSection({
 
   const [isInPast, setIsInPast] = useState(false);
   // If the last past showing is deleted or edited into the future there is nothing
-  // left to show in the past list, and the user shuld be sent back to upcoming.
+  // left to show in the past list, and the user should be sent back to upcoming.
   if (isInPast && pastShowings.length === 0) {
     setIsInPast(false);
   }

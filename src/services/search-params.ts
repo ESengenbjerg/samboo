@@ -12,7 +12,7 @@ export function getSearchParams(userId: string) {
     .maybeSingle();
 }
 
-// Save search, creates row or updates if it already exist
+// Save search, creates row or updates if it already exists
 export function saveSearchParams(
   userId: string,
   scraperFilter: ScraperFilter,
