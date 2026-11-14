@@ -17,20 +17,20 @@ A broken scrape must never make listings look removed. Therefore every run is ju
 
 ## Outcome of a run (per agency)
 
-| Outcome | When | What happens |
-| --- | --- | --- |
-| **Success** | None of the conditions below apply | New and updated listings are saved. Listings that were not found get `removed_at`. Open backlog issues for that agency are closed. |
-| **Failed** | Any of F1–F4 | `removed_at` is not touched at all. The problem is saved in the backlog. |
-| **Suspicious** | Unusually many listings disappear at once | New and updated listings are saved. No listings are marked as removed. The problem is saved in the backlog and the admin is notified immediately. |
+| Outcome        | When                                      | What happens                                                                                                                                                                   |
+| -------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Success**    | None of the conditions below apply        | New and updated listings are saved. Listings that were not found get `removed_at`. Open backlog issues for that agency are closed.                                             |
+| **Failed**     | Any of F1–F4                              | `removed_at` is not touched at all. The problem is saved in the backlog.                                                                                                       |
+| **Suspicious** | Unusually many listings disappear at once | New and updated listings are saved. No listings are marked as removed. The problem is saved in the backlog, shown in the admin view and the developer is notified immediately. |
 
 ## Failed conditions
 
-| Code | Condition | Common cause |
-| --- | --- | --- |
-| F1 | The search page returns an error: timeout, network error or a status that is not 2xx | Site is down, blocking, network |
-| F2 | The search page loads but is not what we expect: the result counter is missing or unreadable, or fewer listing links are found than the site itself reports | Layout change, captcha, pagination |
-| F3 | 50% or more of the listing pages cannot be read | Reading the listing pages is broken |
-| F4 | Saving to the database fails | Database error |
+| Code | Condition                                                                                                                                                   | Common cause                        |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| F1   | The search page returns an error: timeout, network error or a status that is not 2xx                                                                        | Site is down, blocking, network     |
+| F2   | The search page loads but is not what we expect: the result counter is missing or unreadable, or fewer listing links are found than the site itself reports | Layout change, captcha, pagination  |
+| F3   | 50% or more of the listing pages cannot be read                                                                                                             | Reading the listing pages is broken |
+| F4   | Saving to the database fails                                                                                                                                | Database error                      |
 
 ### "True 0 hits" vs a broken scraper
 
@@ -50,20 +50,20 @@ All of these must be true:
 
 Small scopes are not affected by the percentage. For example, if 2 of 3 listings are sold on the same day they are marked as removed, because that is fewer than 5.
 
-| Active → removed | Result |
-| --- | --- |
-| 3 → 2 | Marked as removed |
-| 4 → 4 | Marked as removed (fewer than 5) |
-| 10 → 6 | Suspicious |
-| 100 → 30 | Marked as removed |
-| 100 → 60 | Suspicious |
+| Active → removed | Result                           |
+| ---------------- | -------------------------------- |
+| 3 → 2            | Marked as removed                |
+| 4 → 4            | Marked as removed (fewer than 5) |
+| 10 → 6           | Suspicious                       |
+| 100 → 30         | Marked as removed                |
+| 100 → 60         | Suspicious                       |
 
 ## Backlog (table `scrape_issues`)
 
 - Every problem is saved with agency, type (`failed` or `suspicious`), reason (F1–F4 or `mass_removal`), details and the number of runs in a row.
 - There is at most one open row per agency and type. A repeated problem raises the counter instead of creating a new row.
 - A row is closed automatically by the next complete run for the agency. A successful run closes both failed and suspicious rows. A suspicious run only closes open failed rows.
-- If the agency gets a new suspicious run while a suspicious row is open, the counter is raised. A suspicious case that is real, for example an agency that really takes everything down, must be acknowledged manually by an admin.
+- If the agency gets a new suspicious run while a suspicious row is open, the counter is raised. A suspicious case that is real, for example an agency that really takes everything down, never closes by itself, since every new run is suspicious too. The admin cannot close it either (see [The admin view](#the-admin-view)): the developer checks the agency's site and resolves it by hand.
 
 ## Run history (table `scrape_runs`)
 
@@ -74,13 +74,17 @@ Small scopes are not affected by the percentage. For example, if 2 of 3 listings
 - A failed history save does not stop the run, but it makes the run fail (exit code 1) so it is noticed.
 - Rows are deleted after 90 days (`purge_old_scrape_runs()`, pg_cron).
 
-## When the admin is notified
+## The admin view
 
-| Problem | Notification |
-| --- | --- |
+The admin view in the app shows every open row in `scrape_issues` under "Öppna ärenden" (open issues), from the first run, with a plain Swedish description from `admin_open_issues()`. It is read-only: there is no button to close or acknowledge an issue. The view says "Ärenden stängs av sig själva när nästa hämtning går bra. Kontakta IT-supporten om ett ärende ligger kvar." (Issues close themselves when the next fetch goes well. Contact IT support if an issue stays.) IT support is in this case the developer.
+
+## When the developer is notified
+
+| Problem           | Notification                                                      |
+| ----------------- | ----------------------------------------------------------------- |
 | Failed F1, F3, F4 | After 2 runs in a row for the same agency (a single day is noise) |
-| Failed F2 | Immediately (requires a code change) |
-| Suspicious | Immediately |
+| Failed F2         | Immediately (requires a code change)                              |
+| Suspicious        | Immediately                                                       |
 
 - The notification is sent once per open problem. It is not repeated every day.
 - The notification is an error line in GitHub Actions (`::error::`) and the run ending as failed (exit code 1), which makes GitHub notify. There is no separate mail or push service at the moment.
@@ -105,42 +109,42 @@ The scraper only visits listings in the current scope. A listing that no user se
 
 **Inside someone's search (the scraper visits it)**
 
-| # | Situation | What happens |
-| --- | --- | --- |
-| A1 | The scraper finds it | `last_seen_at` is updated, the listing is active |
-| A2 | Clean run, the listing is missing | `removed_at` right away, "Hittas inte". Deleted after 10 days, with likes, tags and showings |
-| A3 | As A2, found again within 10 days | `removed_at` back to null, everything is kept |
-| A4 | As A2, found again after the purge | Saved as a new listing. Old likes, tags and showings are gone |
-| A5 | Suspicious run | Nothing is marked as removed. The admin is notified and must acknowledge it manually |
-| A6 | Failed run (F1–F4) | Nothing is marked as removed. Logged in the backlog |
-| A7 | Its page could not be read in an otherwise clean run | Not counted as removed, but `last_seen_at` is not updated. Unreadable for 7 days: stale, see B |
+| #   | Situation                                            | What happens                                                                                                                                                |
+| --- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A1  | The scraper finds it                                 | `last_seen_at` is updated, the listing is active                                                                                                            |
+| A2  | Clean run, the listing is missing                    | `removed_at` right away, "Hittas inte". Deleted after 10 days, with likes, tags and showings                                                                |
+| A3  | As A2, found again within 10 days                    | `removed_at` back to null, everything is kept                                                                                                               |
+| A4  | As A2, found again after the purge                   | Saved as a new listing. Old likes, tags and showings are gone                                                                                               |
+| A5  | Suspicious run                                       | Nothing is marked as removed. Shown in the admin view and the developer is notified. If it stays, the admin contacts the developer, who resolves it by hand |
+| A6  | Failed run (F1–F4)                                   | Nothing is marked as removed. Logged in the backlog                                                                                                         |
+| A7  | Its page could not be read in an otherwise clean run | Not counted as removed, but `last_seen_at` is not updated. Unreadable for 7 days: stale, see B                                                              |
 
 **Outside every search (the scraper never visits it)**
 
-| # | Situation | What happens |
-| --- | --- | --- |
-| B1 | Not seen for less than 7 days | In the bank, can be matched to new accounts and wider searches |
-| B2 | 7 days, nobody has it in a list or showing | Deleted directly. 7 days in total from last seen |
-| B3 | 7 days, someone has liked, tagged or has a showing for it | `removed_at`, "Hittas inte", deleted after 10 days. 17 days in total |
-| B4 | Someone searches the municipality again during B3, and the listing is still there | The scraper finds it and sets `removed_at` back to null. Everything is kept, as in A3 |
-| B5 | Someone searches the municipality again after it was deleted, and it is still there | Saved as a new listing. Nothing is lost, nobody was connected to it |
+| #   | Situation                                                                           | What happens                                                                          |
+| --- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| B1  | Not seen for less than 7 days                                                       | In the bank, can be matched to new accounts and wider searches                        |
+| B2  | 7 days, nobody has it in a list or showing                                          | Deleted directly. 7 days in total from last seen                                      |
+| B3  | 7 days, someone has liked, tagged or has a showing for it                           | `removed_at`, "Hittas inte", deleted after 10 days. 17 days in total                  |
+| B4  | Someone searches the municipality again during B3, and the listing is still there   | The scraper finds it and sets `removed_at` back to null. Everything is kept, as in A3 |
+| B5  | Someone searches the municipality again after it was deleted, and it is still there | Saved as a new listing. Nothing is lost, nobody was connected to it                   |
 
 **When the scraper does not work (the guards)**
 
-| # | Situation | What happens |
-| --- | --- | --- |
-| C1 | The scraper does not run at all (e.g. a GitHub outage) | The agency's latest time stops, nothing becomes stale |
-| C2 | F1, F2 or F4 (nothing is saved) | As C1 |
-| C3 | F3 or a suspicious run | Some listings are saved and the latest time moves, but the agency has an open issue, so it is skipped until the issue is closed |
-| C4 | No user has a search ("Nothing to scrape") | Nothing is updated, nothing is cleaned. The bank stays until someone searches again |
-| C5 | The agency is outside every search, or has been removed from the scraper | Its latest time stops, so its listings stay forever. Rare, delete by hand if needed |
+| #   | Situation                                                                | What happens                                                                                                                    |
+| --- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| C1  | The scraper does not run at all (e.g. a GitHub outage)                   | The agency's latest time stops, nothing becomes stale                                                                           |
+| C2  | F1, F2 or F4 (nothing is saved)                                          | As C1                                                                                                                           |
+| C3  | F3 or a suspicious run                                                   | Some listings are saved and the latest time moves, but the agency has an open issue, so it is skipped until the issue is closed |
+| C4  | No user has a search ("Nothing to scrape")                               | Nothing is updated, nothing is cleaned. The bank stays until someone searches again                                             |
+| C5  | The agency is outside every search, or has been removed from the scraper | Its latest time stops, so its listings stay forever. Rare, delete by hand if needed                                             |
 
 **The user's view**
 
-| # | Situation | What happens |
-| --- | --- | --- |
-| D1 | New user or wider search | Gets listings from the bank right away (seen in the last 7 days). One may have been sold and becomes "Hittas inte" after the next scrape, as in A2 |
-| D2 | Weekly user who opens the app on Fridays | Sees "Hittas inte" at least once, with up to 3 days to spare |
+| #   | Situation                                | What happens                                                                                                                                       |
+| --- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | New user or wider search                 | Gets listings from the bank right away (seen in the last 7 days). One may have been sold and becomes "Hittas inte" after the next scrape, as in A2 |
+| D2  | Weekly user who opens the app on Fridays | Sees "Hittas inte" at least once, with up to 3 days to spare                                                                                       |
 
 ## Special cases
 
