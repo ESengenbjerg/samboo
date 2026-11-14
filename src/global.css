@@ -38,7 +38,6 @@
     --secondary-foreground: var(--off-white);
     --muted: var(--sand);
     --muted-foreground: var(--medium-green);
-    /* Darker than --dark-greige: off-white text on it (hover/active) and its use as border/switch track need 4.5:1 / 3:1 */
     --accent: 26 15% 40%;
     --accent-foreground: var(--off-white);
     --destructive: var(--red);
