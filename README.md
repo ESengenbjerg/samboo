@@ -42,7 +42,7 @@ Expo app built with:
 
 ## Security
 
-- **Row Level Security on every table.** The `anon` role has no grants at all. All access to group, listing, showing and invite data checks `is_active_user()` against the database on each request, so a deleted or deactivated account is blocked at once, even while its JWT (valid for an hour) has not yet expired. Public reference data (e.g. municipalities) is readable by any signed-in user.
+- **Row Level Security on every table.** The `anon` role has no grants at all. All access to group, listing, showing and invite data checks `is_active_user()` against the database on each request, so a deleted or deactivated account, or a session that was signed out on another device, is blocked at once, even while its JWT (valid for 5 minutes) has not yet expired. See [docs/security.md](docs/security.md#sessions) for when the app shows the login screen. Public reference data (e.g. municipalities) is readable by any signed-in user.
 - **Explicit grants only.** Supabase's default privileges are revoked. Direct writes are limited to a few columns; everything else changes through database functions.
 - **Rate limits and abuse guards in the database**: write requests per user (HTTP 429), search changes, invites, group size, uploads, and statement timeouts per role. Limits lock before counting, so simultaneous requests cannot slip past them.
 - **AI-free scraper.** Listings are collected with Playwright, not an AI agent, so scraped text is never read by an AI in the pipeline. The repo also contains configuration for Claude Code: read it before you use it, especially in a fork.
