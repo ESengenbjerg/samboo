@@ -90,9 +90,9 @@ The `EMAILS` and `GOOGLE MAPS` sections in `.env` can be left empty for the demo
 4. Run [supabase/setup-extras.sql](supabase/setup-extras.sql) in the SQL Editor, **except the last three lines** (the `dispatch-scrape`, `dispatch-purge-avatars` and `dispatch-email` jobs). This file is required: it creates the trigger that gives every new account a profile, the rate limit, the `avatars` bucket for profile pictures and the daily cleanup jobs. The three `dispatch-*` jobs start GitHub Actions workflows and need a GitHub token, repository and branch in Vault, so they are not part of the demo (see [docs/production-setup.md](docs/production-setup.md#2-github-token-and-repository-in-supabase-vault)). If the SQL Editor refuses the storage policies, create them under Storage → Policies instead.
 5. Check (not mandatory): Run these SQL commands, one by one, in the SQL Editor
    - select table_name from information_schema.tables where table_schema = 'public' order by 1;
-     You'll find 17 tables
+     You'll find 19 tables
    - select jobid, jobname, schedule from cron.job order by jobid;
-     You'll find 8 jobs
+     You'll find 9 jobs
    - select id, public from storage.buckets;
      You'll find 1 bucket named avatars
 
