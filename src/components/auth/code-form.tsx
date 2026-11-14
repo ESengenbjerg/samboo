@@ -40,6 +40,7 @@ export function CodeForm({
         </Label>
         <Input
           id="verify-code"
+          aria-label="Verifieringskod"
           placeholder="000000"
           autoCapitalize="none"
           returnKeyType="send"

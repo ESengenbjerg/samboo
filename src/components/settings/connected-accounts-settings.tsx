@@ -73,6 +73,7 @@ export default function ConnectedAccountsSettings({
                     {m.avatarUrl ? (
                       <Image
                         source={m.avatarUrl}
+                        alt=""
                         style={{ width: 32, height: 32, borderRadius: 24 }}
                         contentFit="cover"
                       />

@@ -9,7 +9,7 @@ export const THEME = {
     card: 'hsl(0, 0%, 100%)', // white
     primary: 'hsl(40, 82%, 61%)', // --yellow
     border: 'hsl(25, 15%, 84%)', // --light-greige
-    destructive: 'hsl(358, 65%, 50%)', // --red
+    destructive: 'hsl(358, 65%, 47%)', // --red
   },
   dark: {
     background: 'hsl(79, 78%, 13%)', // --dark-green
@@ -17,7 +17,7 @@ export const THEME = {
     card: 'hsl(80, 55%, 18%)', // --deep-green
     primary: 'hsl(40, 82%, 61%)', // --yellow
     border: 'hsl(88, 39%, 26%)', // --medium-green
-    destructive: 'hsl(358, 65%, 50%)', // --red
+    destructive: 'hsl(358, 65%, 47%)', // --red
   },
 };
 

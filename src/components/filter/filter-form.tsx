@@ -262,6 +262,7 @@ export default function FilterForm({
           Visa nyproduktion
         </Label>
         <Switch
+          aria-label="Visa nyproduktion"
           checked={showNewConstruction}
           onCheckedChange={setShowNewConstruction}
         />

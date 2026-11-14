@@ -89,6 +89,7 @@ export function SendInviteDialog({
                   <View className="relative">
                     <Input
                       id={`invite-email-${i}`}
+                      aria-label={i > 0 ? `Mejl ${i + 1}` : "Mejl"}
                       placeholder="namn@example.com"
                       value={email}
                       onChangeText={(text) => updateEmail(i, text)}
@@ -106,6 +107,7 @@ export function SendInviteDialog({
                       <Button
                         size="icon"
                         variant="ghost"
+                        aria-label={`Ta bort mejl ${i + 1}`}
                         onPress={() => removeEmail(i)}
                         className="absolute right-0 active:bg-transparent hover:bg-input hover:text-primary"
                       >

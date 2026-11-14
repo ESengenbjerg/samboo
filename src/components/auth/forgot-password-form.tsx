@@ -34,7 +34,12 @@ export function ForgotPasswordForm() {
 
   return (
     <View className="gap-6 w-full max-w-sm px-14">
-      <Text variant="bold" className="text-center text-xl text-background">
+      <Text
+        variant="bold"
+        role="heading"
+        aria-level={1}
+        className="text-center text-xl text-background"
+      >
         Glömt lösenord?
       </Text>
       <Text className="text-background text-center">
@@ -47,6 +52,7 @@ export function ForgotPasswordForm() {
         </Label>
         <Input
           id="forgot-email"
+          aria-label="Mejl"
           placeholder="namn@example.com"
           keyboardType="email-address"
           autoComplete="email"

@@ -99,6 +99,8 @@ export default function ShowingDateTimeFields({
         <Button
           variant="outline"
           className="justify-start"
+          aria-label={`Datum: ${formatDateLabel(date)}. Tryck för att ändra`}
+          aria-expanded={isIOS ? openPicker === "date" : undefined}
           onPress={() => openPickerFor("date")}
         >
           <Text>{formatDateLabel(date)}</Text>
@@ -109,7 +111,12 @@ export default function ShowingDateTimeFields({
       <View className="gap-2">
         <Label>Starttid</Label>
         <View className="flex-row items-center gap-4">
-          <Button variant="outline" onPress={() => openPickerFor("time")}>
+          <Button
+            variant="outline"
+            aria-label={`Starttid: ${toTimeString(time)}. Tryck för att ändra`}
+            aria-expanded={isIOS ? openPicker === "time" : undefined}
+            onPress={() => openPickerFor("time")}
+          >
             <Text>{toTimeString(time)}</Text>
           </Button>
         </View>

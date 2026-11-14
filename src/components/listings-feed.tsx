@@ -77,7 +77,8 @@ export default function ListingsFeed({
               <View className="flex-row gap-1.5">
                 <Pressable
                   onPress={() => setView("column")}
-                  hitSlop={10}
+                  // 20 px icon + 12 px on each side = 44 px touch target, without changing how it looks
+                  hitSlop={12}
                   accessibilityRole="button"
                   accessibilityLabel="Kolumnvy"
                   accessibilityState={{ selected: view === "column" }}
@@ -86,7 +87,8 @@ export default function ListingsFeed({
                 </Pressable>
                 <Pressable
                   onPress={() => setView("grid")}
-                  hitSlop={10}
+                  // 20 px icon + 12 px on each side = 44 px touch target, without changing how it looks
+                  hitSlop={12}
                   accessibilityRole="button"
                   accessibilityLabel="Rutnätsvy"
                   accessibilityState={{ selected: view === "grid" }}
@@ -97,11 +99,12 @@ export default function ListingsFeed({
             </View>
 
             {showUpdateFilter && (
-              <Button variant="link" className="px-0 pt-0 self-start">
-                <Link href="/(tabs)/update-filter">
+              // The Link is the button itself, so there is one focusable element, not a link inside a button
+              <Link href="/(tabs)/update-filter" asChild>
+                <Button variant="link" className="px-0 pt-0 self-start">
                   <Text>Uppdatera bevakning</Text>
-                </Link>
-              </Button>
+                </Button>
+              </Link>
             )}
           </View>
 
