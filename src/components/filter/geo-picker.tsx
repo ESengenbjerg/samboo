@@ -128,7 +128,7 @@ export default function GeoPicker({
 
         {/* Suggestions */}
         {suggestions.length > 0 && (
-          <View className={`${DROPDOWN_POSITION} mt-1 rounded-sm border border-input bg-background`}>
+          <View className={`${DROPDOWN_POSITION} mt-1 rounded-sm border border-input bg-white`}>
             {suggestions.map((l) => (
               <Pressable
                 key={l.id}
