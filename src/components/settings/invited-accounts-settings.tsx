@@ -8,6 +8,7 @@ import { SendInviteDialog } from "../modals/send-invite-dialog";
 import { Button } from "../ui/button";
 import { Icon } from "../ui/icon";
 import { Text } from "../ui/text";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 export default function ConnectAccountsSettings({
   accounts,
@@ -74,40 +75,58 @@ export default function ConnectAccountsSettings({
         />
       )}
 
-      <View className="gap-1">
-        {pendingSentInvites.map((i) => (
-          <View key={i.id} className="flex-row justify-between items-center">
-            {/* Avatar and name */}
-            <View className="justify-start max-w-[60%]">
-              <Text variant="bold">{i.to_email}</Text>
-              <Text>Väntar på svar</Text>
-            </View>
-
-            {/* Remove text and trash icon */}
-            <Button
-              variant="destructive"
-              aria-label="Avbryt inbjudan"
-              onPress={() => setInviteToCancel(i)}
-              className="px-2 items-center"
-            >
-              <Text>Avbryt</Text>
-              <Icon as={X} size={20} className="size-5" />
-            </Button>
+      {pendingSentInvites.length !== 0 && (
+        <View className="gap-4">
+          <View>
+            <Text variant="bold">Väntande inbjudningar</Text>
+            <Text>Ser du inte hela mejlen? Klicka på den för att se hela.</Text>
           </View>
-        ))}
+          {pendingSentInvites.map((i) => (
+            <View
+              key={i.id}
+              className="flex-row justify-between items-center gap-4"
+            >
+              <View className="flex-1">
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Text variant="bold" numberOfLines={1}>
+                      {i.to_email}
+                    </Text>
+                  </TooltipTrigger>
+                  <TooltipContent align="start">
+                    <Text>{i.to_email}</Text>
+                  </TooltipContent>
+                </Tooltip>
+                <Text>Väntar på svar</Text>
+              </View>
 
-        <ConfirmDialog
-          open={!!inviteToCancel}
-          onOpenChange={(open) => !open && setInviteToCancel(null)}
-          title={"Är du säker?"}
-          description={`Vill du dra tillbaka inbjudan till ${inviteToCancel?.to_email}?`}
-          actionLabel={"Dra tillbaka"}
-          onAction={onCancelInvite}
-          cancelLabel={"Avbryt"}
-          onCancel={() => setInviteToCancel(null)}
-          isLoading={isSubmitting}
-        />
-      </View>
+              {/* Remove text and trash icon */}
+              <Button
+                size="sm"
+                variant="destructive"
+                aria-label="Avbryt inbjudan"
+                onPress={() => setInviteToCancel(i)}
+                className="px-2 items-center"
+              >
+                <Text>Avbryt</Text>
+                <Icon as={X} size={20} className="size-5" />
+              </Button>
+            </View>
+          ))}
+
+          <ConfirmDialog
+            open={!!inviteToCancel}
+            onOpenChange={(open) => !open && setInviteToCancel(null)}
+            title={"Är du säker?"}
+            description={`Vill du dra tillbaka inbjudan till ${inviteToCancel?.to_email}?`}
+            actionLabel={"Dra tillbaka"}
+            onAction={onCancelInvite}
+            cancelLabel={"Avbryt"}
+            onCancel={() => setInviteToCancel(null)}
+            isLoading={isSubmitting}
+          />
+        </View>
+      )}
     </View>
   );
 }
