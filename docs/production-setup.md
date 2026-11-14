@@ -23,7 +23,7 @@ No secret values live in the repo. Each one is set in the dashboard of the servi
 2. Add the three Vault secrets (step 2 below) before running [supabase/setup-extras.sql](../supabase/setup-extras.sql), then run the whole file, including the three `dispatch-*` jobs at the end.
 3. Run `node scripts/seed/places/seedPlaces.ts` (Node 24) for counties, municipalities and areas.
 4. Under Authentication → Rate Limits, check the limits for sign-up, sign-in and e-mails per hour. See [security.md](security.md) for why they matter.
-5. Set the access token (JWT) expiry time to `300` seconds (default 3600), under Project Settings → JWT Keys. A device that was signed out elsewhere, for example by a password change, then reaches the login screen within 5 minutes. See [security.md](security.md#sessions).
+5. Set "Access token expiry time" to `300` seconds (default 3600) in the Supabase dashboard. A device that was signed out elsewhere, for example by a password change, then reaches the login screen within 5 minutes. See [security.md](security.md#sessions).
 
 Supabase settings that differ from the defaults:
 
