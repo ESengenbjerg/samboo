@@ -17,6 +17,9 @@ export type FeedListing = Listing & {
   user_listing_id?: number;
 };
 
+const areaValue = (listing: FeedListing) =>
+  JSON.stringify([listing.municipality?.trim() ?? "", listing.area?.trim() ?? ""]);
+
 // Owns the filter state and applies the filters and the sorting to the listings
 export function useFilteredListings(
   listings: FeedListing[],
@@ -42,15 +45,30 @@ export function useFilteredListings(
   );
   const showPropertyTypeFilter = propertyTypeOptions.length > 1;
 
+  const uniqueAreas = new Map<
+    string,
+    { area: string; municipality: string }
+  >();
+  const areaMunicipalities = new Map<string, Set<string>>();
+  for (const listing of listings) {
+    const area = listing.area?.trim();
+    if (!area) continue;
+    const municipality = listing.municipality?.trim() ?? "";
+    uniqueAreas.set(areaValue(listing), { area, municipality });
+    const municipalities = areaMunicipalities.get(area) ?? new Set<string>();
+    municipalities.add(municipality);
+    areaMunicipalities.set(area, municipalities);
+  }
   const areaOptions: SelectOption[] = Array.from(
-    new Set(
-      listings
-        .map((l) => l.area?.trim())
-        .filter((area): area is string => !!area),
-    ),
-  )
-    .sort((a, b) => a.localeCompare(b, "sv"))
-    .map((area) => ({ value: area, label: area }));
+    uniqueAreas,
+    ([value, { area, municipality }]) => ({
+      value,
+      label:
+        areaMunicipalities.get(area)!.size > 1
+          ? `${area} (${municipality || "Kommun saknas"})`
+          : area,
+    }),
+  ).sort((a, b) => a.label.localeCompare(b.label, "sv"));
   const showAreaFilter = areaOptions.length > 1;
 
   // Only worth showing when the list has both new construction and other listings
@@ -119,7 +137,7 @@ export function useFilteredListings(
         l.property_type === propertyType.value;
       const matchesTag = !taggedIds || taggedIds.has(l.id);
       const matchesArea =
-        !area || area.value === ALL_VALUE || l.area?.trim() === area.value;
+        !area || area.value === ALL_VALUE || areaValue(l) === area.value;
       const matchesNewConstruction =
         !newConstruction ||
         newConstruction.value === ALL_VALUE ||
