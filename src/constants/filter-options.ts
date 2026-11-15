@@ -63,6 +63,13 @@ export const NO_LIMIT_OPTION: SelectOption = {
 export const ALL_VALUE = "all";
 export const ALL_OPTION: SelectOption = { value: ALL_VALUE, label: "Alla" };
 
+export const NEW_CONSTRUCTION_YES = "yes";
+
+export const NEW_CONSTRUCTION_OPTIONS: SelectOption[] = [
+  { value: NEW_CONSTRUCTION_YES, label: "Endast nyproduktion" },
+  { value: "no", label: "Dölj nyproduktion" },
+];
+
 export const SORT_VALUES = [
   "newest",
   "oldest",
