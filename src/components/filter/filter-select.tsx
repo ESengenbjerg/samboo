@@ -38,7 +38,10 @@ export default function FilterSelect({
   // Accessible name: what the field is, plus the chosen value (the visible value
   // would otherwise be replaced by the label for screen readers)
   const fieldName = label ?? dropdownLabel ?? placeholder ?? "Välj";
-  const accessibleName = value ? `${fieldName}: ${value.label}` : fieldName;
+  // On web the select primitive returns the raw value as its label.
+  const selectedLabel = options.find((option) => option.value === value?.value)?.label
+    ?? value?.label;
+  const accessibleName = value ? `${fieldName}: ${selectedLabel}` : fieldName;
 
   return (
     <View className="gap-1.5">
