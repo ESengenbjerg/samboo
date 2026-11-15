@@ -23,6 +23,7 @@ type FilterSelectProps = {
   placeholder?: string;
   dropdownLabel?: string;
   fullWidth?: boolean;
+  small?: boolean;
 };
 
 export default function FilterSelect({
@@ -34,6 +35,7 @@ export default function FilterSelect({
   placeholder,
   dropdownLabel,
   fullWidth,
+  small,
 }: FilterSelectProps) {
   // Accessible name: what the field is, plus the chosen value (the visible value
   // would otherwise be replaced by the label for screen readers)
@@ -47,6 +49,7 @@ export default function FilterSelect({
         <SelectTrigger
           aria-label={accessibleName}
           className={`${fieldColor} justify-between ${fullWidth ? "w-full" : ""}`}
+          size={small ? "sm" : "default"}
         >
           {value?.value === ALL_VALUE ? (
             <Text className="text-muted-foreground line-clamp-1 font-sans text-sm">

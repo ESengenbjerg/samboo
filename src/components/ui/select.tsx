@@ -56,12 +56,13 @@ function SelectTrigger({
     <SelectPrimitive.Trigger
       ref={ref}
       className={cn(
-        'border-input dark:bg-input/30 dark:active:bg-input/50 bg-background flex h-11 flex-row items-center justify-between gap-2 rounded-md border px-3 py-2 shadow-sm shadow-black/5 sm:h-9',
+        "border-input dark:bg-input/30 dark:active:bg-input/50 bg-background flex h-11 flex-row items-center justify-between gap-2 rounded-md border px-3 py-2 shadow-sm shadow-black/5 sm:h-9",
         Platform.select({
           web: "focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:hover:bg-input/50 w-fit whitespace-nowrap text-sm outline-none transition-[color,box-shadow] focus-visible:ring-[3px] disabled:cursor-not-allowed [&_svg]:pointer-events-none [&_svg]:shrink-0",
         }),
         props.disabled && "opacity-50",
-        size === "sm" && "h-8 py-2 sm:py-1.5",
+        // Let native text grow with font scaling without clipping in the compact trigger.
+        size === "sm" && "h-auto min-h-8 py-1 sm:h-9 sm:py-1.5",
         className,
       )}
       {...props}
@@ -86,14 +87,16 @@ function SelectContent({
   portalHost,
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Content> & {
-    className?: string;
-    portalHost?: string;
-  }) {
+  className?: string;
+  portalHost?: string;
+}) {
   // On native the content does not follow the trigger's width by itself (web does, via CSS),
   // so measure it from the root context
   const { triggerPosition } = SelectPrimitive.useRootContext();
   const nativeWidth =
-    Platform.OS !== 'web' && triggerPosition ? { width: triggerPosition.width } : undefined;
+    Platform.OS !== "web" && triggerPosition
+      ? { width: triggerPosition.width }
+      : undefined;
 
   return (
     <SelectPrimitive.Portal hostName={portalHost}>
@@ -132,7 +135,8 @@ function SelectContent({
                 )}
                 position={position}
                 style={nativeWidth}
-                {...props}>
+                {...props}
+              >
                 <SelectScrollUpButton />
                 <SelectPrimitive.Viewport
                   className={cn(
