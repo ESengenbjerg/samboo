@@ -45,7 +45,6 @@ export default function ListingsFilterBar({
         onValueChange={setSort}
         options={SORT_OPTIONS}
         fieldColor="bg-white"
-        small
       />
       {showPropertyTypeFilter && (
         <FilterSelect
@@ -54,7 +53,6 @@ export default function ListingsFilterBar({
           onValueChange={setPropertyType}
           options={[ALL_OPTION, ...propertyTypeOptions]}
           fieldColor="bg-white"
-          small
         />
       )}
       {showAreaFilter && (
@@ -64,7 +62,6 @@ export default function ListingsFilterBar({
           onValueChange={setArea}
           options={[ALL_OPTION, ...areaOptions]}
           fieldColor="bg-white"
-          small
         />
       )}
       {showTagFilter && (
@@ -75,7 +72,6 @@ export default function ListingsFilterBar({
           onValueChange={setTag}
           options={[ALL_OPTION, ...tagOptions]}
           fieldColor="bg-white"
-          small
         />
       )}
       {showNewConstructionFilter && (
@@ -85,7 +81,6 @@ export default function ListingsFilterBar({
           onValueChange={setNewConstruction}
           options={[ALL_OPTION, ...NEW_CONSTRUCTION_OPTIONS]}
           fieldColor="bg-white"
-          small
         />
       )}
     </ScrollView>
