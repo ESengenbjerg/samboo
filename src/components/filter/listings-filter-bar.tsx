@@ -19,6 +19,10 @@ export default function ListingsFilterBar({
     setPropertyType,
     tag,
     setTag,
+    area,
+    setArea,
+    areaOptions,
+    showAreaFilter,
     newConstruction,
     setNewConstruction,
     propertyTypeOptions,
@@ -51,6 +55,15 @@ export default function ListingsFilterBar({
           fieldColor="bg-white"
         />
       )}
+      {showAreaFilter && (
+        <FilterSelect
+          value={area}
+          placeholder="Område"
+          onValueChange={setArea}
+          options={[ALL_OPTION, ...areaOptions]}
+          fieldColor="bg-white"
+        />
+      )}
       {showTagFilter && (
         <FilterSelect
           placeholder="Taggar"
@@ -59,8 +72,8 @@ export default function ListingsFilterBar({
           onValueChange={setTag}
           options={[ALL_OPTION, ...tagOptions]}
           fieldColor="bg-white"
-          />
-        )}
+        />
+      )}
       {showNewConstructionFilter && (
         <FilterSelect
           placeholder="Nyproduktion"

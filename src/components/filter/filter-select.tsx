@@ -1,4 +1,6 @@
 import { Label } from "@/components/ui/label";
+import { Text } from "@/components/ui/text";
+import { ALL_VALUE } from "@/constants/filter-options";
 import { SelectOption } from "@/types/select-option";
 import { View } from "react-native";
 import {
@@ -46,7 +48,13 @@ export default function FilterSelect({
           aria-label={accessibleName}
           className={`${fieldColor} justify-between ${fullWidth ? "w-full" : ""}`}
         >
-          <SelectValue placeholder={placeholder ? placeholder : "Välj"} />
+          {value?.value === ALL_VALUE ? (
+            <Text className="text-muted-foreground line-clamp-1 font-sans text-sm">
+              {placeholder ?? "Välj"}
+            </Text>
+          ) : (
+            <SelectValue placeholder={placeholder ?? "Välj"} />
+          )}
         </SelectTrigger>
         <SelectContent className="min-w-48">
           <SelectGroup>
