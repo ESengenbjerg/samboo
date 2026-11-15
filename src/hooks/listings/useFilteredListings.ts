@@ -45,8 +45,8 @@ export function useFilteredListings(
   const areaOptions: SelectOption[] = Array.from(
     new Set(
       listings
-        .map((l) => l.area)
-        .filter((area): area is string => !!area?.trim()),
+        .map((l) => l.area?.trim())
+        .filter((area): area is string => !!area),
     ),
   )
     .sort((a, b) => a.localeCompare(b, "sv"))
@@ -119,7 +119,7 @@ export function useFilteredListings(
         l.property_type === propertyType.value;
       const matchesTag = !taggedIds || taggedIds.has(l.id);
       const matchesArea =
-        !area || area.value === ALL_VALUE || l.area === area.value;
+        !area || area.value === ALL_VALUE || l.area?.trim() === area.value;
       const matchesNewConstruction =
         !newConstruction ||
         newConstruction.value === ALL_VALUE ||
