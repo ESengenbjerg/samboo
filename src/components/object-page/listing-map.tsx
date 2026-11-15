@@ -31,9 +31,10 @@ export default function ListingMap({
             latitudeDelta: delta,
             longitudeDelta: delta,
           }}
-          // Static map so one finger scrolls the page, not the map
+          // One finger scrolls the page, not the map
+          // Pinch (2 fingers) zooms the map
           scrollEnabled={false}
-          zoomEnabled={false}
+          zoomEnabled
           rotateEnabled={false}
           pitchEnabled={false}
         >
