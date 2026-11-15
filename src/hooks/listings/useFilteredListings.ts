@@ -1,7 +1,14 @@
-import { ALL_VALUE, PROPERTY_TYPES_OPTIONS } from "@/constants/filter-options";
+import {
+  ALL_OPTION,
+  ALL_VALUE,
+  NEW_CONSTRUCTION_OPTIONS,
+  NEW_CONSTRUCTION_YES,
+  PROPERTY_TYPES_OPTIONS,
+} from "@/constants/filter-options";
 import { useListingTags } from "@/hooks/tags/useListingTags";
 import { useUserTags } from "@/hooks/tags/useUserTags";
 import { Listing } from "@/types/listing";
+import { isNewConstruction } from "@/utils/is-new-construction";
 import { SelectOption } from "@/types/select-option";
 import { useMemo, useState } from "react";
 
@@ -9,6 +16,9 @@ export type FeedListing = Listing & {
   is_new?: boolean;
   user_listing_id?: number;
 };
+
+const areaValue = (listing: FeedListing) =>
+  JSON.stringify([listing.municipality?.trim() ?? "", listing.area?.trim() ?? ""]);
 
 // Owns the filter state and applies the filters and the sorting to the listings
 export function useFilteredListings(
@@ -21,6 +31,9 @@ export function useFilteredListings(
   const [sort, setSort] = useState<SelectOption>();
   const [selectedType, setPropertyType] = useState<SelectOption>();
   const [selectedTag, setTag] = useState<SelectOption>();
+  const [selectedArea, setArea] = useState<SelectOption>();
+  const [selectedNewConstruction, setNewConstruction] =
+    useState<SelectOption>();
 
   // Only the property types that exist among the listings
   // string: compared with the options' values, which are plain strings
@@ -31,6 +44,37 @@ export function useFilteredListings(
     listingTypes.has(o.value),
   );
   const showPropertyTypeFilter = propertyTypeOptions.length > 1;
+
+  const uniqueAreas = new Map<
+    string,
+    { area: string; municipality: string }
+  >();
+  const areaMunicipalities = new Map<string, Set<string>>();
+  for (const listing of listings) {
+    const area = listing.area?.trim();
+    if (!area) continue;
+    const municipality = listing.municipality?.trim() ?? "";
+    uniqueAreas.set(areaValue(listing), { area, municipality });
+    const municipalities = areaMunicipalities.get(area) ?? new Set<string>();
+    municipalities.add(municipality);
+    areaMunicipalities.set(area, municipalities);
+  }
+  const areaOptions: SelectOption[] = Array.from(
+    uniqueAreas,
+    ([value, { area, municipality }]) => ({
+      value,
+      label:
+        areaMunicipalities.get(area)!.size > 1
+          ? `${area} (${municipality || "Kommun saknas"})`
+          : area,
+    }),
+  ).sort((a, b) => a.label.localeCompare(b.label, "sv"));
+  const showAreaFilter = areaOptions.length > 1;
+
+  // Only worth showing when the list has both new construction and other listings
+  const newConstructionCount = listings.filter(isNewConstruction).length;
+  const showNewConstructionFilter =
+    newConstructionCount > 0 && newConstructionCount < listings.length;
 
   // Only my tags that are on at least one listing in this list. Matching on listings.id,
   // like the filter below, so it also works in a group member's list and the shared list
@@ -65,6 +109,12 @@ export function useFilteredListings(
     propertyTypeOptions,
   );
   const tag = activeOption(selectedTag, showTagFilter, tagOptions);
+  const area = activeOption(selectedArea, showAreaFilter, areaOptions);
+  const newConstruction = activeOption(
+    selectedNewConstruction,
+    showNewConstructionFilter,
+    [ALL_OPTION, ...NEW_CONSTRUCTION_OPTIONS],
+  );
 
   // The listings after the filters and the sorting. Listings arrive newest first
   const visibleListings = useMemo(() => {
@@ -86,7 +136,14 @@ export function useFilteredListings(
         propertyType.value === ALL_VALUE ||
         l.property_type === propertyType.value;
       const matchesTag = !taggedIds || taggedIds.has(l.id);
-      return matchesType && matchesTag;
+      const matchesArea =
+        !area || area.value === ALL_VALUE || areaValue(l) === area.value;
+      const matchesNewConstruction =
+        !newConstruction ||
+        newConstruction.value === ALL_VALUE ||
+        (newConstruction.value === NEW_CONSTRUCTION_YES) ===
+          !!isNewConstruction(l);
+      return matchesType && matchesTag && matchesArea && matchesNewConstruction;
     });
 
     switch (sort?.value) {
@@ -102,7 +159,7 @@ export function useFilteredListings(
       default:
         return filtered;
     }
-  }, [listings, propertyType, sort, tag, listingTags]);
+  }, [listings, propertyType, sort, tag, area, newConstruction, listingTags]);
 
   return {
     visibleListings,
@@ -116,10 +173,17 @@ export function useFilteredListings(
       setPropertyType,
       tag,
       setTag,
+      area,
+      setArea,
+      areaOptions,
+      showAreaFilter,
+      newConstruction,
+      setNewConstruction,
       propertyTypeOptions,
       tagOptions,
       showPropertyTypeFilter,
       showTagFilter,
+      showNewConstructionFilter,
     },
   };
 }
