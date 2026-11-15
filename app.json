@@ -26,14 +26,28 @@
       ],
       "expo-font",
       "expo-image",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
     },
     "ios": {
-      "bundleIdentifier": "com.mariatedeman.samboo"
+      "bundleIdentifier": "com.mariatedeman.samboo",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "8b9b677c-63d3-4a32-858f-e57310e0c2cc"
+      }
     }
   }
 }
