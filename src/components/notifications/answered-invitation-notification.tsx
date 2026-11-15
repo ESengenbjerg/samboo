@@ -14,7 +14,7 @@ export default function AnsweredInviteNotification({
   invite,
 }: AnsweredInviteNotificationProps) {
   const isAccepted = invite.status === "accepted";
-  // The name is only known if tthe recipient is in my group
+  // The name is only known if the recipient is in my group
   const who = invite.name ?? invite.to_email;
 
   return (
@@ -22,11 +22,11 @@ export default function AnsweredInviteNotification({
       <Separator />
       <View className="flex-row gap-2 justify-between items-center">
         <View className="flex-1">
-            <Text variant="bold">
-              {isAccepted
-                ? "Din inbjudan har accepterats!"
-                : "Din inbjudan har avböjts."}
-            </Text>
+          <Text variant="bold">
+            {isAccepted
+              ? "Din inbjudan har accepterats!"
+              : "Din inbjudan har avböjts."}
+          </Text>
           <Text>
             {isAccepted
               ? `Du och ${who} kan nu se varandras listor.`
@@ -35,10 +35,7 @@ export default function AnsweredInviteNotification({
         </View>
 
         {isAccepted && (
-          <Button
-            size="sm"
-            onPress={() => router.push("/saved")}
-          >
+          <Button size="sm" onPress={() => router.push("/saved")}>
             <Text>Visa</Text>
           </Button>
         )}

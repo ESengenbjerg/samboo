@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { ClientFilter, ScraperFilter } from "@/stores/onboarding";
+import { commonErrorMessage } from "@/utils/error-message/common-messages";
 
 // My saved search. data is null if I have not made one
 export function getSearchParams(userId: string) {
@@ -12,7 +13,7 @@ export function getSearchParams(userId: string) {
     .maybeSingle();
 }
 
-// Save search, creates row or updates if it already exist
+// Save search, creates row or updates if it already exists
 export function saveSearchParams(
   userId: string,
   scraperFilter: ScraperFilter,
@@ -41,5 +42,8 @@ export function searchParamsErrorMessage(error: { message?: string } | null) {
   if (error?.message?.includes("för många gånger")) {
     return "Du har ändrat din bevakning för många gånger. Försök igen senare.";
   }
-  return "Kunde inte spara bevakningen. Försök igen.";
+  return commonErrorMessage(
+    error,
+    "Kunde inte spara bevakningen. Försök igen.",
+  );
 }

@@ -1,5 +1,4 @@
 import { GroupMember, InviteStatus } from "@/types/connected-accounts";
-import type { Enums } from "@shared/database.types";
 import type { RpcRow } from "@shared/db";
 
 // The sections of the notifications page
@@ -31,9 +30,6 @@ export type AnsweredInvite = {
 
 // The answered invites split into the sections of the notifications page
 export type AnsweredInvitesByDay = Record<NotificationDay, AnsweredInvite[]>;
-
-// showing_events.action, the database enum public.showing_event_action
-export type ShowingEventAction = Enums<"showing_event_action">;
 
 // A change another member made to one of my group's showings, from my_showing_events().
 // actor_id is the member who made the change (never me). showing_date is the date after the change

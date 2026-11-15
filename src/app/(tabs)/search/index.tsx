@@ -1,6 +1,6 @@
 import ListingsFeed from "@/components/listings-feed";
 import { useSession } from "@/hooks/auth/useSession";
-import { useListings } from "@/hooks/useListings";
+import { useListings } from "@/hooks/listings/useListings";
 
 export default function SearchScreen() {
   const { session } = useSession();
@@ -14,7 +14,7 @@ export default function SearchScreen() {
       isLoading={isLoading}
       error={error}
       showUpdateFilter
-      emptyMessage="Vi letar efter bostäder som matchar din bevakning. Nya objekt dyker upp här."
+      emptyMessage="Inga bostäder matchar din bevakning just nu. Vi söker regelbundet efter nya annonser och visar träffar här. Du kan också prova att bredda bevakningen, till exempel med fler områden eller ett högre prisintervall."
     />
   );
 }

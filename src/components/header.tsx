@@ -1,5 +1,5 @@
 import { Icon } from "@/components/ui/icon";
-import { useNotificationDot } from "@/hooks/useNotificationDot";
+import { useNotificationDot } from "@/hooks/notifications/useNotificationDot";
 import { Image } from "expo-image";
 import { Link, router } from "expo-router";
 import { Bell, ShieldCheck } from "lucide-react-native";
@@ -40,7 +40,7 @@ export default function Header() {
             <Icon as={ShieldCheck} size={24} />
           </Pressable>
 
-           <Pressable
+          <Pressable
             onPress={() => router.push("/(tabs)/notifications")}
             hitSlop={12}
             role="button"

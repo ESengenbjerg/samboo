@@ -1,12 +1,19 @@
 import { PASSWORD_MIN_LENGTH } from "@/constants/limits";
 import type { AuthError } from "@supabase/supabase-js";
+import { NETWORK_ERROR_MESSAGE, isNetworkError } from "./common-messages";
 
 // Maps Supabase Auth's errors to messages the user can act on
-export function authErrorMessage(error: AuthError) {
+// fallback is shown when the error has no known cause
+export function authErrorMessage(
+  error: AuthError,
+  fallback = "Något gick fel. Försök igen om en stund.",
+) {
   // Sign-up returns 500 unexpected_failure when the confirmation e-mail can't be sent, e.g. to a domain that doesn't accept mail. The code alone is too broad, so the message is checked
   if (error.message.toLowerCase().includes("sending confirmation email")) {
     return "Vi kunde inte skicka verifieringsmejlet. Kontrollera mejladressen eller försök igen om en stund.";
   }
+
+  if (isNetworkError(error)) return NETWORK_ERROR_MESSAGE;
 
   switch (error.code) {
     case "email_address_invalid":
@@ -22,8 +29,14 @@ export function authErrorMessage(error: AuthError) {
     case "otp_expired":
       return "Koden är fel eller har gått ut.";
     default:
-      return "Något gick fel, försök igen.";
+      return fallback;
   }
+}
+
+// For errors thrown by the request itself, e.g. fetch failing when offline.
+// fallback should say what failed
+export function authCatchMessage(e: unknown, fallback: string) {
+  return isNetworkError(e) ? NETWORK_ERROR_MESSAGE : fallback;
 }
 
 // Supabase's cooldown between sends (60 s) or its hourly email limit

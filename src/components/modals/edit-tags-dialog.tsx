@@ -54,6 +54,7 @@ export function EditTagsDialog({
               <Text variant="small">(max {TAG_NAME_MAX_LENGTH} tecken)</Text>
             </View>
             <Input
+              aria-label="Byt namn"
               value={name}
               onChangeText={(text) => {
                 setName(text);

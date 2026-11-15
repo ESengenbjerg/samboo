@@ -49,6 +49,9 @@ function Icon({ as: IconComponent, className, size = 14, ...props }: IconProps) 
       as={IconComponent}
       className={cn('text-foreground', textClass, className)}
       size={size}
+      // Icons are decorative: the button/link around them carries the accessible name.
+      // Pass aria-hidden={false} together with an aria-label for a meaningful icon
+      aria-hidden
       {...props}
     />
   );

@@ -35,12 +35,19 @@ export default function ListButton({
   }
 
   return (
-    <Pressable onPress={() => onPress()}>
+    <Pressable
+      onPress={() => onPress()}
+      role="link"
+      aria-label={`${title} lista, ${numberOfSavedObjects} sparade objekt${newObjects > 0 ? ", nya objekt" : ""}`}
+    >
       <Card className="h-28 p-0 border-none overflow-hidden">
         <View className="h-full flex-row justify-between">
           <View className="h-full w-[40%] rounded-l-md">
             <Image
               source={showFallback ? fallbackImage : { uri: firstObjectImage }}
+              // Decorative: the list link already has a name
+              alt=""
+              accessible={false}
               onError={() => setFailedUrl(firstObjectImage ?? null)}
               style={{
                 width: "100%",

@@ -7,11 +7,8 @@ import {
 } from "@/services/tags";
 import { SaveTagsInput, UserTag } from "@/types/tags";
 import { capitalize } from "@/utils/capitalize-string";
+import { commonErrorMessage } from "@/utils/error-message/common-messages";
 import { useCallback, useState } from "react";
-
-// check_request() rate limit on write requests
-const RATE_LIMITED_MESSAGE =
-  "Du har gjort för många ändringar. Vänta en stund och försök igen.";
 
 // The message for a failed create or rename. 23505 = user_tags_unique.
 // P0001 = limit_tags_per_user(), its message is already in Swedish
@@ -19,10 +16,10 @@ function saveTagErrorMessage(
   error: { code?: string; message: string },
   fallback: string,
 ) {
-  if (error.code === "rate_limited") return RATE_LIMITED_MESSAGE;
   if (error.code === "23505") return "Du har redan en tagg med det namnet.";
   if (error.code === "P0001") return error.message;
-  return fallback;
+  // Offline and rate limit (rate_limited) get their own text
+  return commonErrorMessage(error, fallback);
 }
 
 // Create/delete tags and apply/remove them on a listing.
@@ -88,9 +85,7 @@ export function useSaveTag() {
     if (error) {
       console.error("Failed to delete tag: ", error);
       setError(
-        error.code === "rate_limited"
-          ? RATE_LIMITED_MESSAGE
-          : "Kunde inte radera taggen. Försök igen.",
+        commonErrorMessage(error, "Kunde inte radera taggen. Försök igen."),
       );
       return false;
     }
@@ -104,9 +99,7 @@ export function useSaveTag() {
       if (error) {
         console.error("Failed to apply tag: ", error);
         setError(
-          error.code === "rate_limited"
-            ? RATE_LIMITED_MESSAGE
-            : "Kunde inte tagga annonsen. Försök igen.",
+          commonErrorMessage(error, "Kunde inte tagga annonsen. Försök igen."),
         );
         return false;
       }
@@ -122,9 +115,10 @@ export function useSaveTag() {
       if (error) {
         console.error("Failed to remove tag: ", error);
         setError(
-          error.code === "rate_limited"
-            ? RATE_LIMITED_MESSAGE
-            : "Kunde inte ta bort taggen från annonsen. Försök igen.",
+          commonErrorMessage(
+            error,
+            "Kunde inte ta bort taggen från annonsen. Försök igen.",
+          ),
         );
         return false;
       }

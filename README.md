@@ -42,11 +42,12 @@ Expo app built with:
 
 ## Security
 
-- **Row Level Security on every table.** The `anon` role has no grants at all. All access to group, listing, showing and invite data checks `is_active_user()` against the database on each request, so a deleted or deactivated account is blocked at once, even while its JWT (valid for an hour) has not yet expired. Public reference data (e.g. municipalities) is readable by any signed-in user.
+- **Row Level Security on every table.** The `anon` role has no grants at all. All access to group, listing, showing and invite data checks `is_active_user()` against the database on each request, so a deleted or deactivated account, or a session that was signed out on another device, is blocked at once, even while its JWT (valid for 5 minutes) has not yet expired. See [docs/security.md](docs/security.md#sessions) for when the app shows the login screen. Public reference data (e.g. municipalities) is readable by any signed-in user.
 - **Explicit grants only.** Supabase's default privileges are revoked. Direct writes are limited to a few columns; everything else changes through database functions.
 - **Rate limits and abuse guards in the database**: write requests per user (HTTP 429), search changes, invites, group size, uploads, and statement timeouts per role. Limits lock before counting, so simultaneous requests cannot slip past them.
+- **AI-free scraper.** Listings are collected with Playwright, not an AI agent, so scraped text is never read by an AI in the pipeline. The repo also contains configuration for Claude Code: read it before you use it, especially in a fork.
 
-See [docs/database-design.md](docs/database-design.md) for the reasoning behind some decision, and [docs/security.md](docs/security.md) for security outside the database (sign-up and sign-in).
+See [docs/database-design.md](docs/database-design.md) for the reasoning behind some decisions, and [docs/security.md](docs/security.md) for security outside the database (sign-up and sign-in, AI tools and prompt injection).
 
 ## Getting started
 
@@ -89,16 +90,16 @@ The `EMAILS` and `GOOGLE MAPS` sections in `.env` can be left empty for the demo
 4. Run [supabase/setup-extras.sql](supabase/setup-extras.sql) in the SQL Editor, **except the last three lines** (the `dispatch-scrape`, `dispatch-purge-avatars` and `dispatch-email` jobs). This file is required: it creates the trigger that gives every new account a profile, the rate limit, the `avatars` bucket for profile pictures and the daily cleanup jobs. The three `dispatch-*` jobs start GitHub Actions workflows and need a GitHub token, repository and branch in Vault, so they are not part of the demo (see [docs/production-setup.md](docs/production-setup.md#2-github-token-and-repository-in-supabase-vault)). If the SQL Editor refuses the storage policies, create them under Storage → Policies instead.
 5. Check (not mandatory): Run these SQL commands, one by one, in the SQL Editor
    - select table_name from information_schema.tables where table_schema = 'public' order by 1;
-     You'll find 17 tables
+     You'll find 19 tables
    - select jobid, jobname, schedule from cron.job order by jobid;
-     You'll find 8 jobs
+     You'll find 9 jobs
    - select id, public from storage.buckets;
-     You'll find 1 bucket named avatar
+     You'll find 1 bucket named avatars
 
-   Go to Authentication -> Policies, check that RLS is active and policies exists. This is important when using publishable key i clients
+   Go to Authentication -> Policies, check that RLS is active and policies exist. This is important when using publishable key in clients
 
 6. Fill in `.env` (created under [Installation](#installation)):
-   - `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_KEY` (publishable/anon key) and `SUPABASE_SERVICE_ROLE_KEY` TIP: Look in "Connect" in topbar, choose Expo React Native as framwork, under "Add files" and ".env.local" you'll find the public keys. Then from Project Settings → API. The service role key is found. This is only used by the scripts and must never end up in the app!
+   - `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_KEY` (publishable/anon key) and `SUPABASE_SERVICE_ROLE_KEY` TIP: Look in "Connect" in topbar, choose Expo React Native as framework, under "Add files" and ".env.local" you'll find the public keys. Then from Project Settings → API. The service role key is found. This is only used by the scripts and must never end up in the app!
    - `SEED_USER`, `SEED_FRIEND` and their passwords are prefilled. Change them if you like (passwords need at least 6 characters). No mail is sent to these addresses.
 7. Run `nvm use 24`, then fill in Sweden's counties and municipalities, and the areas of Göteborg, Mölndal and Partille, from the project root: `node scripts/seed/places/seedPlaces.ts`
 8. Create the demo data, from the project root: `node scripts/seed/demo/seedDemo.ts`
@@ -175,7 +176,7 @@ npm run gen:types     # regenerate shared/database.types.ts after a database cha
 
 - [docs/database-design.md](docs/database-design.md): why the database is built the way it is (security model, rate limits, scheduled jobs, design decisions)
 - [docs/production-setup.md](docs/production-setup.md): running your own Samboo beyond the demo (Supabase, GitHub token in Vault, e-mail, GitHub Actions, Google Maps, Vercel, all keys at a glance)
-- [docs/security.md](docs/security.md): security outside the database (what protects sign-up and sign-in, possible improvements)
+- [docs/security.md](docs/security.md): security outside the database (what protects sign-up and sign-in, AI tools and prompt injection, possible improvements)
 - [docs/openapi.yml](docs/openapi.yml): the API the app uses (tables, RPC functions and who may call them)
 - [docs/email-setup.md](docs/email-setup.md): how sign-up and notification e-mails are set up (Resend, Supabase Auth, DNS at Loopia)
 - [docs/removed_listings.md](docs/removed_listings.md): how the scraper detects and marks listings that have been removed by the agency

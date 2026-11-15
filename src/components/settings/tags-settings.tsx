@@ -4,7 +4,8 @@ import { useSaveTag } from "@/hooks/tags/useSaveTag";
 import { useUserTags } from "@/hooks/tags/useUserTags";
 import { showToast } from "@/stores/toast";
 import { UserTag } from "@/types/tags";
-import { useState } from "react";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import { Pressable, View } from "react-native";
 import FormError from "../form-error";
 import { ConfirmDialog } from "../modals/confirm-dialog";
@@ -24,6 +25,13 @@ export default function TagSettings() {
   // The tag that's waiting on confirmation to be deleted
   const [deletingTag, setDeletingTag] = useState<UserTag | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // The tab never unmounts, so clear old errors when the user leaves it
+  useFocusEffect(
+    useCallback(() => {
+      return () => clearError();
+    }, [clearError]),
+  );
 
   function openEdit(tag: UserTag) {
     clearError();

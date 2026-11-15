@@ -5,28 +5,22 @@ import ScheduleShowingSection from "@/components/object-page/schedule-showing-se
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Text } from "@/components/ui/text";
-import { useSession } from "@/hooks/auth/useSession";
-import { useSaveTag } from "@/hooks/tags/useSaveTag";
-import { useUserTags } from "@/hooks/tags/useUserTags";
-import { useListing } from "@/hooks/useListing";
-import { useListingTags } from "@/hooks/useListingTags";
-import { useMarkListingSeen } from "@/hooks/useMarkListingSeen";
+import { useMarkListingSeen } from "@/hooks/listings/useMarkListingSeen";
+import { useBackToTop } from "@/hooks/ui/useBackToTop";
+import { useTabBarInset } from "@/hooks/ui/useTabBarInset";
 import { Listing } from "@/types/listing";
 import handleBack from "@/utils/handle-back";
-import { isNewConstruction } from "@/utils/is-new-construction";
+import { isListingRemoved } from "@/utils/is-listing-removed";
 import { formatPrice } from "@shared/format";
 import { Image } from "expo-image";
-import { PlusSquare } from "lucide-react-native";
 import { useState } from "react";
-import { Linking, Pressable, ScrollView, View } from "react-native";
-import FormError from "../form-error";
+import { Linking, ScrollView, View } from "react-native";
+import BackToTopButton from "../back-to-top-button";
 import { LikeButton } from "../like-button";
-import { ConfirmDialog } from "../modals/confirm-dialog";
-import { TagsDialog } from "../modals/tags-dialog";
-import Tag from "../tags/tag";
-import { Icon } from "../ui/icon";
 import { Spinner } from "../ui/spinner";
+import ListingTagsSection from "./listing-tags-section";
 import ObjectDescription from "./object-description";
+import RemovedListingNotice from "./removed-listing-notice";
 
 type ObjectPageProps = {
   listing: Listing | null;
@@ -36,13 +30,20 @@ type ObjectPageProps = {
 const fallbackImage = require("@/assets/images/no-image.jpg");
 
 // Shows the fallback image when the listing has no image, or the image fails to load
-function ListingImage({ imageUrl }: { imageUrl: string | null }) {
+function ListingImage({
+  imageUrl,
+  alt,
+}: {
+  imageUrl: string | null;
+  alt: string;
+}) {
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const showFallback = !imageUrl || failedUrl === imageUrl;
 
   return (
     <Image
       source={showFallback ? fallbackImage : { uri: imageUrl }}
+      alt={showFallback ? "Bild saknas" : alt}
       onError={() => setFailedUrl(imageUrl)}
       style={{ width: "100%", height: 320 }}
       contentFit="cover"
@@ -54,113 +55,12 @@ export default function ObjectPageScreen({
   listing,
   isLoading,
 }: ObjectPageProps) {
-  const [tagsDialogOpen, setTagsDialogOpen] = useState(false);
-  const [tagToDelete, setTagToDelete] = useState<number | null>(null);
-
-  const { session } = useSession();
-  const userId = session?.user.id;
-
-  const [isSaving, setIsSaving] = useState(false);
-
-  // My user_listings row for this listing (id and is_new).
-  // null if a group member has been matched with the listing, but not the session user
-  const { userListing, error: userListingError } = useListing(
-    listing ? String(listing.id) : undefined,
-  );
-
   // Mark the listing as seen every time the page opens, also a group member's listing outside my search
   useMarkListingSeen(listing?.id);
 
-  const {
-    tags,
-    reload: reloadTags,
-    isLoading: tagsLoading,
-    error: tagsError,
-  } = useUserTags(userId);
-  const {
-    listingTags,
-    reload: reloadListingTags,
-    isLoading: listingTagsLoading,
-    error: listingTagsError,
-  } = useListingTags(userId);
-  const {
-    unapplyTag,
-    saveTags,
-    isSaving: isSavingTag,
-    error: saveTagError,
-    clearError,
-  } = useSaveTag();
-
-  // Load errors (tags or applied tags) and save errors are shown in the same place
-  const error =
-    userListingError || tagsError || listingTagsError || saveTagError;
-  // The dialog starts from the applied tags, so it must not open before both lists are
-  // loaded. Otherwise saving would remove tags that just had not been fetched yet
-  const canEditTags =
-    !!userListing &&
-    !tagsLoading &&
-    !listingTagsLoading &&
-    !tagsError &&
-    !listingTagsError;
-  const saving = isSaving || isSavingTag;
-
-  // The ids of my tags (user_tags.id) that are on this listing.
-  // listingTags holds every tag application I have, so filter on this listing's row
-  const appliedTagIds = userListing
-    ? listingTags
-        .filter((lt) => lt.user_listing_id === userListing.id)
-        .map((lt) => lt.user_tag_id)
-    : [];
-
-  // Called by the dialog with the selected tag ids, the ids the dialog was opened
-  // with, and the names of new tags. New tags are created here, on save
-  async function handleSave(
-    selectedIds: number[],
-    initialIds: number[],
-    newNames: string[],
-  ) {
-    if (!userId || !userListing) return;
-    setIsSaving(true);
-    try {
-      const ok = await saveTags({
-        userId,
-        userListingId: userListing.id,
-        existingTags: tags,
-        selectedIds,
-        initialIds,
-        newNames,
-      });
-
-      // Always fetch again, also on failure: some tags might have been created before it failed
-      reloadTags();
-      reloadListingTags();
-
-      // Keep the dialog open if something failed, so error is visible
-      if (ok) setTagsDialogOpen(false);
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
-  // Removes one tag from this listing directly, without opening the dialog
-  async function handleRemoveTag(tagId: number) {
-    if (!userListing) return;
-
-    const removed = await unapplyTag(tagId, userListing.id);
-    if (removed) reloadListingTags();
-  }
-
-  // Clears an old error from a previous attempt before the dialog opens
-  function openTagsDialog() {
-    clearError();
-    setTagsDialogOpen(true);
-  }
-
-  // Clears an old error when dialog is closed
-  function closeTagsDialog() {
-    clearError();
-    setTagsDialogOpen(false);
-  }
+  const { scrollRef, showBackToTop, handleScroll, scrollToTop } =
+    useBackToTop();
+  const tabBarInset = useTabBarInset();
 
   if (isLoading)
     return (
@@ -181,16 +81,26 @@ export default function ObjectPageScreen({
 
   return (
     <View className="flex-1 bg-background">
-      <Button className="justify-start" variant="link" onPress={handleBack}>
+      <Button
+        className="justify-start pl-6"
+        variant="link"
+        onPress={handleBack}
+      >
         <Text>Tillbaka</Text>
       </Button>
       <ScrollView
+        ref={scrollRef}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         className="flex-1 bg-background"
-        contentContainerClassName="pb-8"
+        contentContainerStyle={{ paddingBottom: tabBarInset + 16 }}
       >
         {/* --- IMAGE --- */}
-        <ListingImage imageUrl={listing.image_url} />
-        <View className="px-8 py-6 gap-6">
+        <ListingImage
+          imageUrl={listing.image_url}
+          alt={`Bild på ${listing.address}`}
+        />
+        <View className="px-6 py-6 gap-6">
           {/* --- ADDRESS AND AREA --- */}
           <View className="gap-4">
             <View>
@@ -199,7 +109,11 @@ export default function ObjectPageScreen({
                   {listing.address ?? "Adress saknas"}
                 </Text>
                 <View className="shrink-0">
-                  <LikeButton listingId={listing.id} size={24} />
+                  <LikeButton
+                    listingId={listing.id}
+                    address={listing.address ?? undefined}
+                    size={24}
+                  />
                 </View>
               </View>
               <Text>
@@ -218,65 +132,13 @@ export default function ObjectPageScreen({
           </View>
           <Separator />
 
-          {/* --- TAGS --- */}
-          <View className="gap-2">
-            {/* Only possible if I have my own user_listings row and the tags are loaded */}
-            {canEditTags && (
-              <Pressable
-                onPress={openTagsDialog}
-                className="flex-row justify-start items-center gap-1 w-[50%]"
-              >
-                <Text variant="bold">Lägg till taggar</Text>
-                <Icon as={PlusSquare} size={18} />
-              </Pressable>
-            )}
-            <View className="flex-row flex-wrap justify-start gap-2">
-              {isNewConstruction(listing) && <Tag isNewConstruction />}
-              {/* My own tags on this listing */}
-              {tags
-                .filter((t) => appliedTagIds.includes(t.id))
-                .map((t) => (
-                  <Pressable key={t.id} onPress={() => setTagToDelete(t.id)}>
-                    <Tag text={t.tag_name} removable />
-                  </Pressable>
-                ))}
-            </View>
-
-            {tagToDelete !== null && (
-              <ConfirmDialog
-                open={true}
-                onOpenChange={(open) => {
-                  if (!open) setTagToDelete(null);
-                }}
-                title={"Ta bort tagg"}
-                description={"Vill du ta bort taggen från objektet?"}
-                actionLabel={"Ta bort"}
-                onAction={async () => {
-                  await handleRemoveTag(tagToDelete);
-                  setTagToDelete(null);
-                }}
-                cancelLabel={"Avbryt"}
-                onCancel={() => setTagToDelete(null)}
-                isLoading={saving}
-              />
-            )}
-
-            {/* The dialog shows its own error, so only show it here when it is closed */}
-            {error && !tagsDialogOpen && <FormError>{error}</FormError>}
-          </View>
-
-          {tagsDialogOpen && (
-            <TagsDialog
-              open={tagsDialogOpen}
-              onOpenChange={closeTagsDialog}
-              tags={tags}
-              selectedIds={appliedTagIds}
-              onSave={handleSave}
-              isSaving={saving}
-              error={saveTagError}
-              onClearError={clearError}
-            />
+          {/* --- REMOVED OBJECTS --- */}
+          {isListingRemoved(listing) && (
+            <RemovedListingNotice url={listing.url} />
           )}
+
+          {/* --- TAGS --- */}
+          <ListingTagsSection listing={listing} />
 
           {/* --- OBJECT INFO --- */}
           <View className="gap-6">
@@ -300,12 +162,12 @@ export default function ObjectPageScreen({
             latitude={listing.latitude}
             longitude={listing.longitude}
           />
-          <Separator />
 
           {/* --- SCHEDULE SHOWING --- */}
           <ScheduleShowingSection listingId={listing.id} />
         </View>
       </ScrollView>
+      {showBackToTop && <BackToTopButton onPress={scrollToTop} />}
     </View>
   );
 }

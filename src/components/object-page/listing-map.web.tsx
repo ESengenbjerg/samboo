@@ -29,7 +29,7 @@ export default function ListingMap({
   return (
     <View className="gap-2">
       <Text variant="h4">Läge</Text>
-      <View className="h-60 w-full overflow-hidden rounded-sm">
+      <View className="h-72 w-full overflow-hidden rounded-sm">
         <APIProvider apiKey={API_KEY} language="sv" region="SE">
           <GoogleMap
             key={`${latitude}, ${longitude}`}

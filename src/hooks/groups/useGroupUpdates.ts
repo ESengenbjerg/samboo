@@ -1,4 +1,4 @@
-import { useGroupLikedListings } from "@/hooks/useGroupLikedListings";
+import { useGroupLikedListings } from "@/hooks/likes/useGroupLikedListings";
 import { MemberUpdate, MemberUpdatesByDay } from "@/types/notifications";
 import { toNotificationDay } from "@/utils/notification-day";
 import { useMemo } from "react";

@@ -33,11 +33,17 @@ export default function FilterSelect({
   dropdownLabel,
   fullWidth,
 }: FilterSelectProps) {
+  // Accessible name: what the field is, plus the chosen value (the visible value
+  // would otherwise be replaced by the label for screen readers)
+  const fieldName = label ?? dropdownLabel ?? placeholder ?? "Välj";
+  const accessibleName = value ? `${fieldName}: ${value.label}` : fieldName;
+
   return (
     <View className="gap-1.5">
       {label && <Label>{label}</Label>}
       <Select value={value} onValueChange={onValueChange}>
         <SelectTrigger
+          aria-label={accessibleName}
           className={`${fieldColor} justify-between ${fullWidth ? "w-full" : ""}`}
         >
           <SelectValue placeholder={placeholder ? placeholder : "Välj"} />

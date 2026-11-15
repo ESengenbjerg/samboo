@@ -42,7 +42,12 @@ export function ResetPasswordForm() {
 
   return (
     <View className="gap-6 w-full max-w-sm px-14">
-      <Text variant="bold" className="text-center text-xl text-background">
+      <Text
+        variant="bold"
+        role="heading"
+        aria-level={1}
+        className="text-center text-xl text-background"
+      >
         Återställ lösenord
       </Text>
       {!isVerified && (
@@ -72,6 +77,7 @@ export function ResetPasswordForm() {
             <Input
               ref={passwordInputRef}
               id="reset-password"
+              aria-label="Nytt lösenord"
               placeholder="*****"
               secureTextEntry
               returnKeyType="next"
@@ -91,6 +97,7 @@ export function ResetPasswordForm() {
             <Input
               ref={repeatPasswordInputRef}
               id="reset-repeat-password"
+              aria-label="Upprepa lösenord"
               placeholder="*****"
               secureTextEntry
               returnKeyType="send"

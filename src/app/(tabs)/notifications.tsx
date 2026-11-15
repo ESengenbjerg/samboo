@@ -1,3 +1,4 @@
+import BackToTopButton from "@/components/back-to-top-button";
 import FormError from "@/components/form-error";
 import AnsweredInviteNotification from "@/components/notifications/answered-invitation-notification";
 import { default as FeedUpdateNotification } from "@/components/notifications/feed-update-notification";
@@ -7,20 +8,22 @@ import ShowingUpdateNotification from "@/components/notifications/showing-update
 import SkippedShowingNotification from "@/components/notifications/skipped-showings-notification";
 import { Text } from "@/components/ui/text";
 import { useSession } from "@/hooks/auth/useSession";
+import { useAnsweredInvites } from "@/hooks/groups/useAnsweredInvites";
+import { useAnswerInvite } from "@/hooks/groups/useAnswerInvite";
+import { useConnectedAccounts } from "@/hooks/groups/useConnectedAccounts";
+import { useGroupUpdates } from "@/hooks/groups/useGroupUpdates";
+import { useNewListingIds } from "@/hooks/listings/useNewListingIds";
+import { useMarkNotificationsSeen } from "@/hooks/notifications/useMarkNotificationsSeen";
+import { useNewMatchesCount } from "@/hooks/notifications/useNewMatchesCount";
 import { useShowingEvents } from "@/hooks/showings/useShowingEvents";
-import { useAnsweredInvites } from "@/hooks/useAnsweredInvites";
-import { useAnswerInvite } from "@/hooks/useAnswerInvite";
-import { useConnectedAccounts } from "@/hooks/useConnectedAccounts";
-import { useGroupUpdates } from "@/hooks/useGroupUpdates";
-import { useMarkNotificationsSeen } from "@/hooks/useMarkNotificationsSeen";
-import { useNewListingIds } from "@/hooks/useNewListingIds";
-import { useNewMatchesCount } from "@/hooks/useNewMatchesCount";
+import { useBackToTop } from "@/hooks/ui/useBackToTop";
+import { useTabBarInset } from "@/hooks/ui/useTabBarInset";
 import { NotificationDay } from "@/types/notifications";
 import { useFocusEffect } from "expo-router";
 import { Fragment, ReactNode, useCallback } from "react";
 import { ScrollView, View } from "react-native";
 
-// One notification in a day section, with the time it happend so the section can be sorted
+// One notification in a day section, with the time it happened so the section can be sorted
 type Item = { key: string; time: number; node: ReactNode };
 
 // Null (no timestamp) counts as oldest
@@ -39,6 +42,7 @@ export default function NotificationsScreen() {
   const { session } = useSession();
   const userId = session?.user.id;
   const accounts = useConnectedAccounts(userId);
+  const tabBarInset = useTabBarInset();
 
   // Refetches by itself every time the page is opened
   const {
@@ -94,7 +98,7 @@ export default function NotificationsScreen() {
     updatesByDayIsReady &&
     eventsByDayIsReady;
 
-  // Turns off the dot on the bell, that indicate new notifications,
+  // Turns off the dot on the bell, that indicates new notifications,
   // when the user leaves the page
   useMarkNotificationsSeen(allReady);
 
@@ -194,6 +198,9 @@ export default function NotificationsScreen() {
     return items;
   }
 
+  const { scrollRef, showBackToTop, handleScroll, scrollToTop } =
+    useBackToTop();
+
   return (
     <View className="flex-1 px-6 bg-background gap-2">
       <Text variant="h1" className="pb-4">
@@ -203,8 +210,11 @@ export default function NotificationsScreen() {
       {displayError && <FormError>{displayError}</FormError>}
 
       <ScrollView
+        ref={scrollRef}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         className="bg-background"
-        contentContainerClassName="pb-8"
+        contentContainerStyle={{ paddingBottom: tabBarInset + 16 }}
         showsVerticalScrollIndicator={false}
       >
         {isBusy && <Text>Laddar...</Text>}
@@ -246,6 +256,7 @@ export default function NotificationsScreen() {
           </View>
         )}
       </ScrollView>
+      {showBackToTop && <BackToTopButton onPress={scrollToTop} />}
     </View>
   );
 }

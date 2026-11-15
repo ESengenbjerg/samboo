@@ -1,7 +1,7 @@
 import { MY_LIST_ID, SHARED_LIST_ID } from "@/constants/saved-lists";
-import { useLikedListings } from "@/hooks/useLikedListings";
-import { useNewListingIds } from "@/hooks/useNewListingIds";
-import { useSharedLikedListings } from "@/hooks/useSharedLikedListings";
+import { useLikedListings } from "@/hooks/likes/useLikedListings";
+import { useSharedLikedListings } from "@/hooks/likes/useSharedLikedListings";
+import { useNewListingIds } from "@/hooks/listings/useNewListingIds";
 import { useMemo } from "react";
 
 // The listings of one saved list: my list, the shared list or a group member's list.
@@ -20,8 +20,7 @@ export function useSavedList(listId: string, userId: string | undefined) {
   // list the rows are theirs, so their is_new is replaced with mine (matched on listings.id)
   const { newListingIds } = useNewListingIds(userId);
   const listings = useMemo(
-    () =>
-      list.listings.map((l) => ({ ...l, is_new: newListingIds.has(l.id) })),
+    () => list.listings.map((l) => ({ ...l, is_new: newListingIds.has(l.id) })),
     [list.listings, newListingIds],
   );
 

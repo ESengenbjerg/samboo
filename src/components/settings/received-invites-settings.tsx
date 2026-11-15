@@ -1,5 +1,5 @@
-import { useAnswerInvite } from "@/hooks/useAnswerInvite";
-import { ConnectedAccounts } from "@/hooks/useConnectedAccounts";
+import { useAnswerInvite } from "@/hooks/groups/useAnswerInvite";
+import { ConnectedAccounts } from "@/hooks/groups/useConnectedAccounts";
 import { Answer } from "@/stores/answered-invite";
 import { showToast } from "@/stores/toast";
 import { View } from "react-native";

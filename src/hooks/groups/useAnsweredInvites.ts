@@ -1,4 +1,4 @@
-import { ConnectedAccounts } from "@/hooks/useConnectedAccounts";
+import { ConnectedAccounts } from "@/hooks/groups/useConnectedAccounts";
 import { AnsweredInvite, AnsweredInvitesByDay } from "@/types/notifications";
 import { startOfToday } from "@/utils/date-format";
 import { toNotificationDay } from "@/utils/notification-day";
@@ -17,7 +17,11 @@ export function useAnsweredInvites(accounts: ConnectedAccounts) {
   const { sentInvites, members } = accounts;
 
   const answeredByDay = useMemo(() => {
-    const byDay: AnsweredInvitesByDay = { today: [], yesterday: [], earlier: [] };
+    const byDay: AnsweredInvitesByDay = {
+      today: [],
+      yesterday: [],
+      earlier: [],
+    };
     // Midnight 30 days ago, local time
     const oldestDate = startOfToday();
     oldestDate.setDate(oldestDate.getDate() - MAX_AGE_DAYS);
@@ -26,7 +30,8 @@ export function useAnsweredInvites(accounts: ConnectedAccounts) {
     const answered: AnsweredInvite[] = [];
     for (const invite of sentInvites) {
       // Pending and cancelled (withdrawn by me) are not answers
-      if (invite.status !== "accepted" && invite.status !== "declined") continue;
+      if (invite.status !== "accepted" && invite.status !== "declined")
+        continue;
       if (!invite.responded_at) continue;
       if (new Date(invite.responded_at).getTime() < oldest) continue;
 

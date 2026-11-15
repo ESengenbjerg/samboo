@@ -1,5 +1,8 @@
 import { requestPasswordReset } from "@/services/auth";
-import { authErrorMessage } from "@/utils/error-message/auth-error-message";
+import {
+  authCatchMessage,
+  authErrorMessage,
+} from "@/utils/error-message/auth-error-message";
 import { isValidEmail } from "@shared/email";
 import { useCallback, useState } from "react";
 
@@ -36,7 +39,7 @@ export function useForgotPassword() {
       } catch (e) {
         // Unexpected errors, e.g. the network request failing completely
         console.log("Reset password error:", e);
-        setError("Något gick fel, försök igen.");
+        setError(authCatchMessage(e, "Kunde inte skicka koden. Försök igen."));
         return false;
       } finally {
         setIsSending(false);

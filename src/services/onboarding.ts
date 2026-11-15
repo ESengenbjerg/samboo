@@ -1,4 +1,5 @@
 import { completeProfile } from "@/services/profiles";
+import { commonErrorMessage } from "@/utils/error-message/common-messages";
 import { saveSearchParams } from "@/services/search-params";
 import {
   ClientFilter,
@@ -29,4 +30,25 @@ export async function saveOnboarding(
     informationInterval,
   );
   if (profileError) throw profileError;
+}
+
+export class NotSignedInError extends Error {
+  constructor() {
+    super("Not signed in");
+  }
+}
+
+// Message for a failed saveOnboarding(). P0001 = raise exception in the database,
+// the message is already in Swedish (e.g. too many changes to the search)
+export function onboardingErrorMessage(error: unknown) {
+  if (error instanceof NotSignedInError) {
+    return "Din session har gått ut. Logga in igen.";
+  }
+  if ((error as { code?: string } | null)?.code === "P0001") {
+    return (error as { message: string }).message;
+  }
+  return commonErrorMessage(
+    error,
+    "Kunde inte spara din profil och bevakning. Försök igen.",
+  );
 }

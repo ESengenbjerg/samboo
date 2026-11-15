@@ -1,5 +1,5 @@
 import ObjectPageScreen from "@/components/object-page/object-page";
-import { useListingById } from "@/hooks/useListingById";
+import { useListingById } from "@/hooks/listings/useListingById";
 import { useLocalSearchParams } from "expo-router";
 
 export default function SearchObjectScreen() {

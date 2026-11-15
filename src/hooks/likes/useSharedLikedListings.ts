@@ -9,7 +9,7 @@ type SharedLikedListingsResult = {
   failed?: boolean;
 };
 
-// The shared list ("Gemensam-listan"): listings that every member of my group has liked.
+// The shared list ("Gemensam lista"): listings that every member of my group has liked.
 // Empty if I am not in a group. Pass undefined until the session is loaded
 export function useSharedLikedListings(userId: string | undefined) {
   const [result, setResult] = useState<SharedLikedListingsResult | null>(null);

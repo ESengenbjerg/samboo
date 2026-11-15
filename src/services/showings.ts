@@ -2,6 +2,7 @@ import { SHOWING_NOTE_MAX_LENGTH } from "@/constants/limits";
 import { supabase } from "@/lib/supabase";
 import { NewShowing, ShowingValues } from "@/types/showings";
 import { toIsoDate } from "@/utils/date-format";
+import { commonErrorMessage } from "@/utils/error-message/common-messages";
 import type { PostgrestError } from "@supabase/supabase-js";
 
 // The listings_select_showings policy lets me read every listing I have a showing for.
@@ -124,9 +125,11 @@ export function showingErrorMessage(error: PostgrestError) {
     case "22008":
       return "Ogiltigt datum eller tid.";
     // check_request() rate limit
-    case "rate_limited":
-      return "Du har gjort för många ändringar. Vänta en stund och försök igen.";
     default:
-      return "Något gick fel, försök igen.";
+      // Offline and rate limit (rate_limited) get their own text
+      return commonErrorMessage(
+        error,
+        "Kunde inte spara visningen. Försök igen.",
+      );
   }
 }

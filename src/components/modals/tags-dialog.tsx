@@ -168,6 +168,7 @@ export function TagsDialog({
               }}
             >
               <SelectTrigger
+                aria-label="Dina taggar"
                 className="w-full"
                 disabled={availableTags.length === 0}
               >
@@ -204,6 +205,7 @@ export function TagsDialog({
             </View>
             <View className="flex-row gap-2 flex-wrap">
               <Input
+                aria-label="Lägg till tagg"
                 className="flex-1"
                 value={newName}
                 onChangeText={(text) => {
@@ -248,12 +250,22 @@ export function TagsDialog({
                   <Text>Inga valda taggar.</Text>
                 )}
                 {draftTags.map((c) => (
-                  <Pressable key={c.id} onPress={() => removeFromDraft(c.id)}>
+                  <Pressable
+                    key={c.id}
+                    onPress={() => removeFromDraft(c.id)}
+                    role="button"
+                    aria-label={`Ta bort taggen ${c.tag_name}`}
+                  >
                     <Tag text={c.tag_name} removable />
                   </Pressable>
                 ))}
                 {newNames.map((n) => (
-                  <Pressable key={n} onPress={() => removePendingName(n)}>
+                  <Pressable
+                    key={n}
+                    onPress={() => removePendingName(n)}
+                    role="button"
+                    aria-label={`Ta bort taggen ${n}`}
+                  >
                     <Tag text={`${n} (ny)`} removable />
                   </Pressable>
                 ))}

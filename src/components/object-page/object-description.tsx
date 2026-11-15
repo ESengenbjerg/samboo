@@ -27,6 +27,8 @@ export default function ObjectDescription({
       {isCollapsible && (
         <Pressable
           onPress={() => setIsExpanded(!isExpanded)}
+          role="button"
+          aria-expanded={isExpanded}
           className="self-start active:opacity-60"
         >
           <Text variant="bold">{isExpanded ? "Visa mindre" : "Visa mer"}</Text>

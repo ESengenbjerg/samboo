@@ -32,7 +32,7 @@ export default function ScheduledShowingInfo({
 }: ScheduledShowing & {
   onDeleted: () => void;
   onUpdated: () => void;
-  onDeleteFailed: () => void;
+  onDeleteFailed: (message: string) => void;
   onStartAction: () => void;
 }) {
   const timeText = showing.startsAt.toLocaleTimeString("sv-SE", {
@@ -98,14 +98,14 @@ export default function ScheduledShowingInfo({
   }
 
   async function onDelete() {
-    const ok = await deleteShowing(showing.id);
+    const errorMessage = await deleteShowing(showing.id);
 
-    if (ok) {
+    if (!errorMessage) {
       // Tells the parent to remove showing from the list
       onDeleted();
     } else {
-      // Tells the parent to show an error
-      onDeleteFailed();
+      // Tells the parent to show the error
+      onDeleteFailed(errorMessage);
     }
   }
 
@@ -141,6 +141,7 @@ export default function ScheduledShowingInfo({
           <View className="flex-row gap-2 items-center">
             <Icon as={Map} size={18}></Icon>
             <Link
+              aria-label={`Hitta hit, ${showing.address}`}
               href={googleMapsUrl(
                 showing.address,
                 showing.area,
@@ -171,6 +172,7 @@ export default function ScheduledShowingInfo({
         <Button
           variant="link"
           onPress={openEditDialog}
+          aria-label={`Redigera visning, ${showing.address}`}
           className="self-start min-h-0 px-0 py-0 justify-start"
           style={Platform.select({
             web: { marginLeft: -12 },
@@ -185,6 +187,7 @@ export default function ScheduledShowingInfo({
         <Button
           variant="link"
           onPress={openDeleteDialog}
+          aria-label={`Radera visning, ${showing.address}`}
           className="self-start min-h-0 px-0 py-0 justify-start"
           style={Platform.select({
             web: { marginLeft: -12 },

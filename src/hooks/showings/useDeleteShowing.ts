@@ -1,12 +1,12 @@
 import { deleteShowing } from "@/services/showings";
+import { commonErrorMessage } from "@/utils/error-message/common-messages";
 import { useCallback, useState } from "react";
 
 export function useDeleteShowing() {
   const [isDeleting, setIsDeleting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const remove = useCallback(async (id: number) => {
-    setError(null);
+  // Returns null if the showing was deleted, otherwise the message to show the user
+  const remove = useCallback(async (id: number): Promise<string | null> => {
     setIsDeleting(true);
 
     const { error } = await deleteShowing(id);
@@ -14,13 +14,13 @@ export function useDeleteShowing() {
 
     if (error) {
       console.error("Failed to delete showing:", error);
-      setError("Kunde inte radera visningen. Försök igen.");
-      return false;
+      return commonErrorMessage(
+        error,
+        "Kunde inte radera visningen. Försök igen.",
+      );
     }
-    return true;
+    return null;
   }, []);
 
-  const clearError = useCallback(() => setError(null), []);
-
-  return { deleteShowing: remove, isDeleting, error, clearError };
+  return { deleteShowing: remove, isDeleting };
 }

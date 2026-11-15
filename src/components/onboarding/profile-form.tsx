@@ -5,15 +5,15 @@ import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
 import { NAME_MAX_LENGTH } from "@/constants/limits";
 import { useSession } from "@/hooks/auth/useSession";
-import { useOnboardingHydrated } from "@/hooks/useOnboardingHydrated";
-import { useUpdateProfileAvatar } from "@/hooks/useUpdateProfileAvatar";
+import { useOnboardingHydrated } from "@/hooks/profile/useOnboardingHydrated";
+import { useUpdateProfileAvatar } from "@/hooks/profile/useUpdateProfileAvatar";
 import { signOut } from "@/services/auth";
 import { getAvatarUrl } from "@/services/profiles";
 import { useOnboardingStore } from "@/stores/onboarding";
 import { pickImage } from "@/utils/pick-image";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { Trash } from "lucide-react-native";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { View } from "react-native";
 import AvatarPublicInfo from "../avatar-public-info";
 import ProfileImage from "../profile-image";
@@ -57,6 +57,16 @@ function ProfileFields() {
     clearError: clearAvatarError,
   } = useUpdateProfileAvatar();
 
+  // The screen stays mounted when the user goes forward, so clear old errors on leave
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        setError(null);
+        clearAvatarError();
+      };
+    }, [clearAvatarError]),
+  );
+
   const isBusy = isLoading || isUpdating;
   const displayError = error ?? avatarError;
   // Show the newly picked image, otherwise the one already uploaded
@@ -92,7 +102,9 @@ function ProfileFields() {
     }
 
     if (!userId) {
-      setError("Något gick fel, försök igen.");
+      setError(
+        "Din session har inte laddats än. Vänta ett ögonblick och försök igen.",
+      );
       return;
     }
 
@@ -136,6 +148,7 @@ function ProfileFields() {
         <Label htmlFor="profile-name">Visningsnamn</Label>
         <Input
           id="profile-name"
+          aria-label="Visningsnamn"
           placeholder="Namn"
           returnKeyType="next"
           submitBehavior="submit"

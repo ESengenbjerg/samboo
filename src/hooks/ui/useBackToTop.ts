@@ -5,7 +5,7 @@ import {
   ScrollViewInstance,
 } from "react-native";
 
-export function useBackToTop(threshold = 400) {
+export function useBackToTop(threshold = 300) {
   const scrollRef = useRef<ScrollViewInstance>(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
 

@@ -12,7 +12,7 @@ import {
   PropertyType,
   ROOM_OPTIONS,
 } from "@/constants/filter-options";
-import { usePlaces } from "@/hooks/usePlaces";
+import { usePlaces } from "@/hooks/search/usePlaces";
 import { ClientFilter, ScraperFilter } from "@/stores/onboarding";
 import { SelectOption } from "@/types/select-option";
 import { capitalize } from "@/utils/capitalize-string";
@@ -262,6 +262,7 @@ export default function FilterForm({
           Visa nyproduktion
         </Label>
         <Switch
+          aria-label="Visa nyproduktion"
           checked={showNewConstruction}
           onCheckedChange={setShowNewConstruction}
         />
@@ -276,7 +277,7 @@ export default function FilterForm({
         <FormError>Fyll i de obligatoriska fälten ovanför.</FormError>
       )}
 
-      <View className="items-center mt-6">
+      <View className="items-center gap-6 mt-6">
         <Button
           variant={mainColor === "primary" ? "default" : "secondary"}
           className="max-w-44"
@@ -284,6 +285,16 @@ export default function FilterForm({
         >
           <Text>{submitLabel}</Text>
         </Button>
+        <View className=" justify-center gap-2">
+          <Text className="text-center">
+            Vi söker regelbundet efter nya annonser. Om du inte får några
+            träffar direkt kan du komma tillbaka lite senare.
+          </Text>
+          <Text className="text-center">
+            Du kan också prova att bredda bevakningen, till exempel med fler
+            områden eller ett högre prisintervall.
+          </Text>
+        </View>
       </View>
     </View>
   );

@@ -13,8 +13,8 @@ import { Text } from "@/components/ui/text";
 import { useIsAdmin } from "@/hooks/admin/useIsAdmin";
 import { useSession } from "@/hooks/auth/useSession";
 import { useVerifySession } from "@/hooks/auth/useVerifySession";
-import { useLikesSync } from "@/hooks/useLikes";
-import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
+import { useLikesSync } from "@/hooks/likes/useLikes";
+import { useOnboardingStatus } from "@/hooks/profile/useOnboardingStatus";
 import { signOut } from "@/services/auth";
 import { useOnboardingStore } from "@/stores/onboarding";
 import { usePasswordRecoveryStore } from "@/stores/password-recovery";
@@ -39,9 +39,6 @@ export default function RootLayout() {
     MomoTrustSans_500Medium,
     MomoTrustSans_700Bold,
   });
-
-  // TODO: Add colorScheme if implementation of light/dark mode is relevant (on could)
-  // const { colorScheme } = useColorScheme();
 
   const { session, isSessionLoaded } = useSession();
   useVerifySession();
@@ -81,9 +78,6 @@ export default function RootLayout() {
   // Without the admin status an admin could land in onboarding, so a failed fetch stops here too
   if (profile?.failed || admin?.failed) {
     return (
-      // TODO: Add ThemeProvider if implementation of light/dark mode is relevant (on could)
-      // <ThemeProvider value={NAV_THEME[colorScheme ?? "light"]}>
-
       <View className="flex-1 items-center justify-center gap-4 bg-background px-8">
         <Text>Kunde inte hämta din profil.</Text>
         {/* "Försök igen" (Try again) refetches the profile */}
@@ -99,15 +93,11 @@ export default function RootLayout() {
           <Text>Logga ut</Text>
         </Button>
       </View>
-      // </ThemeProvider>
     );
   }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      {/* TODO: Add ThemeProvider if implementation of light/dark mode is relevant (on could) */}
-      {/* <ThemeProvider value={NAV_THEME[colorScheme ?? "light"]}> */}
-
       {/* Redirects user to correct view */}
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Protected guard={!isLoggedIn} redirectTo={homeHref}>
@@ -140,7 +130,6 @@ export default function RootLayout() {
       </Stack>
       <PortalHost />
       <Toast />
-      {/* </ThemeProvider> */}
     </GestureHandlerRootView>
   );
 }

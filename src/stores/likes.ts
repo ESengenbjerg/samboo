@@ -1,9 +1,12 @@
 import {
   getLikedListingIds,
   likeListing,
+  markListingSeen,
   unlikeListing,
 } from "@/services/listings";
+import { useSeenListingsStore } from "@/stores/seen-listings";
 import { showToast } from "@/stores/toast";
+import { commonErrorMessage } from "@/utils/error-message/common-messages";
 import { create } from "zustand";
 
 type LikesState = {
@@ -13,6 +16,16 @@ type LikesState = {
   reset: () => void;
   toggleLike: (listingId: number) => Promise<void>;
 };
+
+// wasLiked = the listing was saved before the tap, so the failed request was an unsave
+function likeErrorMessage(error: unknown, wasLiked: boolean) {
+  return commonErrorMessage(
+    error,
+    wasLiked
+      ? "Kunde inte ta bort objektet från sparade. Försök igen."
+      : "Kunde inte spara objektet. Försök igen.",
+  );
+}
 
 // Listings with a save/unsave request in flight. Taps on these are ignored,
 // so a double tap can never send like + unlike at the same time.
@@ -62,6 +75,15 @@ export const useLikesStore = create<LikesState>((set, get) => ({
 
     setLiked(!wasLiked);
 
+    // Liking counts as seen: remove the "Ny" tag at once, and remember it in the database
+    // so it does not come back on the next refetch. Fire and forget
+    if (!wasLiked) {
+      useSeenListingsStore.getState().markSeen(listingId);
+      markListingSeen(listingId).then(({ error }) => {
+        if (error) console.error("Failed to mark listing as seen: ", error);
+      });
+    }
+
     try {
       const { error } = wasLiked
         ? await unlikeListing(userId, listingId)
@@ -70,12 +92,12 @@ export const useLikesStore = create<LikesState>((set, get) => ({
       if (error) {
         console.error("Failed to update like: ", error);
         setLiked(wasLiked); // revert the heart
-        showToast("Kunde inte spara, försök igen");
+        showToast(likeErrorMessage(error, wasLiked));
       }
     } catch (e) {
       console.error("Failed to update like: ", e);
       setLiked(wasLiked);
-      showToast("Kunde inte spara, försök igen");
+      showToast(likeErrorMessage(e, wasLiked));
     } finally {
       inFlight.delete(listingId);
     }

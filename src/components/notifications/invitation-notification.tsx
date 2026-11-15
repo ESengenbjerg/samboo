@@ -1,5 +1,5 @@
-import { useAnswerInvite } from "@/hooks/useAnswerInvite";
-import { ConnectedAccounts } from "@/hooks/useConnectedAccounts";
+import { useAnswerInvite } from "@/hooks/groups/useAnswerInvite";
+import { ConnectedAccounts } from "@/hooks/groups/useConnectedAccounts";
 import { router } from "expo-router";
 import { Check, X } from "lucide-react-native";
 import { View } from "react-native";
@@ -29,7 +29,7 @@ export default function InvitationNotification({
       {answeredInvite != null && (
         <>
           <Separator />
-          <View className="flex-row justify-between items-center">
+          <View className="flex-row gap-2 justify-between items-center">
             <View className="flex-1">
               <Text variant="bold">
                 {answeredInvite === "accepted"
@@ -44,10 +44,7 @@ export default function InvitationNotification({
             </View>
 
             {answeredInvite === "accepted" ? (
-              <Button
-                size="sm"
-                onPress={() => router.push("/saved")}
-              >
+              <Button size="sm" onPress={() => router.push("/saved")}>
                 <Text>Visa</Text>
               </Button>
             ) : (

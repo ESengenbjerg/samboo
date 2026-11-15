@@ -10,17 +10,21 @@ type SettingsMenuProps = {
 
 export default function SettingsMenu({ title, onSelect }: SettingsMenuProps) {
   return (
-    <View className="flex-row flex-wrap gap-2" accessibilityRole="menu">
-      {title.map((t) => (
+    <View className="flex-row flex-wrap gap-2" role="navigation">
+      {title.map((t, i) => (
         <Button
           key={t}
-          variant="outline"
+          variant="ghost"
           size="sm"
           onPress={() => onSelect(t)}
           aria-label={`Gå till ${t}`}
-          className="flex-none shrink-0"
+          className="flex-none shrink-0 p-0"
         >
-          <Text className="text-nowrap">{capitalize(t)}</Text>
+          <Text className="text-nowrap">
+            {/* No separator after the last item, so a row never ends with a dangling "|" */}
+            {capitalize(t)}
+            {i < title.length - 1 ? " |" : ""}
+          </Text>
         </Button>
       ))}
     </View>

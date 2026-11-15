@@ -3,9 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Text } from "@/components/ui/text";
 import { useSession } from "@/hooks/auth/useSession";
-import { useBackToTop } from "@/hooks/useBackToTop";
-import { FeedListing, useFilteredListings } from "@/hooks/useFilteredListings";
+import {
+  FeedListing,
+  useFilteredListings,
+} from "@/hooks/listings/useFilteredListings";
+import { useBackToTop } from "@/hooks/ui/useBackToTop";
+import { useTabBarInset } from "@/hooks/ui/useTabBarInset";
+import { useSeenListingsStore } from "@/stores/seen-listings";
 import { BasePath, goToObject } from "@/utils/go-to-object";
+import { isListingRemoved } from "@/utils/is-listing-removed";
 import { isNewConstruction } from "@/utils/is-new-construction";
 import { Link } from "expo-router";
 import { useState } from "react";
@@ -39,6 +45,9 @@ export default function ListingsFeed({
 
   const [view, setView] = useState<"column" | "grid">("column");
 
+  // Listings I opened this session: their "Ny" tag goes away before the refetch
+  const seenIds = useSeenListingsStore((s) => s.seenIds);
+
   const {
     visibleListings,
     error: filterError,
@@ -47,6 +56,7 @@ export default function ListingsFeed({
 
   const { scrollRef, showBackToTop, handleScroll, scrollToTop } =
     useBackToTop();
+  const tabBarInset = useTabBarInset();
 
   return (
     <>
@@ -56,7 +66,7 @@ export default function ListingsFeed({
           onScroll={handleScroll}
           scrollEventThrottle={16}
           className="bg-background"
-          contentContainerClassName="pb-8"
+          contentContainerStyle={{ paddingBottom: tabBarInset + 16 }}
           showsVerticalScrollIndicator={false}
         >
           <View>
@@ -67,7 +77,8 @@ export default function ListingsFeed({
               <View className="flex-row gap-1.5">
                 <Pressable
                   onPress={() => setView("column")}
-                  hitSlop={10}
+                  // 20 px icon + 12 px on each side = 44 px touch target, without changing how it looks
+                  hitSlop={12}
                   accessibilityRole="button"
                   accessibilityLabel="Kolumnvy"
                   accessibilityState={{ selected: view === "column" }}
@@ -76,7 +87,8 @@ export default function ListingsFeed({
                 </Pressable>
                 <Pressable
                   onPress={() => setView("grid")}
-                  hitSlop={10}
+                  // 20 px icon + 12 px on each side = 44 px touch target, without changing how it looks
+                  hitSlop={12}
                   accessibilityRole="button"
                   accessibilityLabel="Rutnätsvy"
                   accessibilityState={{ selected: view === "grid" }}
@@ -87,11 +99,12 @@ export default function ListingsFeed({
             </View>
 
             {showUpdateFilter && (
-              <Button variant="link" className="px-0 pt-0 self-start">
-                <Link href="/(tabs)/update-filter">
+              // The Link is the button itself, so there is one focusable element, not a link inside a button
+              <Link href="/(tabs)/update-filter" asChild>
+                <Button variant="link" className="px-0 pt-0 self-start">
                   <Text>Uppdatera bevakning</Text>
-                </Link>
-              </Button>
+                </Button>
+              </Link>
             )}
           </View>
 
@@ -126,7 +139,8 @@ export default function ListingsFeed({
                 imageUrl={listing.image_url ?? ""}
                 onPress={() => goToObject(listing.id, path)}
                 listingId={listing.id}
-                isNew={listing.is_new}
+                isRemoved={isListingRemoved(listing)}
+                isNew={listing.is_new && !seenIds.has(listing.id)}
                 isNewConstruction={isNewConstruction(listing)}
                 size={view === "grid" ? "small" : "default"}
               />
