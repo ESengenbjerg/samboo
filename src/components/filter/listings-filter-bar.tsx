@@ -1,4 +1,8 @@
-import { ALL_OPTION, SORT_OPTIONS } from "@/constants/filter-options";
+import {
+  ALL_OPTION,
+  NEW_CONSTRUCTION_OPTIONS,
+  SORT_OPTIONS,
+} from "@/constants/filter-options";
 import { ListingFilters } from "@/hooks/listings/useFilteredListings";
 import { ScrollView } from "react-native";
 import FilterSelect from "./filter-select";
@@ -15,10 +19,13 @@ export default function ListingsFilterBar({
     setPropertyType,
     tag,
     setTag,
+    newConstruction,
+    setNewConstruction,
     propertyTypeOptions,
     tagOptions,
     showPropertyTypeFilter,
     showTagFilter,
+    showNewConstructionFilter,
   } = filters;
 
   return (
@@ -51,6 +58,15 @@ export default function ListingsFilterBar({
           value={tag}
           onValueChange={setTag}
           options={[ALL_OPTION, ...tagOptions]}
+          fieldColor="bg-white"
+          />
+        )}
+      {showNewConstructionFilter && (
+        <FilterSelect
+          placeholder="Nyproduktion"
+          value={newConstruction}
+          onValueChange={setNewConstruction}
+          options={[ALL_OPTION, ...NEW_CONSTRUCTION_OPTIONS]}
           fieldColor="bg-white"
         />
       )}
