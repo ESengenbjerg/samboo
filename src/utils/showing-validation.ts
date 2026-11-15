@@ -1,3 +1,4 @@
+import { SHOWING_LAST_DATE } from "@/constants/limits";
 import { startOfToday, toIsoDate } from "@/utils/date-format";
 
 export function isValidShowingDate(date: string) {
@@ -13,6 +14,11 @@ export function isValidShowingDate(date: string) {
 
 export function isShowingDateInPast(date: string) {
   return date < toIsoDate(startOfToday());
+}
+
+// "YYYY-MM-DD" strings compare in date order
+export function isShowingDateTooLate(date: string) {
+  return date > SHOWING_LAST_DATE;
 }
 
 export function normalizeShowingTime(time: string) {

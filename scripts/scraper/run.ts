@@ -1,23 +1,15 @@
-// This file is the main file for scraping.
-// It aims to read all users search_params, Build a scope from them.
-// Then scrape by scope on each agency & save result into listings
-// Then finally match the result to users in user_listings table
-
-// ADDED: removed listings are handled now (see removal.ts and issues.ts):
-// - A listing the scraper no longer finds gets removed_at, but only after a healthy run
-// - A failed run (F1-F4) never touches removed_at, it is logged in scrape_issues
-// - A suspicious run (many listings vanish at once) saves/updates what was found, removes nothing,
-//   and is logged in scrape_issues
-// - Listings removed for more than 14 days are purged by pg_cron in the database, not by this script
+// Main file for scraper: reads every search param, scrapes each agency, saves the listings and matches them to users.
+// How removed, failed and suspicious runs are handled: docs/removed_listings.md
 
 import { chromium } from "playwright";
+import type { Json } from "../../shared/database.types.ts";
 import { ScrapeLayoutError } from "../lib/errors.ts";
 import type {
   Agency,
+  AgencyRun,
   IssueKind,
   IssueReason,
   ListingRow,
-  SearchParamsRow,
 } from "../lib/types.ts";
 import * as agency1 from "./agencies/agency1.ts";
 import * as mockdata from "./agencies/mockdata.ts";
@@ -34,14 +26,15 @@ import {
   markRemoved,
   tooManyPagesFailed,
 } from "./removal.ts";
+import { newAgencyRun, recordRun } from "./runHistory.ts";
 import { buildScope } from "./scope.ts";
 
 process.loadEnvFile(".env");
 
-// THIS REQUIRES NODE v.24 (native .ts and process.loadEnvFile, see scripts/.nvmrc)
+// Requires Node 24 (native .ts and process.loadEnvFile, see scripts/.nvmrc)
 const { supabaseAdmin } = await import("../lib/supabaseAdmin.ts");
 
-// Agencies are scraped one after another. ADD NEW AGENCIES HERE!!!
+// Agencies are scraped one after another. Add new agencies here!
 const allAgencies: Agency[] = [mockdata, agency1];
 
 // Optional flags for a limited test run. Without them everything runs as usual
@@ -71,14 +64,10 @@ if (agencies.length === 0) {
 
 const municipalityFlags = flagValues("municipality");
 
-// // node scripts/scraper/run.ts --dry-run  -> print scope and URLs, scrape nothing
-// const dryRun = process.argv.includes("--dry-run"); // For test
-
 // ---------------------- READ SEARCH PARAMS --------------------------
 const { data: searchParams, error: searchError } = await supabaseAdmin
   .from("search_params")
-  .select("user_id, property_types, municipalities, areas")
-  .overrideTypes<SearchParamsRow[]>();
+  .select("user_id, property_types, municipalities");
 
 if (searchError) {
   console.error("Failed to read search_params:", searchError);
@@ -88,11 +77,11 @@ if (searchError) {
 // ---------------------- BUILD SCOPE --------------------------
 const { items, skipped } = buildScope(searchParams ?? []);
 const scope = municipalityFlags.length
-  ? [{ municipalities: municipalityFlags.sort(), areas: [], propertyTypes: [] }]
+  ? [{ municipalities: municipalityFlags.sort(), propertyTypes: [] }]
   : items;
 
 for (const userId of skipped) {
-  console.warn(`Skipping search without a place (user ${userId})`);
+  console.warn(`Skipping search without a municipality (user ${userId})`);
 }
 
 if (scope.length === 0) {
@@ -103,18 +92,8 @@ if (scope.length === 0) {
 console.log(`Scope: ${scope.length} distinct searches`);
 console.log(JSON.stringify(scope, null, 2));
 
-// if (dryRun) {
-//   for (const agency of agencies) {
-//     console.log(`\n${agency.AGENCY}:`);
-//     for (const url of agency.buildUrls(scope)) console.log(`  ${url}`);
-//   }
-//   process.exit(0);
-// }
-
 // ---------------------- SCRAPE + SAVE --------------------------
-// Why the listings table would reject the row as a whole, or null. SAME LIMITS as the check constraints on listings
-// (supabase/schema.sql; the database allows a larger ld_json, since jsonb::text adds spaces). The mappers already make
-// single bad values null, this is for what cannot be nulled. A skipped row is not saved and not marked as removed
+// Why the listings table would reject the row as a whole, or null. SAME LIMITS as the check constraints on listings (supabase/schema.sql; the database allows a larger ld_json, since jsonb::text adds spaces). The mappers already make single bad values null, this is for what cannot be nulled. A skipped row is not saved and not marked as removed
 const MAX_URL_LENGTH = 500;
 const MAX_LD_JSON_BYTES = 200_000;
 
@@ -134,16 +113,22 @@ let failedAgencies = 0;
 // Issues the admin must hear about now. Makes the run exit non-zero, so GitHub notifies
 let needsAttention = 0;
 const browser = await chromium.launch({ headless: true });
+// Shared by every agency's row in scrape_runs, so the rows of one run can be grouped
+const runStartedAt = new Date().toISOString();
 
 // Writes a failed/suspicious run to the backlog and notifies the admin when the rules say so
 async function flag(
+  run: AgencyRun,
   agencyName: string,
   kind: IssueKind,
   reason: IssueReason,
   message: string,
-  details: Record<string, unknown>,
+  details: { [key: string]: Json | undefined },
 ) {
   console.error(`${agencyName}: ${kind} (${reason}) - ${message}`);
+  run.outcome = kind;
+  run.reason = reason;
+  run.message = message;
   const issue = await recordIssue(supabaseAdmin, agencyName, kind, reason, {
     message,
     ...details,
@@ -156,10 +141,14 @@ async function flag(
 
 try {
   for (const agency of agencies) {
+    const startedAt = new Date().toISOString();
+    // Filled in below and saved to scrape_runs in finally, also after continue
+    const run = newAgencyRun();
     try {
       // No search URL for this agency (e.g. none of the chosen types exist there) means nothing was scraped, so nothing can be judged as removed
       if (agency.buildUrls(scope).length === 0) {
         console.log(`${agency.AGENCY}: nothing to scrape in this scope`);
+        run.outcome = "skipped";
         continue;
       }
 
@@ -176,7 +165,7 @@ try {
         result = await agency.scrape(scope, browser);
       } catch (error) {
         const reason = error instanceof ScrapeLayoutError ? "F2" : "F1";
-        await flag(agency.AGENCY, "failed", reason, String(error), {});
+        await flag(run, agency.AGENCY, "failed", reason, String(error), {});
         continue;
       }
       const { failedUrls } = result;
@@ -189,17 +178,19 @@ try {
         }
         return !problem;
       });
+      run.failedPages = failedUrls.length;
 
       if (rows.length > 0) {
         const { error } = await supabaseAdmin
           .from("listings")
           .upsert(rows, { onConflict: "agency,external_id" });
-        // Failure F4: was thrown to the catch below, now it is a failed run in the backlog
+        // Failure F4: the save failed, logged in the backlog
         if (error) {
-          await flag(agency.AGENCY, "failed", "F4", error.message, {});
+          await flag(run, agency.AGENCY, "failed", "F4", error.message, {});
           continue;
         }
       }
+      run.saved = rows.length;
 
       console.log(
         `${agency.AGENCY}: saved ${rows.length} listings, ${failedUrls.length} pages failed`,
@@ -208,6 +199,7 @@ try {
       // Failure F3: Too many listing pages failed, the scraper is probably broken
       if (tooManyPagesFailed(rows.length, failedUrls.length)) {
         await flag(
+          run,
           agency.AGENCY,
           "failed",
           "F3",
@@ -225,6 +217,7 @@ try {
       if (isSuspiciousRemoval(activeBefore.length, missing.length)) {
         await resolveIssues(supabaseAdmin, agency.AGENCY, ["failed"]);
         await flag(
+          run,
           agency.AGENCY,
           "suspicious",
           "mass_removal",
@@ -240,10 +233,12 @@ try {
 
       // Clean run. Not found = removed, and the open issues for this agency are closed
       await markRemoved(supabaseAdmin, missing, new Date().toISOString());
+      run.removed = missing.length;
       await resolveIssues(supabaseAdmin, agency.AGENCY, [
         "failed",
         "suspicious",
       ]);
+      run.outcome = "ok";
       console.log(
         `${agency.AGENCY}: marked ${missing.length} listings as removed`,
       );
@@ -251,6 +246,18 @@ try {
       // One agency failing does not stop the others
       failedAgencies++;
       console.error(`Agency ${agency.AGENCY} failed:`, error);
+      run.outcome = "error";
+      run.reason = null;
+      run.message = String(error);
+    } finally {
+      const saved = await recordRun(
+        supabaseAdmin,
+        runStartedAt,
+        agency.AGENCY,
+        startedAt,
+        run,
+      );
+      if (!saved) failedAgencies++;
     }
   }
 } finally {
@@ -270,6 +277,5 @@ if (matchError) {
   console.log(`${newMatches} new user matches`);
 }
 
-// A non-zero exit code makes a scheduled run show up as failed.
-// When an issue needs the admin's attention (needsAttention), but a single failed agency run does not, so one bad day does not send a notification
+// A non-zero exit code makes a scheduled run show up as failed, so GitHub notifies. Used for unexpected errors and issues the admin must hear about, not for a single failed agency run.
 if (failedAgencies > 0 || needsAttention > 0) process.exitCode = 1;

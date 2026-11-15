@@ -1,9 +1,8 @@
 import type { ScopeItem, SearchParamsRow } from "../lib/types.ts";
 
 // Builds the scrape scope from every user's search_params.
-// One scope item per distinct search. Searches without a place are skipped, otherwise a whole agency site would be scraped.
-// The scope is a list of searches to be done on each agency's site, i.e. All houses in municipality A and all apartments in municipality B
-
+// One scope item per distinct search. Searches without a municipality are skipped, otherwise a whole agency site would be scraped.
+// The scope is a list of searches to be done on each agency's site, e.g. all houses in municipality A and all apartments in municipality B
 export function buildScope(searchParams: SearchParamsRow[]): {
   items: ScopeItem[];
   skipped: string[];
@@ -13,11 +12,9 @@ export function buildScope(searchParams: SearchParamsRow[]): {
   const seen = new Set<string>();
 
   for (const sp of searchParams) {
-    const municipalities = sp.municipalities ?? [];
-    const areas = sp.areas ?? [];
+    const municipalities = sp.municipalities;
 
-    // A municipality is mandatory for scraping to occur. Areas only narrow a municipality down (see validate_search_places()),
-    // so a search with areas but no municipality is not valid and is skipped
+    // A municipality is mandatory for scraping to occur
     if (municipalities.length === 0) {
       skipped.push(sp.user_id);
       continue;
@@ -25,8 +22,7 @@ export function buildScope(searchParams: SearchParamsRow[]): {
 
     const item: ScopeItem = {
       municipalities: [...municipalities].sort(),
-      areas: [...areas].sort(),
-      propertyTypes: [...(sp.property_types ?? [])].sort(),
+      propertyTypes: [...sp.property_types].sort(),
     };
 
     // Identical searches only need to be scraped once

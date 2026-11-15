@@ -1,6 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createClient } from "@supabase/supabase-js";
 
+import type { Database } from "@shared/database.types";
+
 // Credentials in dotenv
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const key=process.env.EXPO_PUBLIC_SUPABASE_KEY;
@@ -28,7 +30,7 @@ const storage = {
 // Note: createClient also sets up the realtime client, which needs the global
 // WebSocket that only exists in Node 22+. The static web export (`output: "static"`)
 // runs this file in Node, so building for web fails on older Node versions (see .nvmrc).
-export const supabase = createClient(url, key, {
+export const supabase = createClient<Database>(url, key, {
   auth: {
     storage,
     autoRefreshToken: true,

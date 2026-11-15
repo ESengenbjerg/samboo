@@ -1,24 +1,35 @@
-export type Listing = {
-  id: number;
-  agency: string;
-  external_id: number;
-  url: string;
-  property_type: string | null;
-  municipality: string | null;
-  area: string | null;
-  price: number | null;
-  rooms: number | null;
-  living_area?: number | null;
-  monthly_fee?: number | null;
-  address: string | null;
-  image_url: string | null;
-  is_new_construction: boolean;
-};
+import type { Tables } from "@shared/database.types";
 
-export type UserListing = {
-  id: number;
-  is_new: boolean;
-  liked: boolean;
+// The listings columns the app uses. Queries may return more (listings(*)), never less
+export type Listing = Pick<
+  Tables<"listings">,
+  | "id"
+  | "agency"
+  | "external_id"
+  | "url"
+  | "property_type"
+  | "municipality"
+  | "area"
+  | "price"
+  | "rooms"
+  | "living_area"
+  | "monthly_fee"
+  | "address"
+  | "image_url"
+  | "is_new_construction"
+  | "latitude"
+  | "longitude"
+  | "build_year"
+  | "plot_area"
+  | "floor_level"
+  | "description"
+  | "removed_at"
+>;
+
+export type UserListing = Pick<
+  Tables<"user_listings">,
+  "id" | "is_new" | "liked"
+> & {
   listings: Listing;
 };
 
@@ -29,12 +40,9 @@ export type MatchedListing = Listing & {
   is_new: boolean;
 };
 
-// UserListing with the owner, used when rows from several users are fetched at once
-export type MemberUserListing = UserListing & {
-  user_id: string;
-};
+// A listing in a group member's liked list, with when the member liked it
+export type MemberLikedListing = Listing &
+  Pick<Tables<"user_listings">, "liked_at">;
 
-// Only the listing id of a liked user_listings row (listings.id = user_listings.listing_id)
-export type LikedListingId = {
-  listing_id: number;
-};
+// A listing's position. Both are null when the agency has not published one
+export type ListingCoordinates = Pick<Listing, "latitude" | "longitude">;

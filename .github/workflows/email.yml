@@ -1,0 +1,51 @@
+name: Send emails
+
+# Sends mail weekly or daily to users with updates
+
+on:
+  schedule:
+    # 2 times due to winter/summer time, script checks which.
+    # GitHub cron is UTC. Off the hour on purpose, GitHub delays jobs queued at :00
+    - cron: "7 5 * * *"
+    - cron: "7 6 * * *"
+
+  workflow_dispatch:
+    inputs:
+      # Not read by this workflow. dispatch_github_workflow() in Supabase always sends it, and GitHub rejects the dispatch (422) if the input is not declared.
+      skip_if_recent:
+        description: "Unused here (sent by pg_cron). Users already mailed today are always skipped"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: email
+  cancel-in-progress: false
+
+jobs:
+  email:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: scripts/.nvmrc # Node 24 runs .ts files natively
+          cache: npm
+
+      - run: npm ci
+
+      # process.loadEnvFile() throws without a .env file. An empty one is fine
+      - run: touch .env
+
+      - name: Send emails
+        run: node scripts/email/sendEmails.ts
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          NOTIFY_FROM: ${{ vars.NOTIFY_FROM }}
+          APP_URL: ${{ vars.APP_URL }}

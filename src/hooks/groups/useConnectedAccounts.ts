@@ -1,0 +1,372 @@
+import { MAX_GROUP_MEMBERS } from "@/constants/limits";
+import {
+  getGroupMembers,
+  leaveGroup as leaveGroupRpc,
+  removeGroupMember as removeGroupMemberRpc,
+  subscribeToConnectedAccounts,
+} from "@/services/groups";
+import {
+  acceptInvite as acceptInviteRpc,
+  cancelInvite as cancelInviteRpc,
+  createInvite,
+  declineInvite as declineInviteRpc,
+  getReceivedInvites,
+  getSentInvites,
+  InviteFailure,
+  inviteErrorMessage,
+  inviteFailureSummary,
+  SEND_INVITE_FALLBACK,
+  validateInviteEmails,
+} from "@/services/invites";
+import {
+  GroupMember,
+  ReceivedInvite,
+  SentInvite,
+} from "@/types/connected-accounts";
+import { useSkippedShowingsStore } from "@/stores/skipped-showings";
+import { normalizeEmail } from "@shared/email";
+import type { PostgrestError } from "@supabase/supabase-js";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+type ConnectedAccountsData = {
+  userId: string;
+  // The refreshCount this result was loaded for. If it is lower than the current
+  // refreshCount, a newer load is running and the data is stale
+  loadedFor: number;
+  members: GroupMember[];
+  receivedInvites: ReceivedInvite[];
+  sentInvites: SentInvite[];
+  failed?: boolean;
+};
+
+const NO_MEMBERS: GroupMember[] = [];
+
+// Thrown by the database when the invite is already answered, e.g. after a double tap on "Accept"
+function isInviteAlreadyHandled(error: PostgrestError) {
+  return error.message
+    .toLowerCase()
+    .includes("inbjudan finns inte eller är inte din");
+}
+
+// Connected accounts (my group), invites to me and invites I have sent.
+// Pass undefined until the session is loaded
+export function useConnectedAccounts(
+  userId: string | undefined,
+  // Used to stop the user from inviting themselves
+  userEmail?: string | null,
+) {
+  const [data, setData] = useState<ConnectedAccountsData | null>(null);
+  // Changes when refresh() is called so the fetch runs again
+  const [refreshCount, setRefreshCount] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Error from remove/leave/cancel/answer. Shown as a toast on the settings page
+  const [actionError, setActionError] = useState<string | null>(null);
+  // Error from sendInvite. Shown only inside the invite dialog
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  // Info about changes made by others, e.g. someone left the group
+  const [groupNotice, setGroupNotice] = useState<string | null>(null);
+  // My own showings that did not follow into the group when I accepted an invite
+  const skippedShowings = useSkippedShowingsStore((s) => s.showings);
+  const setSkippedShowings = useSkippedShowingsStore((s) => s.set);
+  const clearSkippedShowings = useSkippedShowingsStore((s) => s.clear);
+
+  // Members from the previous load, to see who disappeared
+  const previousMembers = useRef<{
+    userId: string;
+    members: GroupMember[];
+  } | null>(null);
+  // Changes I made myself should not show up as notices
+  const removedByMe = useRef(new Set<string>());
+  const leftByMe = useRef(false);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    // Ignore the response if the user changed or the component unmounted
+    let cancelled = false;
+
+    Promise.all([
+      getGroupMembers(),
+      getReceivedInvites(),
+      getSentInvites(userId),
+    ]).then(([members, received, sent]) => {
+      if (cancelled) return;
+
+      const error = members.error ?? received.error ?? sent.error;
+      if (error) {
+        console.log("Connected accounts error:", error);
+        setData({
+          userId,
+          loadedFor: refreshCount,
+          members: [],
+          receivedInvites: [],
+          sentInvites: [],
+          failed: true,
+        });
+        return;
+      }
+
+      const newMembers = members.data ?? [];
+      const previous = previousMembers.current;
+      if (previous?.userId === userId && previous.members.length > 0) {
+        if (newMembers.length === 0) {
+          if (!leftByMe.current) {
+            // With 2+ others left the group lives on without me, so I was removed.
+            // With 1 other the group is gone either way
+            setGroupNotice(
+              previous.members.length > 1
+                ? "Du har blivit borttagen från gruppen."
+                : "Din grupp har upphört.",
+            );
+          }
+        } else {
+          const newIds = new Set(newMembers.map((m) => m.id));
+          const names = previous.members
+            .filter((m) => !newIds.has(m.id) && !removedByMe.current.has(m.id))
+            .map((m) => m.name);
+          if (names.length > 0) {
+            setGroupNotice(`${names.join(" och ")} har lämnat gruppen.`);
+          }
+        }
+      }
+      previousMembers.current = { userId, members: newMembers };
+      removedByMe.current.clear();
+      leftByMe.current = false;
+
+      setData({
+        userId,
+        loadedFor: refreshCount,
+        members: newMembers,
+        receivedInvites: received.data ?? [],
+        sentInvites: sent.data ?? [],
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, refreshCount]);
+
+  const refresh = useCallback(() => setRefreshCount((c) => c + 1), []);
+
+  // Reload when something changes on another account's device
+  useEffect(() => {
+    if (!userId) return;
+    return subscribeToConnectedAccounts(userId, refresh);
+  }, [userId, refresh]);
+
+  // Never expose data that belongs to a previous user
+  const current = userId && data?.userId === userId ? data : null;
+  const members = current?.members ?? NO_MEMBERS;
+  // A group always has at least 2 members, so any other member means I am in one
+  const isInGroup = members.length > 0;
+
+  // Runs one database call, shows a message on failure and reloads everything afterwards.
+  // Returns true if it succeeded. An error matching isHandled counts as success,
+  // the reload shows the real state
+  const run = useCallback(
+    async (
+      action: () => PromiseLike<{ error: PostgrestError | null }>,
+      logLabel: string,
+      // Shown when the error has no known cause
+      fallback: string,
+      isHandled?: (error: PostgrestError) => boolean,
+    ) => {
+      setActionError(null);
+      setGroupNotice(null);
+      setIsSubmitting(true);
+
+      const { error } = await action();
+      setIsSubmitting(false);
+      // Reload on failure too: the invite or group may have changed on the other side
+      refresh();
+
+      if (error && isHandled?.(error)) return true;
+
+      if (error) {
+        console.log(`${logLabel} error:`, error);
+        setActionError(inviteErrorMessage(error, fallback));
+        return false;
+      }
+      return true;
+    },
+    [refresh],
+  );
+
+  const sendInvite = useCallback(
+    async (emails: string[]) => {
+      if (!userId) return emails;
+
+      // Me + the others. The invite would be stored but could never be accepted
+      if (members.length + emails.length >= MAX_GROUP_MEMBERS) {
+        setInviteError(`Gruppen är full (max ${MAX_GROUP_MEMBERS} medlemmar).`);
+        return emails;
+      }
+
+      // Check all before sending any
+      const validationError = validateInviteEmails(emails, userEmail);
+
+      // If error, show message and exit
+      if (validationError) {
+        setInviteError(validationError);
+        return emails;
+      }
+
+      // Already in my group: the invite could never be accepted
+      const memberEmails = new Set(members.map((m) => normalizeEmail(m.email)));
+      const alreadyMember = emails.find((e) =>
+        memberEmails.has(normalizeEmail(e)),
+      );
+      if (alreadyMember) {
+        setInviteError(`${alreadyMember} är redan kopplad till dig.`);
+        return emails;
+      }
+
+      // Not via run(): it clears the error on every call, so a later
+      // success would hide an earlier failure
+      setInviteError(null);
+      setGroupNotice(null);
+      setIsSubmitting(true);
+
+      const failed: string[] = [];
+      const failures: InviteFailure[] = [];
+
+      try {
+        // Keep going on errors, so one rejected address does not stop the rest
+        for (const email of emails) {
+          const { error } = await createInvite(userId, normalizeEmail(email));
+          if (error) {
+            console.log("Send invite error:", error);
+            failed.push(email);
+            failures.push({
+              email,
+              message: inviteErrorMessage(error, SEND_INVITE_FALLBACK),
+            });
+          }
+        }
+      } finally {
+        setIsSubmitting(false);
+        // Reload once, so the sent invites show up
+        refresh();
+      }
+
+      if (failures.length > 0) {
+        setInviteError(inviteFailureSummary(failures, emails.length));
+      }
+      return failed;
+    },
+    [userId, userEmail, members, refresh],
+  );
+
+  const acceptInvite = useCallback(
+    async (inviteId: number) => {
+      // The database checks this too, but a clearer message helps
+      if (isInGroup) {
+        setActionError(
+          "Du är redan kopplad till andra konton. Lämna gruppen först för att acceptera.",
+        );
+        return false;
+      }
+
+      // skippedShowings is not cleared here: a second tap on the same invite is answered
+      // "already handled", which would wipe the list and never fill it again.
+      // A successful accept replaces it below, and it is cleared when the user leaves
+      return run(
+        async () => {
+          const { data, error } = await acceptInviteRpc(inviteId);
+          if (!error) setSkippedShowings(data);
+          return { error };
+        },
+        "Accept invite",
+        "Kunde inte acceptera inbjudan. Försök igen.",
+        isInviteAlreadyHandled,
+      );
+    },
+    [isInGroup, run, setSkippedShowings],
+  );
+
+  const declineInvite = useCallback(
+    (inviteId: number) =>
+      run(
+        () => declineInviteRpc(inviteId),
+        "Decline invite",
+        "Kunde inte avböja inbjudan. Försök igen.",
+      ),
+    [run],
+  );
+
+  const cancelInvite = useCallback(
+    (inviteId: number) =>
+      run(
+        () => cancelInviteRpc(inviteId),
+        "Cancel invite",
+        "Kunde inte dra tillbaka inbjudan. Försök igen.",
+      ),
+    [run],
+  );
+
+  // Removes one connected account from my group
+  const removeMember = useCallback(
+    (memberId: string) => {
+      removedByMe.current.add(memberId);
+      return run(
+        () => removeGroupMemberRpc(memberId),
+        "Remove member",
+        "Kunde inte ta bort kontot från gruppen. Försök igen.",
+      );
+    },
+    [run],
+  );
+
+  // I leave the group. The others stay connected if at least two of them remain
+  const leaveGroup = useCallback(() => {
+    leftByMe.current = true;
+    return run(
+      () => leaveGroupRpc(),
+      "Leave group",
+      "Kunde inte lämna gruppen. Försök igen.",
+    );
+  }, [run]);
+
+  const clearActionError = useCallback(() => setActionError(null), []);
+  const clearInviteError = useCallback(() => setInviteError(null), []);
+  const dismissGroupNotice = useCallback(() => setGroupNotice(null), []);
+
+  // Invites from someone already in my group can no longer be accepted, so hide them
+  const memberIds = new Set(members.map((m) => m.id));
+  const receivedInvites = (current?.receivedInvites ?? []).filter(
+    (i) => !memberIds.has(i.from_user_id),
+  );
+  const sentInvites = current?.sentInvites ?? [];
+
+  return {
+    members,
+    isInGroup,
+    receivedInvites,
+    sentInvites,
+    pendingSentInvites: sentInvites.filter((i) => i.status === "pending"),
+    // Loading until we have a result for the current user
+    isLoading: !!userId && !current,
+    // true when the latest load has finished successfully
+    isReady: !!current && !current.failed && current.loadedFor === refreshCount,
+    error: current?.failed ? "Kunde inte hämta dina kopplade konton." : null,
+    refresh,
+    isSubmitting,
+    actionError,
+    inviteError,
+    groupNotice,
+    skippedShowings,
+    clearSkippedShowings,
+    dismissGroupNotice,
+    clearActionError,
+    clearInviteError,
+    sendInvite,
+    acceptInvite,
+    declineInvite,
+    cancelInvite,
+    removeMember,
+    leaveGroup,
+  };
+}
+
+export type ConnectedAccounts = ReturnType<typeof useConnectedAccounts>;

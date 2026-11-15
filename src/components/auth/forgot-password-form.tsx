@@ -3,15 +3,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
-import { useForgotPassword } from "@/hooks/useForgotPassword";
-import { router } from "expo-router";
+import { EMAIL_MAX_LENGTH } from "@/constants/limits";
+import { useForgotPassword } from "@/hooks/auth/useForgotPassword";
+import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 
 export function ForgotPasswordForm() {
   const { sendResetCode, isSending: isLoading, error } = useForgotPassword();
 
-  const [email, setEmail] = useState("");
+  const { email: initialEmail } = useLocalSearchParams<{ email?: string }>();
+
+  const [email, setEmail] = useState(initialEmail ?? "");
 
   async function onSubmit() {
     // Remove spaces, e.g. from autofill
@@ -31,24 +34,30 @@ export function ForgotPasswordForm() {
 
   return (
     <View className="gap-6 w-full max-w-sm px-14">
-      <Text variant="bold" className="text-center text-xl text-background">
+      <Text
+        variant="bold"
+        role="heading"
+        aria-level={1}
+        className="text-center text-xl text-background"
+      >
         Glömt lösenord?
       </Text>
       <Text className="text-background text-center">
-        Fyll i din e-postadress så skickar vi en återställningskod.
+        Fyll i din mejladress så skickar vi en återställningskod.
       </Text>
 
       <View className="gap-1.5">
         <Label htmlFor="forgot-email" className="text-background">
-          E-post
+          Mejl
         </Label>
         <Input
           id="forgot-email"
-          placeholder="m@example.com"
+          aria-label="Mejl"
+          placeholder="namn@example.com"
           keyboardType="email-address"
           autoComplete="email"
           autoCapitalize="none"
-          maxLength={254}
+          maxLength={EMAIL_MAX_LENGTH}
           returnKeyType="send"
           value={email}
           onChangeText={setEmail}
@@ -57,7 +66,7 @@ export function ForgotPasswordForm() {
         />
       </View>
 
-      {error && <FormError>{error}</FormError>}
+      {error && <FormError className="sm:self-stretch">{error}</FormError>}
 
       <View className="gap-6 items-center justify-center mt-6">
         <Button className="px-10" onPress={onSubmit} disabled={isLoading}>

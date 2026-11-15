@@ -28,9 +28,12 @@ const PROPERTY_TYPES: Record<string, PropertyType> = {
 };
 
 // Find property type by parsing
-function mapPropertyType(type: unknown): PropertyType | null {
+function mapPropertyType(type: unknown): PropertyType {
   const text = toText(type);
-  if (!text) return null;
+  if (!text) {
+    console.warn(`No property type, saving as "other"`);
+    return "other";
+  }
 
   const key = text.split(/[ ,]/)[0]?.toLowerCase() ?? "";
   const mapped = PROPERTY_TYPES[key];
@@ -48,7 +51,10 @@ function mapAddress(streetAddress: unknown, region: unknown): string | null {
   if (!text) return null;
 
   const lastComma = text.lastIndexOf(",");
-  const lastPart = text.slice(lastComma + 1).trim().toLowerCase();
+  const lastPart = text
+    .slice(lastComma + 1)
+    .trim()
+    .toLowerCase();
   const regionText = toText(region)?.toLowerCase();
   const cut = lastComma !== -1 && !!regionText && lastPart === regionText;
 
@@ -110,10 +116,13 @@ export function mapListing(
     description: toText(data.product?.description, 5000, true),
     floor_level: withinLimits("floor_level", toNumber(home?.floorLevel)),
     plot_area: withinLimits("plot_area", toArea(facts.plotArea)),
-    latitude: toNumber(home?.geo?.latitude),
-    longitude: toNumber(home?.geo?.longitude),
+    latitude: withinLimits("latitude", toNumber(home?.geo?.latitude)),
+    longitude: withinLimits("longitude", toNumber(home?.geo?.longitude)),
     monthly_fee: withinLimits("monthly_fee", toFee(facts.monthlyFee)),
-    living_area: withinLimits("living_area", toPositive(home?.floorSize?.value)),
+    living_area: withinLimits(
+      "living_area",
+      toPositive(home?.floorSize?.value),
+    ),
     build_year: withinLimits("build_year", toNumber(home?.yearBuilt)),
     is_new_construction: facts.isNewConstruction,
   };

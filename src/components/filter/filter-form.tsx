@@ -2,33 +2,38 @@ import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
+  isPropertyType,
   LIVING_AREA_OPTIONS,
   MONTHLY_FEE_OPTIONS,
+  NO_LIMIT_LABEL,
+  NO_LIMIT_OPTION,
+  NO_LIMIT_VALUE,
   PROPERTY_TYPES_OPTIONS,
+  PropertyType,
   ROOM_OPTIONS,
 } from "@/constants/filter-options";
-import { usePlaces } from "@/hooks/usePlaces";
-import {
-  ClientFilter,
-  InformationInterval,
-  ScraperFilter,
-} from "@/stores/onboarding";
+import { usePlaces } from "@/hooks/search/usePlaces";
+import { ClientFilter, ScraperFilter } from "@/stores/onboarding";
 import { SelectOption } from "@/types/select-option";
 import { capitalize } from "@/utils/capitalize-string";
-import { useState } from "react";
+import { ReactNode, useState } from "react";
 import { View } from "react-native";
 import FormError from "../form-error";
 import { Button } from "../ui/button";
-import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
+import { Spinner } from "../ui/spinner";
 import { Switch } from "../ui/switch";
 import FilterSelect from "./filter-select";
 import GeoPicker from "./geo-picker";
 
-const INTERVAL_OPTIONS: { value: InformationInterval; label: string }[] = [
-  { value: "day", label: "Varje dag" },
-  { value: "week", label: "Varje vecka" },
-  { value: "none", label: "Aldrig" },
-];
+// "Ingen gräns" first, so a chosen limit can be cleared again
+const ROOM_SELECT_OPTIONS = [NO_LIMIT_OPTION, ...ROOM_OPTIONS];
+const MONTHLY_FEE_SELECT_OPTIONS = [NO_LIMIT_OPTION, ...MONTHLY_FEE_OPTIONS];
+const LIVING_AREA_SELECT_OPTIONS = [NO_LIMIT_OPTION, ...LIVING_AREA_OPTIONS];
+
+// "Ingen gräns" is stored as no value, so the placeholder shows it
+function withoutNoLimit(option: SelectOption | undefined) {
+  return option?.value === NO_LIMIT_VALUE ? undefined : option;
+}
 
 type FilterFormProps = {
   title: string;
@@ -37,12 +42,9 @@ type FilterFormProps = {
   // Values the form starts with. null means nothing saved yet
   savedScraperFilter: ScraperFilter | null;
   savedClientFilter: ClientFilter | null;
-  savedInformationInterval: InformationInterval;
-  onSave: (
-    scraperFilter: ScraperFilter,
-    clientFilter: ClientFilter,
-    informationInterval: InformationInterval,
-  ) => void;
+  onSave: (scraperFilter: ScraperFilter, clientFilter: ClientFilter) => void;
+  // Optional extra fields shown above the submit button
+  intervalField?: ReactNode;
   mainColor?: "secondary" | "primary";
   fieldColor?: "bg-white" | "bg-input";
 };
@@ -53,12 +55,14 @@ export default function FilterForm({
   submitLabel,
   savedScraperFilter,
   savedClientFilter,
-  savedInformationInterval,
   onSave,
+  intervalField,
   mainColor = "secondary",
   fieldColor = "bg-input",
 }: FilterFormProps) {
-  const [error, setError] = useState<string | null>(null);
+  // Set on the first submit. The field errors below are derived from it,
+  // so each one disappears as soon as the field is filled in
+  const [submitted, setSubmitted] = useState(false);
 
   // Filter alternatives
   // Used to save user input before saving to scraperFilter and clientFilter
@@ -67,7 +71,7 @@ export default function FilterForm({
   );
   const [areas, setAreas] = useState<string[]>(savedClientFilter?.area ?? []);
 
-  const [propertyType, setPropertyType] = useState<string[]>(
+  const [propertyType, setPropertyType] = useState<PropertyType[]>(
     savedScraperFilter?.propertyTypes ?? [],
   );
   const [rooms, setRooms] = useState<SelectOption | undefined>(
@@ -86,8 +90,6 @@ export default function FilterForm({
   const [showNewConstruction, setShowNewConstruction] = useState(
     savedClientFilter?.showNewConstruction ?? true,
   );
-  const [informationInterval, setInformationInterval] =
-    useState<InformationInterval>(savedInformationInterval);
 
   const {
     municipalities: allMunicipalities,
@@ -120,19 +122,13 @@ export default function FilterForm({
     setAreas((prev) => prev.filter((name) => allowedAreas.includes(name)));
   }
 
-  function onSubmit() {
-    setError(null);
+  const missingMunicipality = submitted && municipalities.length === 0;
+  const missingPropertyType = submitted && propertyType.length === 0;
+  const hasMissing = missingMunicipality || missingPropertyType;
 
-    const missing = [
-      municipalities.length === 0 && "en kommun",
-      propertyType.length === 0 && "en bostadstyp",
-    ].filter(Boolean);
-    if (missing.length > 0) {
-      setError(
-        `Du måste lägga till minst ${missing.join(" och ")} för att spara.`,
-      );
-      return;
-    }
+  function onSubmit() {
+    setSubmitted(true);
+    if (municipalities.length === 0 || propertyType.length === 0) return;
 
     const scraperFilter: ScraperFilter = {
       municipalities,
@@ -147,7 +143,7 @@ export default function FilterForm({
       showNewConstruction: showNewConstruction,
     };
 
-    onSave(scraperFilter, clientFilter, informationInterval);
+    onSave(scraperFilter, clientFilter);
   }
 
   return (
@@ -160,7 +156,7 @@ export default function FilterForm({
       {/* --- MUNICIPALITIES AND AREA --- */}
       <View className="gap-6 z-10">
         {isLoadingPlaces ? (
-          <Text>Laddar kommuner...</Text>
+          <Spinner size="large" />
         ) : placesError ? (
           <FormError>{placesError}</FormError>
         ) : (
@@ -174,6 +170,11 @@ export default function FilterForm({
                 mainColor={mainColor}
                 fieldColor={fieldColor}
               />
+              {missingMunicipality && (
+                <FormError className="mt-2">
+                  Lägg till minst en kommun.
+                </FormError>
+              )}
             </View>
             {availableAreas.length > 0 && (
               <GeoPicker
@@ -196,7 +197,9 @@ export default function FilterForm({
           type="multiple"
           aria-label="Bostadstyp"
           value={propertyType}
-          onValueChange={setPropertyType}
+          onValueChange={(values) =>
+            setPropertyType(values.filter(isPropertyType))
+          }
           className="gap-2 flex-wrap"
           variant="secondary"
         >
@@ -204,82 +207,77 @@ export default function FilterForm({
             <ToggleGroupItem
               key={p.value}
               value={p.value}
-              aria-label={`Boendetyp ${p.label}`}
+              aria-label={`Bostadstyp ${p.label}`}
               className="flex-none shrink-0"
               variant="outline"
+              size="lg"
             >
               <Text className="p-2">{capitalize(p.label)}</Text>
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
+        {missingPropertyType && (
+          <FormError className="mt-2">Välj minst en bostadstyp.</FormError>
+        )}
       </View>
 
       {/* --- MIN / MAX SELECTS --- */}
       <FilterSelect
         label={"Minst antal rum"}
         value={rooms}
-        onValueChange={setRooms}
-        options={ROOM_OPTIONS}
+        onValueChange={(o) => setRooms(withoutNoLimit(o))}
+        options={ROOM_SELECT_OPTIONS}
+        placeholder={NO_LIMIT_LABEL}
         fieldColor={fieldColor}
+        fullWidth
       />
 
       <FilterSelect
         label={"Högsta månadsavgift"}
         value={monthlyFee}
-        onValueChange={setMonthlyFee}
-        options={MONTHLY_FEE_OPTIONS}
+        onValueChange={(o) => setMonthlyFee(withoutNoLimit(o))}
+        options={MONTHLY_FEE_SELECT_OPTIONS}
+        placeholder={NO_LIMIT_LABEL}
         fieldColor={fieldColor}
+        fullWidth
       />
 
       <FilterSelect
         label={"Minsta boarea"}
         value={livingArea}
-        onValueChange={setLivingArea}
-        options={LIVING_AREA_OPTIONS}
+        onValueChange={(o) => setLivingArea(withoutNoLimit(o))}
+        options={LIVING_AREA_SELECT_OPTIONS}
+        placeholder={NO_LIMIT_LABEL}
         fieldColor={fieldColor}
+        fullWidth
       />
 
       {/* --- NEW PRODUCTION --- */}
-      <View className="flex-row items-center justify-between">
-        <Label containerClassName="mb-0">Visa nyproduktion</Label>
+      {/* The label also toggles, so the hit area is the whole row, not only the small switch */}
+      <View className="flex-row items-center justify-between min-h-11">
+        <Label
+          containerClassName="mb-0"
+          onPress={() => setShowNewConstruction((v) => !v)}
+        >
+          Visa nyproduktion
+        </Label>
         <Switch
+          aria-label="Visa nyproduktion"
           checked={showNewConstruction}
           onCheckedChange={setShowNewConstruction}
         />
       </View>
 
-      {/* --- INFORMATION INTERVAL --- */}
-      {/* TODO: Update to correct functionality when column exist in Supabase */}
-      <View className="gap-4">
-        <Text variant="bold">Hur ofta vill du bli informerad?</Text>
-        <RadioGroup
-          value={informationInterval}
-          onValueChange={(v) =>
-            setInformationInterval(v as InformationInterval)
-          }
-          className="flex-row flex-wrap gap-4 justify-between"
-        >
-          {INTERVAL_OPTIONS.map((o) => (
-            <View
-              key={o.value}
-              className="flex-row items-center gap-4 min-w-[45%] sm:min-w-[30%]"
-            >
-              <RadioGroupItem value={o.value} aria-label={o.label} />
-              <Label
-                containerClassName="mb-0"
-                onPress={() => setInformationInterval(o.value)}
-              >
-                {o.label}
-              </Label>
-            </View>
-          ))}
-        </RadioGroup>
-      </View>
+      {/* --- INFORMATION INTERVAL FIELDS --- */}
+      {intervalField}
 
       {/* --- SUBMIT --- */}
-      {error && <FormError>{error}</FormError>}
+      {/* Short reminder next to the button. The details are shown at each field */}
+      {hasMissing && (
+        <FormError>Fyll i de obligatoriska fälten ovanför.</FormError>
+      )}
 
-      <View className="items-center mt-10">
+      <View className="items-center gap-6 mt-6">
         <Button
           variant={mainColor === "primary" ? "default" : "secondary"}
           className="max-w-44"
@@ -287,6 +285,16 @@ export default function FilterForm({
         >
           <Text>{submitLabel}</Text>
         </Button>
+        <View className=" justify-center gap-2">
+          <Text className="text-center">
+            Vi söker regelbundet efter nya annonser. Om du inte får några
+            träffar direkt kan du komma tillbaka lite senare.
+          </Text>
+          <Text className="text-center">
+            Du kan också prova att bredda bevakningen, till exempel med fler
+            områden eller ett högre prisintervall.
+          </Text>
+        </View>
       </View>
     </View>
   );

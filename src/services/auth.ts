@@ -1,9 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import type {
-  AuthChangeEvent,
-  AuthError,
-  Session,
-} from "@supabase/supabase-js";
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 
 export function getSession() {
   return supabase.auth.getSession();
@@ -18,6 +14,13 @@ export function onAuthStateChange(
   } = supabase.auth.onAuthStateChange(callback);
 
   return () => subscription.unsubscribe();
+}
+
+// Asks the Auth server whether the stored session still exists. If it was revoked (signed out from another device, for example after a password change), supabase-js removes it and sends SIGNED_OUT to onAuthStateChange
+export async function verifySessionWithServer() {
+  const { data } = await supabase.auth.getSession();
+  if (!data.session) return;
+  await supabase.auth.getUser();
 }
 
 export async function getCurrentUser() {
@@ -79,16 +82,4 @@ export function signOutOtherClients() {
 // to profile, search, matches, tags and sent invites
 export function deleteMyAccount() {
   return supabase.rpc("delete_my_account");
-}
-
-// Maps Supabase's error codes to messages
-export function passwordErrorMessage(error: AuthError) {
-  switch (error.code) {
-    case "weak_password":
-      return "För svagt lösenord. Lösenord måste vara minst 6 tecken.";
-    case "same_password":
-      return "Välj ett annat lösenord.";
-    default:
-      return "Något gick fel, försök igen.";
-  }
 }

@@ -1,23 +1,30 @@
 import { supabase } from "@/lib/supabase";
-import { ListingTag, UserTag } from "@/types/tags";
 
 // RLS only returns my own tags
 export function getUserTags() {
   return supabase
     .from("user_tags")
     .select("id, tag_name")
-    .order("tag_name", { ascending: true })
-    .overrideTypes<UserTag[]>();
+    .order("tag_name", { ascending: true });
 }
 
-// tag_name must be 1-100 characters and unique per user (error code 23505 if it exists)
+// tag_name must be 1-20 characters and unique per user (error code 23505 if it exists)
 export function createUserTag(userId: string, tagName: string) {
   return supabase
     .from("user_tags")
     .insert({ user_id: userId, tag_name: tagName })
     .select("id, tag_name")
-    .single()
-    .overrideTypes<UserTag, { merge: false }>();
+    .single();
+}
+
+// tag_name must be 1-20 characters and unique per user (error code 23505 if it exists)
+export function updateUserTag(tagId: number, tagName: string) {
+  return supabase
+    .from("user_tags")
+    .update({ tag_name: tagName })
+    .eq("id", tagId)
+    .select("id, tag_name")
+    .single();
 }
 
 // Deleting a tag also deletes its listing_tags (cascade)
@@ -25,12 +32,12 @@ export function deleteUserTag(tagId: number) {
   return supabase.from("user_tags").delete().eq("id", tagId);
 }
 
-// All my tag applications, to show tags on cards. RLS limits it to my own user_listings
+// All my tag applications, to show tags on cards. RLS limits it to my own user_listings.
+// listing_id comes through the foreign key to user_listings, so callers can match on listings.id
 export function getListingTags() {
   return supabase
     .from("listing_tags")
-    .select("id, user_tag_id, user_listing_id")
-    .overrideTypes<ListingTag[]>();
+    .select("id, user_tag_id, user_listing_id, user_listings(listing_id)");
 }
 
 // userListingId is user_listings.id (MatchedListing.user_listing_id), not listings.id

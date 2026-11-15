@@ -1,14 +1,25 @@
-# Email delivery (sign-up codes)
+# Email delivery (sign-up and password reset codes)
 
-Sign-up sends a 6-digit code by email. Supabase Auth creates the message and sends it through Resend over SMTP. Nothing in this setup lives in the repo: it is configured in the Loopia, Resend and Supabase dashboards. This file records what was set up and why, so it can be found again.
+Sign-up and forgotten password send a 6-digit code by email. Supabase Auth creates the message and sends it through Resend over SMTP. Nothing in this setup lives in the repo: it is configured in the Loopia, Resend and Supabase dashboards. This file records what was set up and why, so it can be found again.
 
 ## How it fits together
+
+### Sign-up
 
 1. The app calls `supabase.auth.signUp({ email, password })`. This creates the user in `auth.users` (unconfirmed). The `handle_new_user` trigger creates the row in `public.profiles`.
 2. Supabase sends the "Confirm signup" template via custom SMTP (Resend).
 3. The user enters the code in the app, which calls `supabase.auth.verifyOtp(...)`. On success the user gets a session.
 
-The template must contain `{{ .Token }}`. Without it the user only gets a link, and the code screen has nothing to enter.
+### Forgotten password
+
+1. The app calls `supabase.auth.resetPasswordForEmail(email)`.
+2. Supabase sends the "Reset password" template via custom SMTP (Resend).
+3. The user enters the code in the app, which calls `supabase.auth.verifyOtp({ email, token, type: "recovery" })`. On success the user is signed in with a recovery session. The `PASSWORD_RECOVERY` event sets a flag in the app, so the user stays on the reset screen instead of entering the app.
+4. The user chooses a new password, which calls `supabase.auth.updateUser({ password })`. Other devices are signed out, in case someone else had access to the account. The flag is cleared and the user enters the app.
+
+Leaving the screen after the code is verified, but before a new password is saved, signs the user out. If the app is closed at that point the reset is not finished and the user is signed in at the next start (issue #123).
+
+Both templates must contain `{{ .Token }}`. Without it the user only gets a link, and the code screen has nothing to enter.
 
 ## Decisions
 
@@ -49,7 +60,7 @@ Authentication → SMTP Settings (custom SMTP enabled):
 
 ## Things to know when debugging
 
-- If no mail arrives and Resend → Logs is empty, the message never reached Resend. Find out how far the request got: in the browser's network tab, check whether the `signUp` request was sent and what it answered, and look in Supabase → Authentication → Logs.
+- If no mail arrives and Resend → Logs is empty, the message never reached Resend. Find out how far the request got: in the browser's network tab, check whether the `signup` or `recover` request was sent and what it answered, and look in Supabase → Authentication → Logs.
 - `signUp` creates the user and the profile row before the email is confirmed, so failed attempts leave unconfirmed users behind.
 
 ## Limits and defaults

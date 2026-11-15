@@ -1,22 +1,26 @@
+import { Label } from "@/components/ui/label";
 import { SelectOption } from "@/types/select-option";
-import { useState } from "react";
-import { LayoutChangeEvent, View } from "react-native";
-import { Label } from "../ui/label";
+import { View } from "react-native";
 import {
   NativeSelectScrollView,
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
 
 type FilterSelectProps = {
-  label: string;
+  label?: string;
   value: SelectOption | undefined;
   onValueChange: (option: SelectOption | undefined) => void;
   options: SelectOption[];
   fieldColor?: "bg-white" | "bg-input";
+  placeholder?: string;
+  dropdownLabel?: string;
+  fullWidth?: boolean;
 };
 
 export default function FilterSelect({
@@ -25,26 +29,34 @@ export default function FilterSelect({
   onValueChange,
   options,
   fieldColor = "bg-input",
+  placeholder,
+  dropdownLabel,
+  fullWidth,
 }: FilterSelectProps) {
-  // Dropdowns should be as wide as their trigger
-  const [triggerWidth, setTriggerWidth] = useState<number>();
-  const onTriggerLayout = (e: LayoutChangeEvent) =>
-    setTriggerWidth(e.nativeEvent.layout.width);
-  const contentStyle = triggerWidth ? { width: triggerWidth } : undefined;
+  // Accessible name: what the field is, plus the chosen value (the visible value
+  // would otherwise be replaced by the label for screen readers)
+  const fieldName = label ?? dropdownLabel ?? placeholder ?? "Välj";
+  const accessibleName = value ? `${fieldName}: ${value.label}` : fieldName;
 
   return (
     <View className="gap-1.5">
-      <Label>{label}</Label>
+      {label && <Label>{label}</Label>}
       <Select value={value} onValueChange={onValueChange}>
-        <SelectTrigger className={`${fieldColor} w-full`} onLayout={onTriggerLayout}>
-          <SelectValue placeholder="Välj" />
+        <SelectTrigger
+          aria-label={accessibleName}
+          className={`${fieldColor} justify-between ${fullWidth ? "w-full" : ""}`}
+        >
+          <SelectValue placeholder={placeholder ? placeholder : "Välj"} />
         </SelectTrigger>
-        <SelectContent style={contentStyle}>
-          <NativeSelectScrollView>
-            {options.map((o) => (
-              <SelectItem key={o.value} value={o.value} label={o.label} />
-            ))}
-          </NativeSelectScrollView>
+        <SelectContent className="min-w-48">
+          <SelectGroup>
+            {dropdownLabel && <SelectLabel>{dropdownLabel}</SelectLabel>}
+            <NativeSelectScrollView>
+              {options.map((o) => (
+                <SelectItem key={o.value} value={o.value} label={o.label} />
+              ))}
+            </NativeSelectScrollView>
+          </SelectGroup>
         </SelectContent>
       </Select>
     </View>

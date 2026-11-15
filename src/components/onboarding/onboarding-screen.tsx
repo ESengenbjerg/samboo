@@ -13,12 +13,21 @@ import { Button } from "../ui/button";
 import { Icon } from "../ui/icon";
 import { Text } from "../ui/text";
 
+// Number of onboarding screens: profile, create-filter, connect
+const STEP_COUNT = 3;
+
 type AuthScreenProps = {
   children: ReactNode;
   backButton?: boolean;
+  // Shown as "Steg X av 3", so the user knows how long setup takes
+  step?: number;
 };
 
-export function OnboardingScreen({ children, backButton }: AuthScreenProps) {
+export function OnboardingScreen({
+  children,
+  backButton,
+  step,
+}: AuthScreenProps) {
   const insets = useSafeAreaInsets();
   return (
     <View
@@ -30,6 +39,9 @@ export function OnboardingScreen({ children, backButton }: AuthScreenProps) {
         source={require("@/assets/images/img.jpg")}
         style={[StyleSheet.absoluteFill, { opacity: 0.15 }]}
         contentFit="cover"
+        // Decorative background
+        alt=""
+        accessible={false}
       />
 
       {/* Avoid keyboard from hiding input fields */}
@@ -53,6 +65,11 @@ export function OnboardingScreen({ children, backButton }: AuthScreenProps) {
           contentContainerClassName="flex-grow items-center justify-center gap-6 py-10"
           keyboardShouldPersistTaps="handled" // Buttons work on first tap while keyboard is open
         >
+          {step != null && (
+            <Text variant="small" className="w-full px-8">
+              {`Steg ${step} av ${STEP_COUNT}`}
+            </Text>
+          )}
           {children}
         </ScrollView>
       </KeyboardAvoidingView>

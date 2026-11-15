@@ -3,14 +3,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Text } from "@/components/ui/text";
-import { signUp } from "@/services/auth";
+import { EMAIL_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@/constants/limits";
+import { useSignUp } from "@/hooks/auth/useSignUp";
 import { router } from "expo-router";
 import { useRef, useState } from "react";
 import { type TextInputInstance, View } from "react-native";
+import { PrivacyDialog } from "../modals/privacy-dialog";
 
 export function SignUpForm() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { createAccount, isLoading, error } = useSignUp();
+  const [privacyOpen, setPrivacyOpen] = useState(false);
 
   const passwordInputRef = useRef<TextInputInstance>(null);
   const repeatPasswordInputRef = useRef<TextInputInstance>(null);
@@ -23,120 +25,116 @@ export function SignUpForm() {
     passwordInputRef.current?.focus();
   }
 
-  async function onSubmit() {
-    if (isLoading) return;
-    setError(null);
-    setIsLoading(true);
-
-    try {
-      if (password !== repeatPassword) {
-        setError("Lösenorden matchar inte.");
-        return;
-      }
-
-      // Send params to Supabase to create account
-      const { data, error } = await signUp(email.trim(), password);
-
-      if (error) {
-        setError("Något gick fel, försök igen.");
-        return;
-      }
-
-      if (data.session === null) {
-        router.push({
-          pathname: "/verify-email",
-          params: { email: email.trim(), source: "register" },
-        });
-      }
-    } catch {
-      setError("Något gick fel, försök igen.");
-    } finally {
-      setIsLoading(false);
-    }
+  function onSubmit() {
+    createAccount(email, password, repeatPassword);
   }
 
   return (
-    <View className="gap-6 w-full max-w-sm px-14">
-      <Text variant="bold" className="text-center text-xl text-background">
-        Skapa konto
-      </Text>
-      <View className="gap-1.5">
-        <Label htmlFor="signup-email" className="text-background">
-          E-post
-        </Label>
-        <Input
-          id="signup-email"
-          placeholder="m@example.com"
-          keyboardType="email-address"
-          autoComplete="email"
-          autoCapitalize="none"
-          maxLength={254}
-          value={email}
-          onChangeText={setEmail}
-          onSubmitEditing={onEmailSubmitEditing}
-          returnKeyType="next"
-          submitBehavior="submit"
-          textContentType="emailAddress"
-          editable={!isLoading}
-        />
-      </View>
-      <View className="gap-1.5">
-        <Label htmlFor="signup-password" className="text-background">
-          Lösenord
-        </Label>
-        <Input
-          ref={passwordInputRef}
-          id="signup-password"
-          placeholder="*****"
-          secureTextEntry
-          returnKeyType="next"
-          value={password}
-          onChangeText={setPassword}
-          onSubmitEditing={() => repeatPasswordInputRef.current?.focus()}
-          autoComplete="new-password"
-          textContentType="newPassword"
-          editable={!isLoading}
-        />
-      </View>
-      <View className="gap-1.5">
-        <Label htmlFor="signup-repeat-password" className="text-background">
-          Upprepa lösenord
-        </Label>
-        <Input
-          ref={repeatPasswordInputRef}
-          id="signup-repeat-password"
-          placeholder="*****"
-          secureTextEntry
-          returnKeyType="send"
-          value={repeatPassword}
-          onChangeText={setRepeatPassword}
-          onSubmitEditing={onSubmit}
-          autoComplete="new-password"
-          textContentType="newPassword"
-          editable={!isLoading}
-        />
-      </View>
-
-      {error && <FormError>{error}</FormError>}
-
-      <View className="gap-6 mt-6 items-center">
-        <Button className="px-10" onPress={onSubmit} disabled={isLoading}>
-          <Text>{!isLoading ? "Skapa konto" : "Skapar konto..."}</Text>
-        </Button>
-
-        <Button
-          variant="link"
-          size="sm"
-          onPress={() => {
-            router.dismissTo("/login");
-          }}
-          disabled={isLoading}
+    <>
+      <View className="gap-4 w-full max-w-sm px-14">
+        <Text
+          variant="bold"
+          role="heading"
+          aria-level={1}
+          className="text-center text-xl text-background"
         >
-          <Text className="leading-4 text-background">
-            Logga in
+          Skapa konto
+        </Text>
+        <View className="gap-1.5">
+          <Label htmlFor="signup-email" className="text-background">
+            Mejl
+          </Label>
+          <Input
+            id="signup-email"
+            aria-label="Mejl"
+            placeholder="namn@example.com"
+            keyboardType="email-address"
+            autoComplete="email"
+            autoCapitalize="none"
+            maxLength={EMAIL_MAX_LENGTH}
+            value={email}
+            onChangeText={setEmail}
+            onSubmitEditing={onEmailSubmitEditing}
+            returnKeyType="next"
+            submitBehavior="submit"
+            textContentType="emailAddress"
+            editable={!isLoading}
+          />
+        </View>
+        <View className="gap-1.5">
+          <Label htmlFor="signup-password" className="text-background">
+            Lösenord
+          </Label>
+          <Input
+            ref={passwordInputRef}
+            id="signup-password"
+            aria-label="Lösenord"
+            placeholder="*****"
+            secureTextEntry
+            returnKeyType="next"
+            value={password}
+            onChangeText={setPassword}
+            onSubmitEditing={() => repeatPasswordInputRef.current?.focus()}
+            autoComplete="new-password"
+            textContentType="newPassword"
+            editable={!isLoading}
+          />
+          <Text variant="small" className="text-background">
+            Minst {PASSWORD_MIN_LENGTH} tecken
           </Text>
-        </Button>
+        </View>
+        <View className="gap-1.5">
+          <Label htmlFor="signup-repeat-password" className="text-background">
+            Upprepa lösenord
+          </Label>
+          <Input
+            ref={repeatPasswordInputRef}
+            id="signup-repeat-password"
+            aria-label="Upprepa lösenord"
+            placeholder="*****"
+            secureTextEntry
+            returnKeyType="send"
+            value={repeatPassword}
+            onChangeText={setRepeatPassword}
+            onSubmitEditing={onSubmit}
+            autoComplete="new-password"
+            textContentType="newPassword"
+            editable={!isLoading}
+          />
+        </View>
+
+        {error && <FormError className="sm:self-stretch">{error}</FormError>}
+
+        <View className="gap-4 mt-2 items-center">
+          <Button className="px-10" onPress={onSubmit} disabled={isLoading}>
+            <Text>{!isLoading ? "Skapa konto" : "Skapar konto..."}</Text>
+          </Button>
+          <Text variant="small" className="text-center text-background">
+            Genom att skapa ett konto godkänner du att vi hanterar dina
+            personuppgifter enligt{" "}
+            <Text
+              variant="small"
+              className="text-background underline"
+              onPress={() => setPrivacyOpen(true)}
+              role="link"
+            >
+              vår integritetspolicy
+            </Text>
+            .
+          </Text>
+
+          <Button
+            variant="link"
+            onPress={() => {
+              router.dismissTo("/login");
+            }}
+            disabled={isLoading}
+          >
+            <Text className="leading-4 text-background">Logga in</Text>
+          </Button>
+        </View>
       </View>
-    </View>
+      <PrivacyDialog open={privacyOpen} onOpenChange={setPrivacyOpen} />
+    </>
   );
 }

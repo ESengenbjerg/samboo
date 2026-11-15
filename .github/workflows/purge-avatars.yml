@@ -1,14 +1,13 @@
 name: Purge orphan avatars
 
-# Deletes avatar files in Storage that no profile points to (see scripts/avatars/purgeOrphanAvatars.ts).
-# NOTE! The secrets must exist in GitHub Action Secrets before the first run.
+# Deletes avatar files that no profile points to (see scripts/avatars/purgeOrphanAvatars.ts)
 
 on:
   schedule:
-    # Once a day. GitHub cron is always UTC. Off the hour on purpose, GitHub delays jobs queued at :00
+    # GitHub cron is UTC. Off the hour on purpose, GitHub delays jobs queued at :00
     - cron: "41 2 * * *"
 
-  workflow_dispatch: # Manual run from the Actions tab, and backup trigger from pg_cron
+  workflow_dispatch:
     inputs:
       skip_if_recent:
         description: "Skip if already run successfully in the last 12 hours (used by pg_cron)"
@@ -18,26 +17,25 @@ on:
 permissions:
   contents: read
 
-# Never run two purges at once
 concurrency:
   group: purge-avatars
   cancel-in-progress: false
 
 jobs:
-  # Backup trigger: pg_cron in Supabase also starts this workflow (workflow_dispatch with skip_if_recent = true), because GitHub's schedule does not always fire. Scheduled and pg_cron runs are skipped if the purge job already succeeded in the last 12 hours.
-  # Runs where the purge job itself was skipped do not count.
+  # pg_cron also starts this workflow, because GitHub's schedule does not always fire.
+  # Scheduled and pg_cron runs are skipped if the purge job already succeeded in the last 12 hours.
   guard:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     permissions:
-      actions: read # List earlier runs of this workflow
+      actions: read
     outputs:
       recent: ${{ steps.check.outputs.recent }}
     steps:
       - name: Check for a successful purge in the last 12 hours
         id: check
         continue-on-error: true # If the check fails, run anyway instead of skipping
-        # A manual run from the Actions tab (skip_if_recent = false) always runs
+        # Manual runs always run
         if: github.event_name == 'schedule' || inputs.skip_if_recent
         env:
           GH_TOKEN: ${{ github.token }}
@@ -70,8 +68,7 @@ jobs:
 
       - run: npm ci
 
-      # The script calls process.loadEnvFile(".env"), which throws if the file is missing.
-      # An empty file is fine: variables already in the environment are not overwritten.
+      # process.loadEnvFile() throws without a .env file. An empty one is fine
       - run: touch .env
 
       - name: Purge orphan avatars

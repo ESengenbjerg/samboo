@@ -1,8 +1,8 @@
 import ListingsFeed from "@/components/listings-feed";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { useSavedList } from "@/hooks/useSavedList";
-import { useSession } from "@/hooks/useSession";
+import { useSession } from "@/hooks/auth/useSession";
+import { useSavedList } from "@/hooks/likes/useSavedList";
 import { router, useLocalSearchParams } from "expo-router";
 
 export default function SavedListScreen() {
@@ -17,7 +17,7 @@ export default function SavedListScreen() {
     <>
       <Button
         variant="link"
-        onPress={() => router.back()}
+        onPress={() => router.dismissTo("/saved")}
         className="px-6 justify-start bg-background"
       >
         <Text>Tillbaka</Text>

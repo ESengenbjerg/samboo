@@ -37,7 +37,10 @@ export default function TabsLayout() {
             tabBarIcon: ({ color }) => <Settings color={color} />,
           }}
         />
-        <Tabs.Screen name="notifications" options={{ href: null }} />
+         <Tabs.Screen
+          name="notifications"
+          options={{ tabBarItemStyle: { display: "none" } }}
+        />
         <Tabs.Screen name="index" options={{ href: null }} />
       </Tabs>
     </>

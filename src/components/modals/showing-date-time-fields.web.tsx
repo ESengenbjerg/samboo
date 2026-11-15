@@ -1,4 +1,5 @@
 import { Label } from "@/components/ui/label";
+import { SHOWING_LAST_DATE } from "@/constants/limits";
 import {
   parseIsoDate,
   parseTime,
@@ -34,12 +35,21 @@ export default function ShowingDateTimeFields({
         <Label>Datum</Label>
         <input
           type="date"
+          aria-label="Datum"
           className={INPUT_CLASS}
           value={toIsoDate(date)}
           min={toIsoDate(new Date())}
+          max={SHOWING_LAST_DATE}
           onChange={(e) => {
             // Empty when the user clears the field. The date is required, so keep the old one
-            if (e.target.value) onDateChange(parseIsoDate(e.target.value));
+            // Safari on iPhone ignores max, so clamp here as well. ISO dates compare as strings
+            if (e.target.value) {
+              const value =
+                e.target.value > SHOWING_LAST_DATE
+                  ? SHOWING_LAST_DATE
+                  : e.target.value;
+              onDateChange(parseIsoDate(value));
+            }
           }}
         />
       </View>
@@ -48,6 +58,7 @@ export default function ShowingDateTimeFields({
         <Label>Starttid</Label>
         <input
           type="time"
+          aria-label="Starttid"
           className={INPUT_CLASS}
           value={toTimeString(time)}
           required

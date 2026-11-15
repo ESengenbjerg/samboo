@@ -1,7 +1,8 @@
-// Same limit as accept_invite() in the database
-export const MAX_GROUP_MEMBERS = 10;
+import type { Enums, Tables } from "@shared/database.types";
+import type { RpcRow } from "@shared/db";
 
-export type InviteStatus = "pending" | "accepted" | "declined" | "cancelled";
+// invites.status, the database enum public.invite_status
+export type InviteStatus = Enums<"invite_status">;
 
 // Another member of my group (a connected account)
 export type GroupMember = {
@@ -14,19 +15,10 @@ export type GroupMember = {
 };
 
 // Invite addressed to me, from my_pending_invites()
-export type ReceivedInvite = {
-  id: number;
-  created_at: string;
-  from_user_id: string;
-  from_name: string;
-  from_email: string;
-};
+export type ReceivedInvite = RpcRow<"my_pending_invites">;
 
 // Invite I have sent (all statuses)
-export type SentInvite = {
-  id: number;
-  created_at: string;
-  to_email: string;
-  status: InviteStatus;
-  responded_at: string | null;
-};
+export type SentInvite = Pick<
+  Tables<"invites">,
+  "id" | "created_at" | "to_email" | "status" | "responded_at"
+>;

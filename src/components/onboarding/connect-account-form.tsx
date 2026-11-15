@@ -1,95 +1,240 @@
-import { getCurrentUser } from "@/services/auth";
-import { createInvite, inviteErrorMessage } from "@/services/invites";
-import { saveOnboarding } from "@/services/onboarding";
+import { useSession } from "@/hooks/auth/useSession";
+import { useAnswerInvite } from "@/hooks/groups/useAnswerInvite";
+import { useConnectedAccounts } from "@/hooks/groups/useConnectedAccounts";
+import {
+  createInvite,
+  inviteErrorMessage,
+  InviteFailure,
+  inviteFailureSummary,
+  SEND_INVITE_FALLBACK,
+  validateInviteEmails,
+} from "@/services/invites";
+import {
+  NotSignedInError,
+  onboardingErrorMessage,
+  saveOnboarding,
+} from "@/services/onboarding";
 import { useOnboardingStore } from "@/stores/onboarding";
-import { router } from "expo-router";
-import { useState } from "react";
+import { showToast } from "@/stores/toast";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 import FormError from "../form-error";
-import FormMessage from "../form-message";
 import { SendInviteDialog } from "../modals/send-invite-dialog";
 import { Button } from "../ui/button";
 import { Text } from "../ui/text";
 
-export default function ConnectAccountForm() {
-  // TODO: setError will be used once Supabase implementation is complete
+type ConnectAccountFormProps = {
+  // Called when the "Inbjudan skickad" screen is shown. Everything is saved then,
+  // so the screen hides "Tillbaka"
+  onInviteSent?: () => void;
+};
+
+export default function ConnectAccountForm({
+  onInviteSent,
+}: ConnectAccountFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const inFlight = useRef(false);
+  const saved = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [invitationDialogOpen, setInvitationDialogOpen] = useState(false);
   const [inviteSent, setInviteSent] = useState(false);
   const completeOnboarding = useOnboardingStore((s) => s.completeOnboarding);
 
+  // Invites to me, so an invited partner can accept instead of inviting back.
+  // The database allows answering before onboarding is completed
+  const { session } = useSession();
+  const accounts = useConnectedAccounts(session?.user.id, session?.user.email);
+  const { receivedInvites, isSubmitting, actionError, clearActionError } =
+    accounts;
+  const { answeredInvite, answeredFromName, onAnswer, clearAnswer } =
+    useAnswerInvite(accounts);
+
+  // Errors from accepting/declining are shown as a toast, so they go away on their own
+  useEffect(() => {
+    if (!actionError) return;
+    showToast(actionError);
+    clearActionError();
+  }, [actionError, clearActionError]);
+
+  // The screen stays mounted when the user goes back, so clear old errors on leave
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        setError(null);
+        clearActionError();
+      };
+    }, [clearActionError]),
+  );
+
   async function finish() {
     setError(null);
+    if (saved.current === true) {
+      return true;
+    }
     setIsLoading(true);
 
     try {
-      // Fetch correct user
-      const user = await getCurrentUser();
-      if (!user) throw new Error("Not signed in");
+      // The session is stored on the device. getCurrentUser() would return null
+      // when offline, which looks like a signed out user
+      const user = session?.user;
+      if (!user) throw new NotSignedInError();
 
       // Fetch user input from previous onboarding steps
       // The profile image is already uploaded in the profile step
 
-      const { profileName, scraperFilter, clientFilter } =
+      const { profileName, scraperFilter, clientFilter, informationInterval } =
         useOnboardingStore.getState();
 
       // If a step is missing, redirect to /profile to start from beginning
       // The profile image is optional, so avatarPath is not checked
       if (!profileName || !scraperFilter || !clientFilter) {
+        showToast("Något saknades från tidigare steg. Fyll i dem igen.");
         router.replace("/profile");
         return false;
       }
 
-      await saveOnboarding(user.id, profileName, scraperFilter, clientFilter);
+      await saveOnboarding(
+        user.id,
+        profileName,
+        scraperFilter,
+        clientFilter,
+        informationInterval,
+      );
+      // A retry after a failed invite must not save everything again
+      saved.current = true;
 
-      // Everything is sabed. Tge caller decides when the user is moved to /search
+      // Everything is saved. The caller decides when the user is moved to /search
       return true;
     } catch (e) {
       console.log("Onboarding error: ", e);
-      setError("Något gick fel, försök igen.");
+      setError(onboardingErrorMessage(e));
       return false;
     } finally {
       setIsLoading(false);
     }
   }
 
-  // Save onboarding, then send invites to other users
-  async function onInvite(emails: string[]) {
-    const finished = await finish();
-    if (!finished) return;
-
-    setIsLoading(true);
-
+  // Blocks double taps: isLoading is set after an await, too late to stop a second tap.
+  // finally releases the lock on every exit, including the early returns
+  async function withLock<T>(blocked: T, action: () => Promise<T>) {
+    if (inFlight.current) return blocked;
+    inFlight.current = true;
     try {
-      // Get user from Supabase
-      const user = await getCurrentUser();
-      if (!user) throw new Error("Not signed in.");
-
-      for (const email of emails) {
-        const { error: inviteError } = await createInvite(user.id, email);
-
-        if (inviteError) {
-          console.log("Invite error:", inviteError);
-          setError(inviteErrorMessage(inviteError));
-          return;
-        }
-      }
-
-      // All invites sent: close dialog and show success view
-      setInvitationDialogOpen(false);
-      setInviteSent(true);
-    } catch (e) {
-      console.log("Invite error", e);
-      setError("Något gick fel, försök igen.");
+      return await action();
     } finally {
-      setIsLoading(false);
+      inFlight.current = false;
     }
   }
 
-  async function onSkip() {
+  function onInvite(emails: string[]) {
+    return withLock(emails, () => sendInvites(emails));
+  }
+
+  // Save onboarding, then send invites to other users
+  async function sendInvites(emails: string[]) {
+    // Check all before saving or sending anything
+    const validationError = validateInviteEmails(emails, session?.user.email);
+
+    if (validationError) {
+      setError(validationError);
+      return emails;
+    }
+
     const finished = await finish();
-    if (finished) completeOnboarding();
+    if (!finished) return emails;
+
+    setIsLoading(true);
+
+    // Declared outside try, so catch knows which were not tried yet
+    const failed: string[] = [];
+    let tried = 0;
+    const failures: InviteFailure[] = [];
+
+    try {
+      const user = session?.user;
+      if (!user) throw new NotSignedInError();
+
+      // Keep going on errors, so one rejected address does not stop the rest
+      for (const email of emails) {
+        const { error: inviteError } = await createInvite(user.id, email);
+        tried++;
+
+        if (inviteError) {
+          console.log("Invite error:", inviteError);
+          failed.push(email);
+          failures.push({
+            email,
+            message: inviteErrorMessage(inviteError, SEND_INVITE_FALLBACK),
+          });
+        }
+      }
+    } catch (e) {
+      console.log("Invite error", e);
+      // The ones not tried yet were not sent either
+      const notTried = emails.slice(tried);
+      failed.push(...notTried);
+      const message =
+        e instanceof NotSignedInError
+          ? "Din session har gått ut. Logga in igen."
+          : SEND_INVITE_FALLBACK;
+      failures.push(...notTried.map((email) => ({ email, message })));
+    } finally {
+      setIsLoading(false);
+    }
+
+    if (failures.length > 0) {
+      // Only reached after finish() succeeded, so the profile is saved
+      setError(
+        `${inviteFailureSummary(failures, emails.length)} Din profil och bevakning är sparade.`,
+      );
+      return failed;
+    }
+
+    // All invites sent: close dialog and show success view
+    setInvitationDialogOpen(false);
+    setInviteSent(true);
+    onInviteSent?.();
+    return [];
+  }
+
+  function onSkip() {
+    return withLock(undefined, async () => {
+      const finished = await finish();
+      if (finished) finishOnboarding();
+    });
+  }
+
+  // The answer belongs to onboarding. Clear it, otherwise it shows up under "Idag"
+  // on the notifications page the first time it is opened, maybe days later
+  function finishOnboarding() {
+    completeOnboarding();
+    clearAnswer();
+  }
+
+  // Shown after accepting an invite. Fortsätt saves onboarding like Hoppa över
+  if (answeredInvite === "accepted") {
+    return (
+      <View className="flex-1 justify-center w-full px-8 gap-6">
+        <View className="gap-2">
+          <Text variant="h1">Konton kopplade</Text>
+          <Text>
+            {`Du och ${answeredFromName ?? "din grupp"} kan nu se varandras sparade objekt och visningstider.`}
+          </Text>
+        </View>
+
+        {error && <FormError>{error}</FormError>}
+
+        <Button
+          variant="secondary"
+          onPress={onSkip}
+          disabled={isLoading}
+          className="px-10 self-start"
+        >
+          <Text>{isLoading ? "Sparar..." : "Fortsätt"}</Text>
+        </Button>
+      </View>
+    );
   }
 
   // Shown after invites are sent. The user decides when to continue
@@ -100,15 +245,13 @@ export default function ConnectAccountForm() {
           <Text variant="h1">Inbjudan skickad</Text>
           <Text>
             När personen du bjudit in accepterar kopplas era konton ihop. Du
-            hittar dina inbjudningar under kontoinställningar.
+            hittar dina inbjudningar under Inställningar.
           </Text>
         </View>
 
-        <FormMessage>Inbjudan är skickad!</FormMessage>
-
         <Button
           variant="secondary"
-          onPress={() => completeOnboarding()}
+          onPress={finishOnboarding}
           className="px-10 self-start"
         >
           <Text>Fortsätt</Text>
@@ -123,39 +266,72 @@ export default function ConnectAccountForm() {
         <Text variant="h1">Koppla konto</Text>
         <Text>
           Koppla ihop ditt konto med ett eller flera andra för att kunna se
-          varandras sparade objekt och gemensamma visningstider
+          varandras sparade objekt och gemensamma visningstider.
         </Text>
       </View>
 
       {invitationDialogOpen && (
         <SendInviteDialog
           open={invitationDialogOpen}
-          onOpenChange={setInvitationDialogOpen}
+          onOpenChange={(open) => {
+            setInvitationDialogOpen(open);
+            if (!open) setError(null);
+          }}
           onAction={onInvite}
+          memberCount={accounts.members.length}
           isLoading={isLoading}
           error={error}
         />
       )}
 
-      {error && <FormError>{error}</FormError>}
+      {receivedInvites.map((i) => (
+        <View key={i.id} className="gap-2">
+          <Text variant="bold">
+            {`${i.from_name} (${i.from_email}) har bjudit in dig till sin grupp.`}
+          </Text>
+          <View className="flex-row gap-2">
+            <Button
+              variant="secondary"
+              onPress={() => onAnswer(i.id, "accepted")}
+              disabled={isSubmitting || isLoading}
+            >
+              <Text>Acceptera</Text>
+            </Button>
+            <Button
+              variant="destructive"
+              onPress={() => onAnswer(i.id, "declined")}
+              disabled={isSubmitting || isLoading}
+            >
+              <Text>Avböj</Text>
+            </Button>
+          </View>
+        </View>
+      ))}
+
+      {answeredInvite === "declined" && <Text>Inbjudan nekad.</Text>}
+
+      {error && !invitationDialogOpen && <FormError>{error}</FormError>}
 
       <View className="gap-2 items-start">
         <Button
           variant="secondary"
-          onPress={() => setInvitationDialogOpen(true)}
+          onPress={() => {
+            setError(null);
+            setInvitationDialogOpen(true);
+          }}
           disabled={isLoading}
           className="px-10"
         >
           <Text>Bjud in konto</Text>
         </Button>
-        <Text>Detta kan göras senare via dina kontoinställningar</Text>
+        <Text>Det här kan du också göra senare under Inställningar.</Text>
         <Button
           variant="link"
           className="p-0"
           onPress={onSkip}
           disabled={isLoading}
         >
-          <Text>Hoppa över</Text>
+          <Text>{isLoading ? "Sparar..." : "Hoppa över"}</Text>
         </Button>
       </View>
     </View>

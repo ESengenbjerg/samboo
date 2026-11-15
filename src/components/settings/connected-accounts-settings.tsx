@@ -1,4 +1,4 @@
-import { ConnectedAccounts } from "@/hooks/useConnectedAccounts";
+import { ConnectedAccounts } from "@/hooks/groups/useConnectedAccounts";
 import { GroupMember } from "@/types/connected-accounts";
 import { Image } from "expo-image";
 import { LogOut, Trash, User } from "lucide-react-native";
@@ -9,6 +9,7 @@ import InfoMessage from "../info-message";
 import { ConfirmDialog } from "../modals/confirm-dialog";
 import { Button } from "../ui/button";
 import { Icon } from "../ui/icon";
+import { Spinner } from "../ui/spinner";
 import { Text } from "../ui/text";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
@@ -23,10 +24,8 @@ export default function ConnectedAccountsSettings({
     isLoading,
     error,
     isSubmitting,
-    actionError,
     groupNotice,
     dismissGroupNotice,
-    clearActionError,
     removeMember,
     leaveGroup,
   } = accounts;
@@ -36,7 +35,6 @@ export default function ConnectedAccountsSettings({
   );
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
 
-  const displayError = error || actionError;
   const isBusy = isLoading || isSubmitting;
 
   async function onRemoveMember() {
@@ -54,18 +52,18 @@ export default function ConnectedAccountsSettings({
     <View className="gap-4">
       <Text variant="h2">Kopplade konton</Text>
 
-      {displayError && <FormError>{displayError}</FormError>}
+      {error && <FormError>{error}</FormError>}
       {groupNotice && (
         <InfoMessage onDismiss={dismissGroupNotice}>{groupNotice}</InfoMessage>
       )}
 
       {isBusy ? (
-        <Text>Laddar...</Text>
+        <Spinner size="large" />
       ) : !isInGroup ? (
         <Text>Du har inga kopplade konton ännu.</Text>
       ) : (
         <View className="gap-2">
-          <Text>Tryck på namnet för att se kontots mailadress.</Text>
+          <Text>Tryck på namnet för att se kontots mejladress.</Text>
           {members.map((m) => (
             <View key={m.id} className="flex-row justify-between items-center">
               {/* Avatar and name */}
@@ -75,6 +73,7 @@ export default function ConnectedAccountsSettings({
                     {m.avatarUrl ? (
                       <Image
                         source={m.avatarUrl}
+                        alt=""
                         style={{ width: 32, height: 32, borderRadius: 24 }}
                         contentFit="cover"
                       />
@@ -98,7 +97,6 @@ export default function ConnectedAccountsSettings({
                 variant="destructive"
                 aria-label={`Ta bort ${m.name}`}
                 onPress={() => {
-                  clearActionError();
                   dismissGroupNotice();
                   setMemberToRemove(m);
                 }}
@@ -114,7 +112,6 @@ export default function ConnectedAccountsSettings({
           <Button
             variant="outline"
             onPress={() => {
-              clearActionError();
               dismissGroupNotice();
               setLeaveDialogOpen(true);
             }}

@@ -1,15 +1,21 @@
 import {
-    BedDoubleIcon,
-    HandCoins,
-    House,
-    LucideVectorSquare,
+  BedDoubleIcon,
+  Calendar,
+  HandCoins,
+  House,
+  Layers,
+  LucideVectorSquare,
+  Trees,
 } from "lucide-react-native";
 
 export const OBJECT_INFO = {
   property_type: { icon: House, title: "Bostadstyp", suffix: "" },
   rooms: { icon: BedDoubleIcon, title: "Antal rum", suffix: " rum" },
   living_area: { icon: LucideVectorSquare, title: "Boarea", suffix: " kvm" },
+  plot_area: { icon: Trees, title: "Tomtarea", suffix: " kvm" },
+  floor_level: { icon: Layers, title: "Våning", suffix: "" },
   monthly_fee: { icon: HandCoins, title: "Avgift", suffix: " kr/mån" },
+  build_year: { icon: Calendar, title: "Byggår", suffix: "" },
 };
 
 export type ObjectInfoType = keyof typeof OBJECT_INFO;

@@ -10,11 +10,13 @@ import { Image } from "expo-image";
 import { Pressable, View } from "react-native";
 
 import { cn } from "@/lib/utils";
-import { formatPrice } from "@/utils/format-price";
+import { formatPrice } from "@shared/format";
 import { cva, type VariantProps } from "class-variance-authority";
+import { ChevronRight } from "lucide-react-native";
 import { useState } from "react";
 import { LikeButton } from "./like-button";
 import OnCardTag from "./tags/card-tag";
+import { Icon } from "./ui/icon";
 
 const fallbackImage = require("@/assets/images/no-image.jpg");
 
@@ -47,6 +49,7 @@ type ObjectCardProps = VariantProps<typeof objectCardVariants> & {
   rooms: number | null;
   imageUrl: string;
   listingId: number;
+  isRemoved: boolean;
   isNew?: boolean;
   isNewConstruction?: boolean;
   onPress?: () => void;
@@ -62,6 +65,7 @@ export function ObjectCard({
   rooms,
   imageUrl,
   listingId,
+  isRemoved,
   isNew,
   isNewConstruction,
   onPress,
@@ -76,22 +80,55 @@ export function ObjectCard({
 
   return (
     <View className={cn(objectCardVariants({ size }), className)}>
-      <Card className="flex-1 py-0 overflow-hidden">
-        <View className={imageWrapperVariants({ size })}>
-          <Image
-            source={showFallback ? fallbackImage : { uri: imageUrl }}
-            onError={() => setFailedUrl(imageUrl ?? null)}
-            style={{ width: "100%", height: "100%" }}
-            contentFit="cover"
-          />
-          <OnCardTag isNew={isNew} isNewConstruction={isNewConstruction} />
+      <Card className="grow py-0 overflow-hidden">
+        <View className="relative items-center justify-center">
+          {isRemoved && (
+            <View className="absolute z-10 items-center justify-center">
+              <Text variant="large" className="text-primary drop-shadow-sm">
+                Hittas inte
+              </Text>
+              <View className="flex-row items-center gap-1 px-4">
+                <Text variant="small" className="text-center text-primary">
+                  Mer info
+                </Text>
+                <Icon
+                  as={ChevronRight}
+                  className="text-secondary bg-primary rounded-full"
+                />
+              </View>
+            </View>
+          )}
+          <View className={imageWrapperVariants({ size })}>
+            <Image
+              source={showFallback ? fallbackImage : { uri: imageUrl }}
+              // Decorative: the card link already names the listing
+              alt=""
+              accessible={false}
+              onError={() => setFailedUrl(imageUrl ?? null)}
+              style={{
+                width: "100%",
+                height: "100%",
+                filter: isRemoved
+                  ? "grayscale(0.2) brightness(40%)"
+                  : undefined,
+              }}
+              contentFit="cover"
+            />
+            <OnCardTag
+              isNew={isNew}
+              isNewConstruction={isSmall && isNew ? false : isNewConstruction}
+            />
+          </View>
         </View>
 
         {!isSmall ? (
           <>
-            <CardHeader className="flex-1 flex-row overflow-hidden justify-between">
-              <View className="flex-1">
-                <CardTitle numberOfLines={1} className="max-w-[90%]">
+            <CardHeader className="flex-row overflow-hidden justify-between">
+              <View className="flex-1 gap-1">
+                <CardTitle
+                  numberOfLines={1}
+                  className="max-w-[90%] leading-tight"
+                >
                   {address}
                 </CardTitle>
                 <CardDescription numberOfLines={1} className="max-w-[90%]">
@@ -119,7 +156,9 @@ export function ObjectCard({
           <>
             <CardHeader className="flex-1 px-3">
               <View>
-                <CardTitle numberOfLines={1}>{address}</CardTitle>
+                <CardTitle numberOfLines={1} className="leading-tight">
+                  {address}
+                </CardTitle>
                 <CardDescription numberOfLines={1}>
                   {[area, municipality].filter(Boolean).join(", ")}
                 </CardDescription>
@@ -155,9 +194,10 @@ export function ObjectCard({
 
       <LikeButton
         listingId={listingId}
+        address={address}
         size={20}
         className={
-          isSmall ? "absolute right-1 bottom-2" : "absolute right-4 bottom-16"
+          isSmall ? "absolute right-1 bottom-2" : "absolute right-4 bottom-20"
         }
       />
     </View>
